@@ -49,7 +49,7 @@ var node = (function() {
       positions.push({
         x:    sx + (sw / (count + 1)) * (i + 1),
         y:    sy - 4 * transform.scale,
-        port: def.inputs[i].port,
+        port: def.inputs[i].name,
         type: def.inputs[i].type
       });
     }
@@ -59,9 +59,9 @@ var node = (function() {
   // ─── Draw a single node ───────────────────────────────────────
 
   function drawNode(ctx, nodeData, transform, opts) {
-    var opts        = opts || {};
-    var def = nodeRegistry.getByType(nodeData.type);
-    var strokeColor  = def ? def.strokeColor : '#888888';
+    opts             = opts || {};
+    var def          = nodeRegistry.getByType(nodeData.type);
+    var strokeColor  = nodeRegistry.getCategoryColor(def ? def.category : null);
     var state        = nodeData.state || 'ghost';
     var label        = def ? def.label : nodeData.type;
     var selected     = nodeData.selected || false;
@@ -231,6 +231,17 @@ var node = (function() {
     };
   }
 
+  // ─── Output port hit test ─────────────────────────────────────
+  // Returns the port position { x, y } if screenX/Y is within hit radius, or null.
+
+  function hitTestOutputPort(nodeData, transform, screenX, screenY) {
+    var pos  = outputPortPos(nodeData, transform);
+    var hitR = 8 * transform.scale;
+    var dx   = screenX - pos.x;
+    var dy   = screenY - pos.y;
+    return (dx * dx + dy * dy <= hitR * hitR) ? pos : null;
+  }
+
   // ─── Input port hit test ──────────────────────────────────────
   // Returns the port definition { port, type } if screenX/Y is within
   // hit radius of any input port, or null.
@@ -251,6 +262,7 @@ var node = (function() {
   return {
     drawNode:            drawNode,
     hitTest:             hitTest,
+    hitTestOutputPort:   hitTestOutputPort,
     hitTestInputPort:    hitTestInputPort,
     outputPortPos:       outputPortPos,
     inputPortPositions:  inputPortPositions,

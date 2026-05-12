@@ -240,47 +240,61 @@ var graphState = {
 
 ---
 
-### TASK 2.2 — Node registry ✅
-**What:** `nodeRegistry.js` — declares every node type, its category, port schema, and AE mapping.
+### TASK 2.2 — Node registry ✅ *(refactored May 2026)*
+**What:** `nodeRegistry.js` — thin registry loader. Each node type lives in its own file under `graph/nodes/categories/`.
 
-**Each entry must include:**
-```javascript
-{
-  type: 'TextNode',
-  label: 'Text',
-  category: 'layers',
-  strokeColor: '#7ec98f',
-  dedicated: false,
-  aeLayerType: 'TextLayer',
-  aeProjectObject: null,
-  inputs: [
-    { port: 'data_content',  type: 'data', accepts: 'string'  },
-    { port: 'data_fontSize', type: 'data', accepts: 'number'  },
-    { port: 'data_color',    type: 'data', accepts: 'color'   }
-  ],
-  defaultProperties: {
-    content: 'Text',
-    fontSize: 72,
-    color: [1, 1, 1, 1]
-  }
-}
+**Architecture (post-refactor):**
+```
+graph/
+  nodeRegistry.js                        ← thin registry (register/lookup only)
+  nodes/
+    categories/
+      core/
+        Comp.js                          ← ✅ first node definition
+      effects/                           ← ready for future nodes
+      generators/                        ← ready for future nodes
+      utility/                           ← ready for future nodes
 ```
 
-**All node types to register:**
-- Containers: CompNode, SolidNode, NullNode, AdjustmentNode, FootageNode
-- Layers: TextNode, ShapeNode, MaskNode
-- Effects: EffectNode
-- Graph: GraphPositionNode, GraphRotationNode, GraphScaleNode
-- Special: IsParentNode
+**Registry public API:**
+```javascript
+nodeRegistry.getDefinition(type)         // returns one definition or null
+nodeRegistry.getAllDefinitions()         // returns full registry map
+nodeRegistry.getByCategory(category)    // returns array of definitions
+nodeRegistry.listTypes()                // returns array of type strings
+// Backward-compat aliases (used by legacy drag code):
+nodeRegistry.getByType(type)
+nodeRegistry.getAll()
+```
 
-**Files to create/touch:**
-- `graph/nodeRegistry.js`
+**Node definition contract** (see `docs/SKILL-NODE-AUTHORING.md` for full spec):
+```javascript
+// graph/nodes/categories/{category}/{NodeName}.js
+nodeRegistry.register({
+  type:     'category/node-name',   // kebab-case, unique
+  label:    'Human Label',
+  category: 'Category',            // must match folder name
+  version:  '1.0.0',
+  inputs:   [ { name, type, required } ],
+  outputs:  [ { name, type } ],
+  params:   [ { key, label, type, default, min?, max?, options? } ],
+  apply:    function(nodeData) { return 'extendScriptFnCall(...)'; }
+});
+```
+
+**Adding a new node:** create one file, add one `<script>` tag in `index.html` after `nodeRegistry.js`. No other file changes needed. Read `docs/SKILL-NODE-AUTHORING.md` before authoring.
+
+**Registered nodes:**
+- `core/comp` ✅ (`graph/nodes/categories/core/Comp.js`)
+- All other node types: to be added one per session as needed
 
 **Verification checklist:**
-- [ ] Every node type is registered
-- [ ] Each entry has type, label, category, strokeColor, dedicated flag, inputs, defaultProperties
-- [ ] `nodeRegistry.getByType('TextNode')` returns the correct definition
-- [ ] `nodeRegistry.getByCategory('effects')` returns all effect nodes
+- [x] `nodeRegistry.js` is a thin registry with no inline node definitions
+- [x] `register()` warns on duplicate type, does not throw
+- [x] All four public API functions exist and work
+- [x] `Comp.js` self-registers on load via `nodeRegistry.register()`
+- [x] `nodeRegistry.getDefinition('core/comp')` returns the Comp definition
+- [x] Backward-compat aliases `getByType` / `getAll` preserved for `index.js`
 
 ---
 
@@ -401,7 +415,7 @@ function generateWireId() {
 
 ---
 
-## PHASE 3 — Wire System
+## PHASE 3 — Wire System ✅
 *Goal: Nodes can be wired together. Port system and ghost cascade logic implemented.*
 
 ---
@@ -462,7 +476,7 @@ Each input port is a small circle. Port label appears on hover (e.g. `"data_font
 
 ---
 
-### TASK 3.3 — Wire drawing
+### TASK 3.3 — Wire drawing ✅
 **What:** User drags from an output port to an input port. Bezier wire renders during drag and snaps on drop.
 
 **Drag behavior:**
@@ -496,17 +510,17 @@ Each input port is a small circle. Port label appears on hover (e.g. `"data_font
 - `graph/canvas.js` — wire drag event handling, render all wires from graphState
 
 **Verification checklist:**
-- [ ] Dragging from output port shows live bezier curve to cursor
-- [ ] Valid input port highlights on hover during drag
-- [ ] Invalid type port does not highlight
-- [ ] Confirmed wire renders persistently between nodes
-- [ ] Cycle is detected and rejected silently (no wire created, no error shown)
-- [ ] Wire color matches port type
-- [ ] Wires redraw correctly on node move
+- [x] Dragging from output port shows live bezier curve to cursor
+- [x] Valid input port highlights on hover during drag
+- [x] Invalid type port does not highlight
+- [x] Confirmed wire renders persistently between nodes
+- [x] Cycle is detected and rejected silently (no wire created, no error shown)
+- [x] Wire color matches port type
+- [x] Wires redraw correctly on node move
 
 ---
 
-### TASK 3.4 — Ghost cascade logic
+### TASK 3.4 — Ghost cascade logic ✅
 **What:** Implement the downstream traversal algorithm. When a wire is deleted, determine which nodes go ghost.
 
 **Algorithm (panel JS only — no AE calls yet):**
@@ -538,19 +552,19 @@ hasCompDownstream(uuid):
   // return true if any path reaches a CompNode
 ```
 
-**Wire deletion trigger:** right-click on a wire → context menu → "Delete wire". Or select wire (click within 6px of wire) and press Delete key.
+**Wire deletion trigger:** double-click within 6px of a wire. Single-click selects (highlights) the wire.
 
 **Files to create/touch:**
 - `graph/wire.js` — wire selection (click proximity), cascade algorithm
 - `graph/canvas.js` — wire click detection, context menu
 
 **Verification checklist:**
-- [ ] Clicking within 6px of a wire selects it (wire highlights)
-- [ ] Delete key on selected wire removes it
-- [ ] Deleting a data wire only ghosts the upstream node
-- [ ] Deleting a layer wire cascades ghost upstream correctly
-- [ ] A node with two comp paths stays alive when one path is broken
-- [ ] CompNode never goes ghost regardless of wire deletions
+- [x] Clicking within 6px of a wire selects it (wire highlights)
+- [x] Double-clicking within 6px of a wire deletes it
+- [x] Deleting a data wire only ghosts the upstream node
+- [x] Deleting a layer wire cascades ghost upstream correctly
+- [x] A node with two comp paths stays alive when one path is broken
+- [x] CompNode never goes ghost regardless of wire deletions
 
 ---
 
@@ -559,7 +573,7 @@ hasCompDownstream(uuid):
 
 ---
 
-### TASK 4.1 — Reserved comp init (ExtendScript)
+### TASK 4.1 — Reserved comp init (ExtendScript) ✅
 **What:** `jsx/init.jsx` — creates the Reserved comp and two locked text layers on first node drop.
 
 **ExtendScript function:** `initReservedComp()`
@@ -579,11 +593,12 @@ hasCompDownstream(uuid):
 - `bridge/evalBridge.js` — already built
 
 **Verification checklist:**
-- [ ] After first node drop: `"DO NOT DELETE - Procedia"` folder appears in AE project
-- [ ] `"__PROCEDIA_RESERVED__"` comp appears inside it
-- [ ] Two text layers exist inside the comp, both locked
-- [ ] Both text layers contain valid JSON
-- [ ] Running `initReservedComp()` twice does not create duplicates
+- [x] After first node drop: `"DO NOT DELETE - Procedia"` folder appears in AE project
+- [x] `"__PROCEDIA_RESERVED__"` comp appears inside it
+- [x] Two text layers exist inside the comp, both locked
+- [x] Both text layers contain valid JSON
+- [x] Running `initReservedComp()` twice does not create duplicates
+- [x] Panel loads without console errors
 
 ---
 
@@ -848,11 +863,11 @@ PHASE 2 — Graph Core ✅
 PHASE 3 — Wire System
   3.1 evalBridge                          ✅
   3.2 Dynamic port rendering              ✅
-  3.3 Wire drawing
-  3.4 Ghost cascade logic
+  3.3 Wire drawing                        ✅
+  3.4 Ghost cascade logic                 ✅
 
 PHASE 4 — AE Bridge
-  4.1 Reserved comp init (ExtendScript)
+  4.1 Reserved comp init (ExtendScript)   ✅
   4.2 writeGhostEntry
   4.3 makeNodeAlive
   4.4 makeNodeGhost

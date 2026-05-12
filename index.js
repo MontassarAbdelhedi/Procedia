@@ -5,6 +5,35 @@ try {
   console.warn('[Procedia] CSInterface not available — running outside AE');
 }
 
+// ─── JSX loader ──────────────────────────────────────────────────────────────
+
+function loadJSX(fileName) {
+  if (!csInterface) return;
+  var extPath  = csInterface.getSystemPath(SystemPath.EXTENSION);
+  var fullPath = extPath + '/jsx/' + fileName;
+  // $.evalFile expects forward slashes on all platforms
+  csInterface.evalScript('$.evalFile("' + fullPath.replace(/\\/g, '/') + '")');
+}
+
+// ─── Reserved-comp init guard ─────────────────────────────────────────────────
+
+var procediaReady = false;
+
+function ensureProcediaReady() {
+  if (procediaReady || !csInterface) {
+    return Promise.resolve();
+  }
+  return evalBridge.evalScript('initReservedComp()').then(function(res) {
+    if (res.ok) {
+      procediaReady = true;
+    } else {
+      console.error('[Procedia] initReservedComp failed:', res.error);
+    }
+  }).catch(function(err) {
+    console.error('[Procedia] initReservedComp bridge error:', err.message);
+  });
+}
+
 // ─── Node list data ──────────────────────────────────────────────────────────
 // Mirrors the category/node definitions that nodeRegistry.js will own in Task 2.2.
 // This list drives the visual node panel only — no logic attached yet.
@@ -171,7 +200,7 @@ function initDrag() {
 
   // Map node list item labels to node type names in the registry
   var LABEL_TO_TYPE = {
-    'comp':          'CompNode',
+    'comp':          'core/comp',
     'solid':         'SolidNode',
     'null':          'NullNode',
     'adjustment':    'AdjustmentNode',
@@ -203,10 +232,10 @@ function initDrag() {
     dragState.active      = true;
     dragState.nodeType    = nodeType;
     dragState.nodeLabel   = def.label;
-    dragState.strokeColor = def.strokeColor;
+    dragState.strokeColor = nodeRegistry.getCategoryColor(def.category);
 
     preview.textContent   = def.label;
-    preview.style.borderColor = def.strokeColor;
+    preview.style.borderColor = dragState.strokeColor;
     preview.style.display = 'block';
     preview.style.left    = (e.clientX + 10) + 'px';
     preview.style.top     = (e.clientY - 14) + 'px';
@@ -240,26 +269,31 @@ function initDrag() {
     var screenY = e.clientY - rect.top;
     var worldPos = canvas.screenToWorld(screenX, screenY);
 
-    var def = nodeRegistry.getByType(dragState.nodeType);
-    var id  = uuidGenerator.generateNodeId();
+    var def      = nodeRegistry.getByType(dragState.nodeType);
+    var id       = uuidGenerator.generateNodeId();
+    var nodeType = dragState.nodeType;
+    var pos      = { x: worldPos.x - node.NODE_WIDTH / 2, y: worldPos.y - node.NODE_HEIGHT / 2 };
+    var props    = buildDefaultProperties(def);
 
-    graphState.addNode({
-      id:         id,
-      type:       dragState.nodeType,
-      state:      'ghost',
-      position:   { x: worldPos.x - node.NODE_WIDTH / 2, y: worldPos.y - node.NODE_HEIGHT / 2 },
-      properties: copyDefaults(def.defaultProperties)
+    ensureProcediaReady().then(function() {
+      graphState.addNode({
+        id:         id,
+        type:       nodeType,
+        state:      'ghost',
+        position:   pos,
+        properties: props
+      });
     });
   });
 }
 
-function copyDefaults(defaults) {
-  var copy = {};
-  var keys = Object.keys(defaults);
-  for (var i = 0; i < keys.length; i++) {
-    copy[keys[i]] = defaults[keys[i]];
+function buildDefaultProperties(def) {
+  var props = {};
+  if (!def || !def.params) return props;
+  for (var i = 0; i < def.params.length; i++) {
+    props[def.params[i].key] = def.params[i].default;
   }
-  return copy;
+  return props;
 }
 
 // ─── Keyboard: delete selected node ──────────────────────────────────────────
@@ -284,6 +318,7 @@ function initKeyboard() {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 
+try { loadJSX('init.jsx'); }     catch(e) { console.error('[Procedia] loadJSX failed:', e); }
 try { buildNodeList(); }        catch(e) { console.error('[Procedia] buildNodeList failed:', e); }
 try { initSearch(); }           catch(e) { console.error('[Procedia] initSearch failed:', e); }
 try { canvas.init(); }          catch(e) { console.error('[Procedia] canvas.init failed:', e); }
@@ -291,4 +326,4 @@ try { minimap.init(); }         catch(e) { console.error('[Procedia] minimap.ini
 try { notificationBar.init(); } catch(e) { console.error('[Procedia] notificationBar.init failed:', e); }
 try { inspector.init(); }       catch(e) { console.error('[Procedia] inspector.init failed:', e); }
 try { initDrag(); }             catch(e) { console.error('[Procedia] initDrag failed:', e); }
-try { initKeyboard(); }        catch(e) { console.error('[Procedia] initKeyboard failed:', e); }
+try { initKeyboard(); }         catch(e) { console.error('[Procedia] initKeyboard failed:', e); }
