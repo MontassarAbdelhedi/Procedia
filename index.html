@@ -18,6 +18,9 @@
     <!-- Dev reload button -->
     <button id="reload-btn" onclick="window.location.reload()" title="Reload panel">⟳</button>
 
+    <!-- Drag preview -->
+    <div id="drag-preview"></div>
+
     <!-- Three-column layout -->
     <div id="columns">
 
@@ -43,6 +46,11 @@
   </div>
 
   <script src="CSInterface.js"></script>
+  <script src="bridge/evalBridge.js"></script>
+  <script src="graph/graphState.js"></script>
+  <script src="graph/nodeRegistry.js"></script>
+  <script src="data/uuidGenerator.js"></script>
+  <script src="graph/node.js"></script>
   <script src="graph/canvas.js"></script>
   <script src="graph/minimap.js"></script>
   <script src="notifications/notificationBar.js"></script>

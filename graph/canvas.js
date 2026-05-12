@@ -20,6 +20,17 @@ var canvas = (function() {
   var panLastY = 0;
   var spaceDown = false;
 
+  // Node move state
+  var isMovingNode = false;
+  var movingNodeId = null;
+  var moveLastX = 0;
+  var moveLastY = 0;
+
+  // Wire drag state (populated by wire.js in Task 3.3)
+  var wireDragActive = false;
+  var hoverNodeId    = null;
+  var hoveredPort    = null;
+
   // Dot grid world-space interval
   var GRID_SIZE = 24;
 
@@ -32,11 +43,26 @@ var canvas = (function() {
     if (!ctx) return;
     ctx.clearRect(0, 0, width, height);
     drawGrid();
+    drawNodes();
     drawZoomLabel();
-    // Phase 2+: draw wires, draw nodes
 
     for (var i = 0; i < afterRenderCallbacks.length; i++) {
       afterRenderCallbacks[i]();
+    }
+  }
+
+  function drawNodes() {
+    var transform  = { offsetX: offsetX, offsetY: offsetY, scale: scale };
+    var nodes      = graphState.getAllNodes();
+    var keys       = Object.keys(nodes);
+    var selectedId = graphState.getSelection();
+    for (var i = 0; i < keys.length; i++) {
+      var n = nodes[keys[i]];
+      n.selected = (n.id === selectedId);
+      node.drawNode(ctx, n, transform, {
+        showInputPorts: wireDragActive && (hoverNodeId === n.id),
+        hoveredPort:    (hoverNodeId === n.id) ? hoveredPort : null
+      });
     }
   }
 
@@ -112,6 +138,19 @@ var canvas = (function() {
 
   // ─── Mouse events ─────────────────────────────────────────────
 
+  function hitTestNodes(screenX, screenY) {
+    var transform = { offsetX: offsetX, offsetY: offsetY, scale: scale };
+    var nodes = graphState.getAllNodes();
+    var keys = Object.keys(nodes);
+    // Test in reverse so topmost-drawn node is hit first
+    for (var i = keys.length - 1; i >= 0; i--) {
+      if (node.hitTest(nodes[keys[i]], transform, screenX, screenY)) {
+        return nodes[keys[i]];
+      }
+    }
+    return null;
+  }
+
   function onMouseDown(e) {
     var isMiddle = e.button === 1;
     var isSpaceLeft = spaceDown && e.button === 0;
@@ -122,24 +161,90 @@ var canvas = (function() {
       panLastY = e.clientY;
       el.style.cursor = 'grabbing';
       e.preventDefault();
+      return;
+    }
+
+    if (e.button === 0) {
+      var rect = el.getBoundingClientRect();
+      var screenX = e.clientX - rect.left;
+      var screenY = e.clientY - rect.top;
+      var hit = hitTestNodes(screenX, screenY);
+
+      if (hit) {
+        graphState.setSelection(hit.id);
+        isMovingNode = true;
+        movingNodeId = hit.id;
+        moveLastX = e.clientX;
+        moveLastY = e.clientY;
+        el.style.cursor = 'move';
+      } else {
+        graphState.setSelection(null);
+      }
+      e.preventDefault();
     }
   }
 
   function onMouseMove(e) {
-    if (!isPanning) return;
-    var dx = e.clientX - panLastX;
-    var dy = e.clientY - panLastY;
-    panLastX = e.clientX;
-    panLastY = e.clientY;
-    offsetX += dx;
-    offsetY += dy;
-    render();
+    var rect    = el.getBoundingClientRect();
+    var screenX = e.clientX - rect.left;
+    var screenY = e.clientY - rect.top;
+
+    if (isPanning) {
+      var dx = e.clientX - panLastX;
+      var dy = e.clientY - panLastY;
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      offsetX += dx;
+      offsetY += dy;
+      render();
+      return;
+    }
+
+    if (isMovingNode && movingNodeId) {
+      var dx = e.clientX - moveLastX;
+      var dy = e.clientY - moveLastY;
+      moveLastX = e.clientX;
+      moveLastY = e.clientY;
+
+      var n = graphState.getNode(movingNodeId);
+      if (n) {
+        graphState.updateNode(movingNodeId, {
+          position: {
+            x: n.position.x + dx / scale,
+            y: n.position.y + dy / scale
+          }
+        });
+      }
+      return;
+    }
+
+    // Track hovered node (needed for port display during wire drag)
+    if (wireDragActive) {
+      var transform = { offsetX: offsetX, offsetY: offsetY, scale: scale };
+      var hit = hitTestNodes(screenX, screenY);
+      var newHoverId = hit ? hit.id : null;
+      var newHoverPort = null;
+      if (hit) {
+        var portHit = node.hitTestInputPort(hit, transform, screenX, screenY);
+        newHoverPort = portHit ? portHit.port : null;
+      }
+      if (newHoverId !== hoverNodeId || newHoverPort !== hoveredPort) {
+        hoverNodeId  = newHoverId;
+        hoveredPort  = newHoverPort;
+        render();
+      }
+    }
   }
 
   function onMouseUp(e) {
     if (isPanning) {
       isPanning = false;
       el.style.cursor = spaceDown ? 'grab' : 'default';
+    }
+    if (isMovingNode) {
+      isMovingNode = false;
+      movingNodeId = null;
+      el.style.cursor = 'default';
     }
   }
 
@@ -183,11 +288,14 @@ var canvas = (function() {
     el.addEventListener('mouseleave', onMouseUp);
     el.addEventListener('wheel', onWheel, { passive: false });
 
-    // Middle-click context menu suppression
     el.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
+
+    // Re-render whenever graph state changes
+    graphState.onChange(function() { render(); });
+
   }
 
   // ─── Public API ───────────────────────────────────────────────
@@ -210,6 +318,17 @@ var canvas = (function() {
     },
     onAfterRender: function(fn) {
       afterRenderCallbacks.push(fn);
+    },
+    setWireDrag: function(active) {
+      wireDragActive = active;
+      if (!active) {
+        hoverNodeId = null;
+        hoveredPort = null;
+      }
+      render();
+    },
+    getHoveredPort: function() {
+      return hoveredPort ? { nodeId: hoverNodeId, port: hoveredPort } : null;
     }
   };
 

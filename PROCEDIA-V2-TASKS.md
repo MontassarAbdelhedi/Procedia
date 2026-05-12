@@ -200,12 +200,12 @@ procedia/
 
 ---
 
-## PHASE 2 — Graph Core
+## PHASE 2 — Graph Core ✅
 *Goal: Nodes can be dropped, selected, moved, and deleted on the canvas. No AE connection yet.*
 
 ---
 
-### TASK 2.1 — Graph state module
+### TASK 2.1 — Graph state module ✅
 **What:** `graphState.js` — the single source of truth for all in-memory graph data.
 
 **What it stores:**
@@ -240,7 +240,7 @@ var graphState = {
 
 ---
 
-### TASK 2.2 — Node registry
+### TASK 2.2 — Node registry ✅
 **What:** `nodeRegistry.js` — declares every node type, its category, port schema, and AE mapping.
 
 **Each entry must include:**
@@ -284,7 +284,7 @@ var graphState = {
 
 ---
 
-### TASK 2.3 — UUID generator
+### TASK 2.3 — UUID generator ✅
 **What:** `uuidGenerator.js` — one function, one format.
 
 **Format:** `PROC-{timestamp}-{rand4}` for nodes, `WIRE-{timestamp}-{rand4}` for wires.
@@ -311,7 +311,7 @@ function generateWireId() {
 
 ---
 
-### TASK 2.4 — Node rendering on canvas
+### TASK 2.4 — Node rendering on canvas ✅
 **What:** Draw nodes on the canvas. Drop not wired yet — just render a hardcoded test node.
 
 **Node visual anatomy:**
@@ -346,7 +346,7 @@ function generateWireId() {
 
 ---
 
-### TASK 2.5 — Drag node from list to canvas
+### TASK 2.5 — Drag node from list to canvas ✅
 **What:** User drags a node from the left panel list and drops it onto the canvas. Node appears at drop position with ghost state.
 
 **Behavior:**
@@ -371,7 +371,7 @@ function generateWireId() {
 
 ---
 
-### TASK 2.6 — Node interaction: select, move, delete
+### TASK 2.6 — Node interaction: select, move, delete ✅
 **What:** Click to select, drag to move, Delete key to remove.
 
 **Select:**
@@ -406,7 +406,7 @@ function generateWireId() {
 
 ---
 
-### TASK 3.1 — evalBridge
+### TASK 3.1 — evalBridge ✅
 **What:** `evalBridge.js` — the only file that touches `csInterface.evalScript()`.
 
 ```javascript
@@ -435,7 +435,7 @@ function evalScript(fnCall) {
 
 ---
 
-### TASK 3.2 — Dynamic port rendering
+### TASK 3.2 — Dynamic port rendering ✅
 **What:** Input ports appear on a node when the user hovers it while dragging a wire. Output port is always visible.
 
 **Output port:** always rendered as a small circle at the bottom-center of the node.
@@ -829,25 +829,25 @@ color          [■ #ffffff  ]
 ## Summary — Task Order
 
 ```
-PHASE 1 — Shell & Layout
-  1.1 Repo structure & manifest
-  1.2 Three-column layout
-  1.3 Node list panel
-  1.4 Canvas foundation
-  1.5 Minimap
-  1.6 Inspector panel & notification bar
+PHASE 1 — Shell & Layout ✅
+  1.1 Repo structure & manifest           ✅
+  1.2 Three-column layout                 ✅
+  1.3 Node list panel                     ✅
+  1.4 Canvas foundation                   ✅
+  1.5 Minimap                             ✅
+  1.6 Inspector panel & notification bar  ✅
 
-PHASE 2 — Graph Core
-  2.1 Graph state module
-  2.2 Node registry
-  2.3 UUID generator
-  2.4 Node rendering on canvas
-  2.5 Drag node from list to canvas
-  2.6 Node interaction: select, move, delete
+PHASE 2 — Graph Core ✅
+  2.1 Graph state module                  ✅
+  2.2 Node registry                       ✅
+  2.3 UUID generator                      ✅
+  2.4 Node rendering on canvas            ✅
+  2.5 Drag node from list to canvas       ✅
+  2.6 Node interaction: select, move, delete ✅
 
 PHASE 3 — Wire System
-  3.1 evalBridge
-  3.2 Dynamic port rendering
+  3.1 evalBridge                          ✅
+  3.2 Dynamic port rendering              ✅
   3.3 Wire drawing
   3.4 Ghost cascade logic
 

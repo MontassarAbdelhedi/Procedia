@@ -156,11 +156,139 @@ function initSearch() {
   clearBtn.addEventListener('click', clearSearch);
 }
 
+// ─── Drag from node list to canvas ───────────────────────────────────────────
+
+var dragState = {
+  active: false,
+  nodeType: null,   // e.g. 'TextNode'
+  nodeLabel: null,  // e.g. 'Text'
+  strokeColor: null
+};
+
+function initDrag() {
+  var preview = document.getElementById('drag-preview');
+  var canvasColumn = document.getElementById('canvas-column');
+
+  // Map node list item labels to node type names in the registry
+  var LABEL_TO_TYPE = {
+    'comp':          'CompNode',
+    'solid':         'SolidNode',
+    'null':          'NullNode',
+    'adjustment':    'AdjustmentNode',
+    'footage':       'FootageNode',
+    'text':          'TextNode',
+    'shape':         'ShapeNode',
+    'mask':          'MaskNode',
+    'effect':        'EffectNode',
+    'graphposition': 'GraphPositionNode',
+    'graphrotation': 'GraphRotationNode',
+    'graphscale':    'GraphScaleNode',
+    'isparent':      'IsParentNode'
+  };
+
+  document.getElementById('node-categories').addEventListener('mousedown', function(e) {
+    var item = e.target;
+    while (item && !item.classList.contains('node-item')) {
+      item = item.parentElement;
+    }
+    if (!item) return;
+
+    var rawName = (item.dataset.name || '').toLowerCase();
+    var nodeType = LABEL_TO_TYPE[rawName];
+    if (!nodeType) return;
+
+    var def = nodeRegistry.getByType(nodeType);
+    if (!def) return;
+
+    dragState.active      = true;
+    dragState.nodeType    = nodeType;
+    dragState.nodeLabel   = def.label;
+    dragState.strokeColor = def.strokeColor;
+
+    preview.textContent   = def.label;
+    preview.style.borderColor = def.strokeColor;
+    preview.style.display = 'block';
+    preview.style.left    = (e.clientX + 10) + 'px';
+    preview.style.top     = (e.clientY - 14) + 'px';
+
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragState.active) return;
+    preview.style.left = (e.clientX + 10) + 'px';
+    preview.style.top  = (e.clientY - 14) + 'px';
+  });
+
+  document.addEventListener('mouseup', function(e) {
+    if (!dragState.active) return;
+
+    preview.style.display = 'none';
+    dragState.active = false;
+
+    // Check if drop landed inside the canvas column
+    var rect = canvasColumn.getBoundingClientRect();
+    var insideCanvas = (
+      e.clientX >= rect.left && e.clientX <= rect.right &&
+      e.clientY >= rect.top  && e.clientY <= rect.bottom
+    );
+
+    if (!insideCanvas) return;
+
+    // Convert screen position to canvas-relative screen position, then to world
+    var screenX = e.clientX - rect.left;
+    var screenY = e.clientY - rect.top;
+    var worldPos = canvas.screenToWorld(screenX, screenY);
+
+    var def = nodeRegistry.getByType(dragState.nodeType);
+    var id  = uuidGenerator.generateNodeId();
+
+    graphState.addNode({
+      id:         id,
+      type:       dragState.nodeType,
+      state:      'ghost',
+      position:   { x: worldPos.x - node.NODE_WIDTH / 2, y: worldPos.y - node.NODE_HEIGHT / 2 },
+      properties: copyDefaults(def.defaultProperties)
+    });
+  });
+}
+
+function copyDefaults(defaults) {
+  var copy = {};
+  var keys = Object.keys(defaults);
+  for (var i = 0; i < keys.length; i++) {
+    copy[keys[i]] = defaults[keys[i]];
+  }
+  return copy;
+}
+
+// ─── Keyboard: delete selected node ──────────────────────────────────────────
+
+function initKeyboard() {
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    // Don't fire when user is typing in a text input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    var uuid = graphState.getSelection();
+    if (!uuid) return;
+
+    var n = graphState.getNode(uuid);
+    if (n && n.state === 'alive') {
+      console.warn('[Procedia] Deleting alive node ' + uuid + ' — AE cleanup pending (Phase 4)');
+    }
+
+    graphState.removeNode(uuid);
+  });
+}
+
 // ─── Init ────────────────────────────────────────────────────────────────────
 
-try { buildNodeList(); }     catch(e) { console.error('[Procedia] buildNodeList failed:', e); }
-try { initSearch(); }        catch(e) { console.error('[Procedia] initSearch failed:', e); }
-try { canvas.init(); }       catch(e) { console.error('[Procedia] canvas.init failed:', e); }
-try { minimap.init(); }      catch(e) { console.error('[Procedia] minimap.init failed:', e); }
+try { buildNodeList(); }        catch(e) { console.error('[Procedia] buildNodeList failed:', e); }
+try { initSearch(); }           catch(e) { console.error('[Procedia] initSearch failed:', e); }
+try { canvas.init(); }          catch(e) { console.error('[Procedia] canvas.init failed:', e); }
+try { minimap.init(); }         catch(e) { console.error('[Procedia] minimap.init failed:', e); }
 try { notificationBar.init(); } catch(e) { console.error('[Procedia] notificationBar.init failed:', e); }
-try { inspector.init(); }    catch(e) { console.error('[Procedia] inspector.init failed:', e); }
+try { inspector.init(); }       catch(e) { console.error('[Procedia] inspector.init failed:', e); }
+try { initDrag(); }             catch(e) { console.error('[Procedia] initDrag failed:', e); }
+try { initKeyboard(); }        catch(e) { console.error('[Procedia] initKeyboard failed:', e); }

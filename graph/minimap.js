@@ -37,12 +37,29 @@ var minimap = (function() {
   function render() {
     if (!ctx) return;
 
-    // Background
     ctx.clearRect(0, 0, MM_W, MM_H);
     ctx.fillStyle = 'rgba(17, 17, 17, 0.85)';
     ctx.fillRect(0, 0, MM_W, MM_H);
 
+    drawNodeDots();
     drawViewportRect();
+  }
+
+  function drawNodeDots() {
+    var nodes = graphState.getAllNodes();
+    var keys = Object.keys(nodes);
+    for (var i = 0; i < keys.length; i++) {
+      var n = nodes[keys[i]];
+      var def = nodeRegistry.getByType(n.type);
+      var color = def ? def.strokeColor : '#888888';
+      if (n.state === 'ghost') color = '#3a3a3a';
+
+      var mmPos = worldToMM(n.position.x, n.position.y);
+      ctx.beginPath();
+      ctx.arc(mmPos.x, mmPos.y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
   }
 
   function drawViewportRect() {

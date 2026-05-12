@@ -299,9 +299,51 @@ html, body {
   user-select: none;
 }
 
+.inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #2e2e2e;
+  flex-shrink: 0;
+}
+
+.inspector-node-label {
+  color: #cccccc;
+  font-size: 11px;
+}
+
+.inspector-state-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* ─── Notification bar icon ─────────────────────────────────── */
 
 .notif-icon {
   margin-right: 6px;
   font-size: 12px;
+}
+
+/* ─── Drag preview ──────────────────────────────────────────── */
+
+#drag-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  background: #252525;
+  border: 2px solid #555555;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: monospace, "Courier New", Courier;
+  font-size: 11px;
+  color: #cccccc;
+  opacity: 0.85;
+  display: none;
+  white-space: nowrap;
+}
+
+.node-item {
+  cursor: grab;
 }
