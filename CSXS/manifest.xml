@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ExtensionManifest
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  ExtensionBundleId="com.procedia.panel"
+  ExtensionBundleVersion="2.0.0"
+  Version="11.0">
+
+  <ExtensionList>
+    <Extension Id="com.procedia.panel" Version="2.0.0"/>
+  </ExtensionList>
+
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="AEFT" Version="[22.0,99.9]"/>
+    </HostList>
+    <LocaleList>
+      <Locale Code="All"/>
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="11.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+
+  <DispatchInfoList>
+    <Extension Id="com.procedia.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./index.html</MainPath>
+          <ScriptPath>./jsx/procedia.jsx</ScriptPath>
+          <CEFCommandLine/>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>Procedia</Menu>
+          <Geometry>
+            <Size>
+              <Height>800</Height>
+              <Width>1200</Width>
+            </Size>
+            <MinSize>
+              <Height>800</Height>
+              <Width>1200</Width>
+            </MinSize>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+
+</ExtensionManifest>

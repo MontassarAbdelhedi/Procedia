@@ -1,0 +1,307 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+  overflow: hidden;
+  font-family: monospace, "Courier New", Courier;
+  font-size: 11px;
+  color: #cccccc;
+}
+
+/* ─── App shell ─────────────────────────────────────────────── */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Notification bar ──────────────────────────────────────── */
+
+#notification-bar {
+  display: none;
+  flex-shrink: 0;
+  width: 100%;
+  height: 28px;
+  background: #2a1a1a;
+  border-bottom: 1px solid #3e2a2a;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11px;
+  color: #ffffff;
+}
+
+#notification-bar.visible {
+  display: flex;
+}
+
+#notification-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#notification-dismiss {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+#notification-dismiss:hover {
+  color: #ffffff;
+}
+
+/* ─── Reload button (dev) ───────────────────────────────────── */
+
+#reload-btn {
+  position: fixed;
+  top: 6px;
+  right: 8px;
+  z-index: 9999;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: #888888;
+  font-size: 14px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#reload-btn:hover {
+  background: #333333;
+  color: #cccccc;
+}
+
+/* ─── Three-column layout ───────────────────────────────────── */
+
+#columns {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─── Node list (left) ──────────────────────────────────────── */
+
+#node-list {
+  flex-shrink: 0;
+  width: 220px;
+  background: #1e1e1e;
+  border-right: 1px solid #2e2e2e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Node list internals ───────────────────────────────────── */
+
+#node-search-wrap {
+  flex-shrink: 0;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid #2e2e2e;
+  position: relative;
+}
+
+#node-search {
+  width: 100%;
+  background: #141414;
+  border: 1px solid #333333;
+  border-radius: 3px;
+  color: #cccccc;
+  font-family: monospace, "Courier New", Courier;
+  font-size: 11px;
+  padding: 4px 22px 4px 7px;
+  outline: none;
+}
+
+#node-search::placeholder {
+  color: #555555;
+}
+
+#node-search:focus {
+  border-color: #555555;
+}
+
+#node-search-clear {
+  display: none;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #555555;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+#node-search-clear:hover {
+  color: #aaaaaa;
+}
+
+#node-search-clear.visible {
+  display: block;
+}
+
+#node-categories {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#node-categories::-webkit-scrollbar {
+  width: 4px;
+}
+
+#node-categories::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#node-categories::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 2px;
+}
+
+.category {
+  border-bottom: 1px solid #252525;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  color: #888888;
+}
+
+.category-header:hover {
+  background: #232323;
+  color: #aaaaaa;
+}
+
+.category-chevron {
+  font-size: 9px;
+  display: inline-block;
+  transition: transform 0.12s ease;
+  width: 10px;
+  text-align: center;
+}
+
+.category.collapsed .category-chevron {
+  transform: rotate(-90deg);
+}
+
+.category-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.category-body {
+  overflow: hidden;
+}
+
+.category.collapsed .category-body {
+  display: none;
+}
+
+.node-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px 5px 12px;
+  cursor: default;
+  color: #bbbbbb;
+  border-left: 2px solid transparent;
+  margin: 1px 0;
+}
+
+.node-item:hover {
+  background: #2a2a2a;
+  color: #eeeeee;
+}
+
+.node-item.hidden {
+  display: none;
+}
+
+/* ─── Canvas column (center) ────────────────────────────────── */
+
+#canvas-column {
+  flex: 1;
+  min-width: 0;
+  background: #181818;
+  position: relative;
+  overflow: hidden;
+}
+
+#main-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+#minimap-canvas {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 160px;
+  height: 100px;
+  display: block;
+  border: 1px solid #2e2e2e;
+  border-radius: 2px;
+  pointer-events: auto;
+}
+
+/* ─── Inspector (right) ─────────────────────────────────────── */
+
+#inspector {
+  flex-shrink: 0;
+  width: 260px;
+  background: #1e1e1e;
+  border-left: 1px solid #2e2e2e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.inspector-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #555555;
+  font-size: 11px;
+  user-select: none;
+}
+
+/* ─── Notification bar icon ─────────────────────────────────── */
+
+.notif-icon {
+  margin-right: 6px;
+  font-size: 12px;
+}

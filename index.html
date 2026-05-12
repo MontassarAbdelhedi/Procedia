@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Procedia</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Notification bar — hidden by default, shown via notificationBar.show() -->
+    <div id="notification-bar">
+      <span id="notification-message"></span>
+      <button id="notification-dismiss">×</button>
+    </div>
+
+    <!-- Dev reload button -->
+    <button id="reload-btn" onclick="window.location.reload()" title="Reload panel">⟳</button>
+
+    <!-- Three-column layout -->
+    <div id="columns">
+
+      <!-- Left: Node list -->
+      <div id="node-list">
+        <div id="node-search-wrap">
+          <input id="node-search" type="text" placeholder="Search nodes…" autocomplete="off" spellcheck="false">
+          <button id="node-search-clear" title="Clear search">×</button>
+        </div>
+        <div id="node-categories"></div>
+      </div>
+
+      <!-- Center: Canvas -->
+      <div id="canvas-column">
+        <canvas id="main-canvas"></canvas>
+        <canvas id="minimap-canvas"></canvas>
+      </div>
+
+      <!-- Right: Inspector -->
+      <div id="inspector"></div>
+
+    </div>
+  </div>
+
+  <script src="CSInterface.js"></script>
+  <script src="graph/canvas.js"></script>
+  <script src="graph/minimap.js"></script>
+  <script src="notifications/notificationBar.js"></script>
+  <script src="inspector/inspector.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
