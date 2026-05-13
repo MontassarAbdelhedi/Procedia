@@ -168,30 +168,28 @@ var node = (function() {
     ctx.lineWidth   = 1.5;
     ctx.stroke();
 
-    // ── Input ports — only when wire drag active over this node ──
-    if (showPorts) {
-      var inPorts = inputPortPositions(nodeData, transform);
-      for (var p = 0; p < inPorts.length; p++) {
-        var ip      = inPorts[p];
-        var isHover = (hoveredPort === ip.port);
-        var ipColor = PORT_COLOR[ip.type] || '#888888';
-        var ipR     = isHover ? 5 * transform.scale : 4 * transform.scale;
+    // ── Input ports — always visible, highlight on hover during wire drag ──
+    var inPorts = inputPortPositions(nodeData, transform);
+    for (var p = 0; p < inPorts.length; p++) {
+      var ip      = inPorts[p];
+      var isHover = showPorts && (hoveredPort === ip.port);
+      var ipColor = PORT_COLOR[ip.type] || '#888888';
+      var ipR     = isHover ? 5 * transform.scale : 4 * transform.scale;
 
-        ctx.beginPath();
-        ctx.arc(ip.x, ip.y, ipR, 0, Math.PI * 2);
-        ctx.fillStyle   = isHover ? ipColor : '#1a1a1a';
-        ctx.fill();
-        ctx.strokeStyle = ipColor;
-        ctx.lineWidth   = 1.5;
-        ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(ip.x, ip.y, ipR, 0, Math.PI * 2);
+      ctx.fillStyle   = isHover ? ipColor : '#1a1a1a';
+      ctx.fill();
+      ctx.strokeStyle = ipColor;
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
 
-        // Port label on hover
-        if (isHover) {
-          var labelFontSize = Math.max(7, Math.round(9 * transform.scale));
-          ctx.font      = labelFontSize + 'px monospace';
-          ctx.fillStyle = ipColor;
-          ctx.fillText(ip.port, ip.x + 6 * transform.scale, ip.y - 4 * transform.scale);
-        }
+      // Port label on hover
+      if (isHover) {
+        var labelFontSize = Math.max(7, Math.round(9 * transform.scale));
+        ctx.font      = labelFontSize + 'px monospace';
+        ctx.fillStyle = ipColor;
+        ctx.fillText(ip.port, ip.x + 6 * transform.scale, ip.y - 4 * transform.scale);
       }
     }
 
@@ -248,7 +246,7 @@ var node = (function() {
 
   function hitTestInputPort(nodeData, transform, screenX, screenY) {
     var ports = inputPortPositions(nodeData, transform);
-    var hitR  = 8 * transform.scale;
+    var hitR  = 20 * transform.scale;
     for (var i = 0; i < ports.length; i++) {
       var dx = screenX - ports[i].x;
       var dy = screenY - ports[i].y;

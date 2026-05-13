@@ -162,7 +162,7 @@ The sending node does not need to know what it is outputting. The receiving port
 
 ### 4c. Input Ports
 
-Input ports are **dynamic**. They do not exist visually on a node until the user hovers the node while dragging a wire. On hover-with-wire, available input ports appear.
+Input ports are **always visible** on every node. They highlight (fill with port color, increase radius) when a wire drag is active and the cursor enters the port's snap radius (~20px). Port labels appear only on highlight.
 
 Each node type declares its own input port schema. Example:
 
@@ -472,11 +472,28 @@ procedia/
 ├── index.js                          # Panel bootstrap — init, event wiring
 │
 ├── graph/
-│   ├── canvas.js                     # Infinite canvas — pan, zoom, render loop
-│   ├── node.js                       # Node class — state machine, port schema, render
-│   ├── wire.js                       # Wire class — type, cascade logic, cycle check
-│   ├── nodeRegistry.js               # All node type definitions and port schemas
-│   └── graphState.js                 # Panel memory — nodeMap, wireMap, selection
+│   ├── graphState.js                 # Panel memory — nodeMap, wireMap, selection
+│   ├── nodes/
+│   │   ├── node.js                   # Node rendering — drawNode, hit-testing
+│   │   ├── nodeRegistry.js           # Thin registry — register, lookup, category API
+│   │   └── categories/
+│   │       ├── core/
+│   │       │   └── Comp.js           # CompNode definition
+│   │       ├── layers/
+│   │       │   └── Text.js           # TextNode definition
+│   │       ├── effects/              # (empty — future nodes)
+│   │       ├── generators/           # (empty — future nodes)
+│   │       └── utility/             # (empty — future nodes)
+│   ├── canvas/
+│   │   ├── viewport.js               # Transform state — pan, zoom, coordinate conversion
+│   │   ├── renderer.js               # Draw loop — nodes, wires, grid
+│   │   ├── input.js                  # Mouse/keyboard events
+│   │   ├── index.js                  # Canvas assembly — exposes canvas global
+│   │   └── minimap.js                # Overview minimap
+│   └── Wire/
+│       ├── wire.js                   # Drag state, commit/delete logic
+│       ├── wireRenderer.js           # Bezier wire drawing
+│       └── nodeState.js              # Ghost cascade — hasCompDownstream, evaluateNodeState
 │
 ├── inspector/
 │   ├── inspector.js                  # Inspector panel — renders selected node properties
@@ -497,19 +514,20 @@ procedia/
 │   └── evalBridge.js                 # Single evalScript wrapper — Promise-based, always JSON.parse
 │
 └── jsx/
+    ├── json.jsx                      # JSON polyfill — MUST be first in preamble (native JSON absent in AE 2025)
     ├── init.jsx                      # initReservedComp
-    ├── nodeLifecycle.jsx             # makeNodeAlive, makeNodeGhost, writeGhostEntry, deleteNodeData
+    ├── persistence.jsx               # writeGhostEntry, readDataLayer, readDataWire, writeDataLayer, writeDataWire
+    ├── nodeLifecycle.jsx             # makeNodeAlive, makeNodeGhost, deleteNodeData
     ├── properties.jsx                # updateNodeProperty, setLayerOrder, setLayerParent, clearLayerParent
     ├── wires.jsx                     # writeWire, deleteWire
-    ├── polling.jsx                   # pollAliveNodes
-    └── persistence.jsx               # readDataLayer, readDataWire, writeDataLayer, writeDataWire
+    └── polling.jsx                   # pollAliveNodes
 ```
 
 **Rules:**
 - One `.jsx` file per responsibility. Never mix lifecycle and persistence in the same file.
 - `evalBridge.js` is the **only** file that calls `csInterface.evalScript()`. All other JS files go through it.
 - `graphState.js` is the **only** file that mutates the in-memory node and wire maps.
-- `nodeRegistry.js` declares all node types, their port schemas, and their AE mappings. Claude Code reads this file before touching any node logic.
+- `graph/nodes/nodeRegistry.js` is the thin registry loader. Node type definitions live in `graph/nodes/categories/{category}/{NodeName}.js`. Read the relevant node file before touching any node logic.
 
 ---
 
@@ -534,6 +552,10 @@ procedia/
 9. **Canvas positions are never persisted.** Do not add x/y to dataLayer, dataWire, or any ExtendScript call.
 
 10. **Comp node is always alive.** It has no ghost state. Do not implement a ghost path for CompNode.
+
+11. **`JSON` is not a native global in ExtendScript on AE 2025.** `typeof JSON === 'undefined'`. The polyfill `jsx/json.jsx` provides `JSON.stringify` and `JSON.parse`. It must be the **first** file prepended to the evalBridge preamble in `index.js`. Never call `JSON.stringify` or `JSON.parse` in any `.jsx` file without this polyfill being loaded first.
+
+12. **`evalScript` callbacks only fire when AE has window focus.** After calling `evalBridge.evalScript(...)`, the returned Promise will not resolve/reject until AE is the foreground window. In manual testing, always click the AE window after triggering a call, then switch back to the browser console to read the result.
 
 ---
 

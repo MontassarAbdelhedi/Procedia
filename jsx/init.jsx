@@ -1,6 +1,5 @@
 // jsx/init.jsx
-// ES3 — var only, named functions, for loops, string concat
-// Loaded once at panel startup via $.evalFile.
+// ES3 - var only, named functions, for loops, string concat
 
 function findOrCreateProcediaFolder() {
   var folderName = 'DO NOT DELETE - Procedia';
@@ -23,8 +22,8 @@ function findOrCreateReservedComp(folder) {
       return item;
     }
   }
-  // 4x4px minimum safe size, pixelAspect=1, duration=1s, frameRate=1fps
-  var comp = proj.items.addComp(compName, 4, 4, 1, 1, 1);
+  // 4000x150px — wide enough for long JSON strings in the text layers
+  var comp = proj.items.addComp(compName, 4000, 150, 1, 1, 1);
   comp.parentFolder = folder;
   return comp;
 }

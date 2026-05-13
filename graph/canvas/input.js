@@ -1,5 +1,5 @@
 // input.js — translates raw DOM events into graph mutations
-// deps: canvasViewport, canvasRenderer, wire, node, graphState
+// deps: canvasViewport, canvasRenderer, wire, wireRenderer, node, graphState
 
 var canvasInput = (function() {
 
@@ -78,7 +78,7 @@ var canvasInput = (function() {
         }
       }
 
-      var wireHit = wire.hitTestNearest(screenX, screenY, transform);
+      var wireHit = wireRenderer.hitTestNearest(screenX, screenY, transform);
       if (wireHit) {
         selectedWireId = wireHit;
         graphState.setSelection(null);
@@ -140,15 +140,29 @@ var canvasInput = (function() {
     }
 
     if (wireDragActive) {
-      wire.moveDrag(screenX, screenY);
       var transform = canvasViewport.getTransform();
-      var hit = hitTestNodes(screenX, screenY);
-      hoverNodeId = hit ? hit.id : null;
+      var allNodes  = graphState.getAllNodes();
+      var nodeKeys  = Object.keys(allNodes);
+
+      hoverNodeId = null;
       hoveredPort = null;
-      if (hit) {
-        var portHit = node.hitTestInputPort(hit, transform, screenX, screenY);
-        hoveredPort = portHit ? portHit.port : null;
+      var snapX = screenX;
+      var snapY = screenY;
+
+      // Check every node's input ports — snap even when cursor is outside the node body
+      for (var k = 0; k < nodeKeys.length; k++) {
+        var n = allNodes[nodeKeys[k]];
+        var portHit = node.hitTestInputPort(n, transform, screenX, screenY);
+        if (portHit) {
+          hoverNodeId = n.id;
+          hoveredPort = portHit.port;
+          snapX = portHit.x;
+          snapY = portHit.y;
+          break;
+        }
       }
+
+      wire.moveDrag(snapX, snapY);
       render();
     }
   }
@@ -199,7 +213,7 @@ var canvasInput = (function() {
     var screenY = e.clientY - rect.top;
     var transform = canvasViewport.getTransform();
 
-    var wireHit = wire.hitTestNearest(screenX, screenY, transform);
+    var wireHit = wireRenderer.hitTestNearest(screenX, screenY, transform);
     if (wireHit) {
       wire.deleteWire(wireHit);
       selectedWireId = null;

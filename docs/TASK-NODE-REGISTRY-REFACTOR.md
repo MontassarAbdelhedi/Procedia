@@ -1,5 +1,7 @@
-# TASK — Node Registry Refactor
+# TASK — Node Registry Refactor ✅ COMPLETE
 ## Migrate nodeRegistry.js to the One-File-Per-Node Architecture
+
+> **Status:** Done (May 2026). Registry is at `graph/nodes/nodeRegistry.js`. Node files in `graph/nodes/categories/`. `Comp.js` and `Text.js` registered. `Layer.js` was not created — `Text.js` in `layers/` was the first non-core node instead.
 
 ---
 

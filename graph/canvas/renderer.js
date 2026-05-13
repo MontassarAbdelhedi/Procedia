@@ -1,5 +1,5 @@
 // renderer.js — owns all draw calls against the 2D context
-// deps: canvasViewport, wire, node, graphState
+// deps: canvasViewport, wireRenderer, node, graphState
 
 var canvasRenderer = (function() {
 
@@ -22,7 +22,7 @@ var canvasRenderer = (function() {
   }
 
   function drawWires(ctx, transform, selectedWireId) {
-    wire.drawAll(ctx, transform, selectedWireId);
+    wireRenderer.drawAll(ctx, transform, selectedWireId);
   }
 
   function drawNodes(ctx, transform, wireDragState) {

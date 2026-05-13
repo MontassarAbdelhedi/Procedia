@@ -23,8 +23,10 @@ Every node file must export a default object with **all eight fields**. No excep
 
 ```javascript
 // graph/nodes/categories/{category}/{NodeName}.js
+// DEPENDS ON: graph/nodeRegistry.js
+// MUST LOAD BEFORE: index.js
 
-export default {
+nodeRegistry.register({
 
   // ── 1. IDENTITY ──────────────────────────────────────────────────
   type:     'category/node-name',   // string, unique across all nodes, kebab-case
@@ -69,7 +71,7 @@ export default {
     );
   }
 
-};
+});
 ```
 
 ---
@@ -142,17 +144,20 @@ Use the contract template above. Fill every field. Do not skip `version` or `app
 
 ### Step 3 — Register the node
 
-Open `graph/nodeRegistry.js`. Add exactly two lines:
+Add a `<script>` tag to `index.html`, **after** the `nodeRegistry.js` line and before `index.js`:
 
-```javascript
-// At the top with other imports:
-import GaussianBlur from './nodes/categories/effects/GaussianBlur.js';
+```html
+<!-- nodeRegistry.js must be loaded first -->
+<script src="graph/nodeRegistry.js"></script>
 
-// In the registration block:
-register(GaussianBlur);
+<!-- Node definitions — each calls nodeRegistry.register() on load -->
+<script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
+
+<!-- Entry point last -->
+<script src="index.js"></script>
 ```
 
-No other file needs to change.
+The node file itself calls `nodeRegistry.register(...)` — no changes to `nodeRegistry.js` are needed.
 
 ### Step 4 — Verify registration
 
@@ -227,14 +232,15 @@ Expected: no assertion failures, script string logged correctly.
 
 ### Level 2 — ExtendScript test (AE required)
 
-Take the string from `def.apply(fakeNodeData)` and run it directly via evalScript to verify the ExtendScript function exists and responds correctly:
+Take the string from `def.apply(fakeNodeData)` and run it via `evalBridge`. After running, **click the AE window** to give it focus — the Promise will not resolve until AE is in the foreground.
 
 ```javascript
 var script = def.apply(fakeNodeData);
-csInterface.evalScript(script, function(result) {
-  var parsed = JSON.parse(result);
+evalBridge.evalScript(script).then(function(parsed) {
   console.log('[Test] ExtendScript result:', parsed);
   console.assert(parsed.ok === true, 'ExtendScript returned ok: false — error: ' + parsed.error);
+}).catch(function(e) {
+  console.error('[Test] Bridge error:', e.message);
 });
 ```
 
@@ -257,8 +263,8 @@ Expected: `{ ok: true, data: ..., error: null }`.
 ### Problem: Node doesn't appear in the palette
 
 **Check:**
-1. Is `import` line present in `nodeRegistry.js`?
-2. Is `register(NodeName)` line present in `nodeRegistry.js`?
+1. Is the `<script>` tag added to `index.html` after `nodeRegistry.js` and before `index.js`?
+2. Does the node file call `nodeRegistry.register(...)` at the bottom of the file?
 3. Does `getDefinition('your/type')` return the object or `null`?
 4. Is `category` spelled exactly the same as what the palette filters on?
 
@@ -301,8 +307,8 @@ Expected: `{ ok: true, data: ..., error: null }`.
 - [ ] All params have a `default` value matching their `type`
 - [ ] `apply()` returns a string, not an object
 - [ ] `apply()` string uses ES3-compatible ExtendScript (no `const`, no arrows)
-- [ ] Import line added to `nodeRegistry.js`
-- [ ] `register()` line added to `nodeRegistry.js`
+- [ ] `<script>` tag added to `index.html` after `nodeRegistry.js` and before `index.js`
+- [ ] Node file calls `nodeRegistry.register(...)` at the bottom
 - [ ] Level 1 test passes (definition test)
 - [ ] Level 2 test passes (ExtendScript test)
 - [ ] No debug `console.log` lines left in production code

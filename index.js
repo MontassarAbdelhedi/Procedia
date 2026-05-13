@@ -5,15 +5,28 @@ try {
   console.warn('[Procedia] CSInterface not available — running outside AE');
 }
 
-// ─── JSX loader ──────────────────────────────────────────────────────────────
+// ─── JSX preamble loader ─────────────────────────────────────────────────────
+// cep.fs.readFile is synchronous — read all JSX files at startup and store the
+// combined source as the evalBridge preamble. evalBridge prepends this to every
+// evalScript call so JSX functions are always defined in the same scope as the
+// invocation. Required in AE 2025: evalScript calls do not share a persistent
+// ExtendScript global scope.
 
-function loadJSX(fileName) {
+(function() {
   if (!csInterface) return;
-  var extPath  = csInterface.getSystemPath(SystemPath.EXTENSION);
-  var fullPath = extPath + '/jsx/' + fileName;
-  // $.evalFile expects forward slashes on all platforms
-  csInterface.evalScript('$.evalFile("' + fullPath.replace(/\\/g, '/') + '")');
-}
+  var extPath = csInterface.getSystemPath(SystemPath.EXTENSION).replace(/[\/\\]+$/, '');
+  var r0 = window.cep.fs.readFile(extPath + '\\jsx\\json.jsx');
+  var r1 = window.cep.fs.readFile(extPath + '\\jsx\\init.jsx');
+  var r2 = window.cep.fs.readFile(extPath + '\\jsx\\persistence.jsx');
+  var r3 = window.cep.fs.readFile(extPath + '\\jsx\\nodeLifecycle.jsx');
+  var r4 = window.cep.fs.readFile(extPath + '\\jsx\\properties.jsx');
+  if (r0.err !== 0 || r1.err !== 0 || r2.err !== 0 || r3.err !== 0 || r4.err !== 0) {
+    console.error('[Procedia] JSX read failed — json.err=' + r0.err + ' init.err=' + r1.err + ' persistence.err=' + r2.err + ' lifecycle.err=' + r3.err + ' properties.err=' + r4.err);
+    return;
+  }
+  evalBridge.setPreamble(r0.data + '\n' + r1.data + '\n' + r2.data + '\n' + r3.data + '\n' + r4.data);
+  console.log('[Procedia] JSX preamble ready (' + (r0.data.length + r1.data.length + r2.data.length + r3.data.length + r4.data.length) + ' chars)');
+}());
 
 // ─── Reserved-comp init guard ─────────────────────────────────────────────────
 
@@ -28,11 +41,108 @@ function ensureProcediaReady() {
       procediaReady = true;
     } else {
       console.error('[Procedia] initReservedComp failed:', res.error);
+      throw new Error('initReservedComp: ' + res.error);
     }
-  }).catch(function(err) {
-    console.error('[Procedia] initReservedComp bridge error:', err.message);
   });
+  // No .catch here — let failures propagate so callers can skip AE writes.
 }
+
+// ─── findHostingCompUUID ──────────────────────────────────────────────────────
+// Walk output wires downstream from uuid until a core/comp node is found.
+// Returns the comp node's UUID, or null if no comp is reachable.
+
+function findHostingCompUUID(uuid) {
+  var visited = {};
+  function dfs(id) {
+    if (visited[id]) return null;
+    visited[id] = true;
+    var n = graphState.getNode(id);
+    if (!n) return null;
+    if (n.type === 'core/comp') return n.id;
+    var allWires = graphState.getAllWires();
+    for (var wid in allWires) {
+      if (allWires.hasOwnProperty(wid) && allWires[wid].fromNode === id) {
+        var found = dfs(allWires[wid].toNode);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return dfs(uuid);
+}
+
+// ─── callMakeNodeAlive ────────────────────────────────────────────────────────
+
+function callMakeNodeAlive(uuid) {
+  if (!csInterface) return;
+  var n = graphState.getNode(uuid);
+  if (!n) return;
+  var hostingCompUUID = (n.type === 'core/comp') ? null : findHostingCompUUID(uuid);
+
+  // Persist hostingCompUUID in node data so callMakeNodeGhost can use it later
+  // when the wires are already gone and traversal is no longer possible.
+  if (hostingCompUUID) {
+    graphState.updateNode(uuid, { _hostingCompUUID: hostingCompUUID });
+  }
+
+  var propsStr = JSON.stringify(n.properties || {});
+
+  ensureProcediaReady()
+    .then(function() {
+      return evalBridge.evalScript(
+        'makeNodeAlive(' +
+          JSON.stringify(uuid) + ', ' +
+          JSON.stringify(n.type) + ', ' +
+          JSON.stringify(hostingCompUUID) + ', ' +
+          JSON.stringify(propsStr) +
+        ')'
+      );
+    })
+    .then(function(res) {
+      if (!res.ok) {
+        console.error('[Procedia] makeNodeAlive failed for ' + uuid + ':', res.error);
+      }
+    })
+    .catch(function(err) {
+      console.error('[Procedia] makeNodeAlive error:', err.message);
+    });
+}
+
+function callMakeNodeGhost(uuid) {
+  if (!csInterface) return;
+  var n = graphState.getNode(uuid);
+  if (!n) return;
+  // _hostingCompUUID was stored when the node went alive (see callMakeNodeAlive)
+  var hostingCompUUID = n._hostingCompUUID || null;
+
+  ensureProcediaReady()
+    .then(function() {
+      return evalBridge.evalScript(
+        'makeNodeGhost(' +
+          JSON.stringify(uuid) + ', ' +
+          JSON.stringify(hostingCompUUID) +
+        ')'
+      );
+    })
+    .then(function(res) {
+      if (!res.ok) {
+        console.error('[Procedia] makeNodeGhost failed for ' + uuid + ':', res.error);
+      }
+    })
+    .catch(function(err) {
+      console.error('[Procedia] makeNodeGhost error:', err.message);
+    });
+}
+
+// ─── State change hook — fires makeNodeAlive on ghost → alive ────────────────
+
+graphState.onNodeStateChange(function(uuid, oldState, newState) {
+  if (newState === 'alive') {
+    callMakeNodeAlive(uuid);
+  } else if (newState === 'ghost' && oldState === 'alive') {
+    callMakeNodeGhost(uuid);
+  }
+});
 
 // ─── Node list data ──────────────────────────────────────────────────────────
 // Mirrors the category/node definitions that nodeRegistry.js will own in Task 2.2.
@@ -275,15 +385,41 @@ function initDrag() {
     var pos      = { x: worldPos.x - node.NODE_WIDTH / 2, y: worldPos.y - node.NODE_HEIGHT / 2 };
     var props    = buildDefaultProperties(def);
 
-    ensureProcediaReady().then(function() {
-      graphState.addNode({
-        id:         id,
-        type:       nodeType,
-        state:      'ghost',
-        position:   pos,
-        properties: props
-      });
+    // CompNode is always alive immediately — it IS the AE comp, no wiring needed.
+    // All other nodes start as ghost and become alive when wired to a comp.
+    var initialState = (nodeType === 'core/comp') ? 'alive' : 'ghost';
+
+    graphState.addNode({
+      id:         id,
+      type:       nodeType,
+      state:      initialState,
+      position:   pos,
+      properties: props
     });
+
+    if (csInterface) {
+      if (nodeType === 'core/comp') {
+        // CompNode: skip ghost, call makeNodeAlive directly.
+        // onNodeStateChange will NOT fire (state set via addNode, not updateNode).
+        callMakeNodeAlive(id);
+      } else {
+        // Ghost nodes: persist entry to dataLayer, await wiring to go alive.
+        ensureProcediaReady()
+          .then(function() {
+            return evalBridge.evalScript(
+              'writeGhostEntry(' + JSON.stringify(id) + ', ' + JSON.stringify(nodeType) + ')'
+            );
+          })
+          .then(function(res) {
+            if (!res.ok) {
+              console.error('[Procedia] writeGhostEntry failed:', res.error);
+            }
+          })
+          .catch(function(err) {
+            console.error('[Procedia] AE persistence failed:', err.message);
+          });
+      }
+    }
   });
 }
 
@@ -318,7 +454,6 @@ function initKeyboard() {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 
-try { loadJSX('init.jsx'); }     catch(e) { console.error('[Procedia] loadJSX failed:', e); }
 try { buildNodeList(); }        catch(e) { console.error('[Procedia] buildNodeList failed:', e); }
 try { initSearch(); }           catch(e) { console.error('[Procedia] initSearch failed:', e); }
 try { canvas.init(); }          catch(e) { console.error('[Procedia] canvas.init failed:', e); }

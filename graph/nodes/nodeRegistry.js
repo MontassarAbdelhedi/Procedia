@@ -4,9 +4,11 @@ var nodeRegistry = (function() {
 
   var CATEGORY_COLORS = {
     'Core':       '#5b8dd9',
+    'Layers':     '#7ec98f',
     'Effects':    '#d4a04a',
     'Generators': '#7ec98f',
-    'Utility':    '#b07ed4'
+    'Utility':    '#b07ed4',
+    'Special':    '#d46e6e'
   };
 
   function getCategoryColor(category) {

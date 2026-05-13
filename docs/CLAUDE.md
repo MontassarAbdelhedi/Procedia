@@ -29,6 +29,7 @@ Procedia is a **node-based procedural motion design plugin for Adobe After Effec
 | 9 | Node State Management | State lives in the panel JS, AE is the source of truth for comp data | Sync state during render or heavy operations |
 | 10 | Task Execution Protocol | Plan → implement one task → verify in AE → then next task | Chain multiple tasks without verification checkpoints |
 | 11 | Plain-Script File Splitting | Declare dependencies in header, update `index.html` in same task | Split mid-task, leave dead files, skip the load-order check |
+| 12 | Grounded Decision Protocol | Decide once, lock it, escalate when stuck, gate on ambiguity | Revisit decisions mid-task or resolve ambiguity by trying both approaches |
 
 ---
 
@@ -49,7 +50,7 @@ ExtendScript runs on a **pre-ES5 engine**. Modern JavaScript features silently f
 - Never use spread `...args`
 - Never use default parameters `function(x = 0)`
 - Never use `Promise`, `async`, `await`
-- Always use `JSON.stringify()` to return data — ExtendScript has it
+- Always use `JSON.stringify()` to return data — but `JSON` is **not** a native global in AE 2025. It is provided by `jsx/json.jsx` which must be loaded first in the evalBridge preamble. Never assume native JSON.
 
 **✅ Correct:**
 ```jsx
@@ -93,6 +94,7 @@ The bridge between the CEP panel (JS) and After Effects (ExtendScript) is **stri
 - Never pass complex objects as arguments to `evalScript` — serialize them first
 - Pass arguments by injecting them into the script string (sanitize inputs)
 - Always use a callback or Promise wrapper around `evalScript`
+- **`evalScript` callbacks only fire when AE has window focus.** In testing: run the call, click the AE window, then switch back to the console to see the result.
 
 **✅ Correct — Panel JS:**
 ```javascript
@@ -569,6 +571,75 @@ function drawWire(ctx, wire) {
   var nodes = graphState.nodeMap; // graphState may not be loaded yet — silent undefined
 }
 ```
+
+---
+
+### SKILL 12 — Grounded Decision Protocol
+
+Claude Code must never oscillate between approaches, rewrite working code speculatively, or attempt to resolve ambiguity by trying multiple paths at once. Every decision is made once and locked.
+
+---
+
+#### RULE A — DECIDE-ONCE
+
+Before writing any code, state the chosen approach in one sentence:
+
+```
+APPROACH: I will use [X] because [one reason].
+```
+
+That decision is **frozen** for the duration of the task. Do not revisit it unless the user explicitly changes the requirement.
+
+**✅ Correct:**
+```
+APPROACH: I will store node positions in panel JS memory (not AE) because AE has no
+suitable field for arbitrary graph layout data.
+```
+
+**❌ Wrong:**
+```
+I'll store positions in AE... actually, panel memory is better... let me try both.
+```
+
+---
+
+#### RULE B — ESCALATION LADDER
+
+When stuck, follow this exact sequence — no skipping:
+
+```
+STEP 1 → Re-read the relevant CLAUDE.md skill section
+STEP 2 → Check the AE Effects Excel reference in the repo
+STEP 3 → State what is unknown and ask the user ONE specific question
+STOP.
+```
+
+Output format when reaching step 3:
+```
+STUCK: [one sentence describing what is unknown]
+TRIED: [one sentence describing what was already attempted]
+NEED: [one specific question for the user]
+```
+
+---
+
+#### RULE C — AMBIGUITY GATE
+
+If a task is underspecified, stop **before touching any file** and ask one clarifying question. Never resolve ambiguity by attempting both approaches.
+
+**✅ Correct:**
+```
+AMBIGUOUS: "connect nodes" — I need to know the connection data format before writing.
+QUESTION: Should a connection store { fromId, toId } or { fromId, fromPort, toId, toPort }?
+```
+
+---
+
+| Situation | Required action | Forbidden action |
+|---|---|---|
+| Before writing code | State APPROACH in one sentence | Starting to code without a declared approach |
+| Hitting an error | Follow escalation ladder, stop at step 3 | Rewriting from scratch or switching approaches |
+| Vague task | Ask ONE clarifying question, wait | Attempting both interpretations simultaneously |
 
 ---
 

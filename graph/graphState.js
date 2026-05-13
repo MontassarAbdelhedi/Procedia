@@ -7,7 +7,8 @@ var graphState = (function() {
 
   // Registered callbacks
   var selectionListeners = [];
-  var changeListeners = [];
+  var changeListeners    = [];
+  var stateChangeListeners = [];
 
   // ─── Internal helpers ─────────────────────────────────────────
 
@@ -20,6 +21,12 @@ var graphState = (function() {
   function fireChange() {
     for (var i = 0; i < changeListeners.length; i++) {
       changeListeners[i]();
+    }
+  }
+
+  function fireStateChange(uuid, oldState, newState) {
+    for (var i = 0; i < stateChangeListeners.length; i++) {
+      stateChangeListeners[i](uuid, oldState, newState);
     }
   }
 
@@ -55,10 +62,14 @@ var graphState = (function() {
 
   function updateNode(uuid, patch) {
     if (!nodes[uuid]) return;
-    var node = nodes[uuid];
+    var n = nodes[uuid];
+    var oldState = n.state;
     var keys = Object.keys(patch);
     for (var i = 0; i < keys.length; i++) {
-      node[keys[i]] = patch[keys[i]];
+      n[keys[i]] = patch[keys[i]];
+    }
+    if (patch.state !== undefined && patch.state !== oldState) {
+      fireStateChange(uuid, oldState, patch.state);
     }
     fireChange();
   }
@@ -115,6 +126,10 @@ var graphState = (function() {
     changeListeners.push(callback);
   }
 
+  function onNodeStateChange(callback) {
+    stateChangeListeners.push(callback);
+  }
+
   // ─── Public API ───────────────────────────────────────────────
 
   return {
@@ -129,8 +144,9 @@ var graphState = (function() {
     getWire:           getWire,
     setSelection:      setSelection,
     getSelection:      getSelection,
-    onSelectionChange: onSelectionChange,
-    onChange:          onChange
+    onSelectionChange:  onSelectionChange,
+    onChange:           onChange,
+    onNodeStateChange:  onNodeStateChange
   };
 
 }());

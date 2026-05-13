@@ -246,11 +246,14 @@ var graphState = {
 **Architecture (post-refactor):**
 ```
 graph/
-  nodeRegistry.js                        ← thin registry (register/lookup only)
   nodes/
+    nodeRegistry.js                      ← thin registry (register/lookup only)
+    node.js                              ← node rendering, hit-testing
     categories/
       core/
-        Comp.js                          ← ✅ first node definition
+        Comp.js                          ← ✅
+      layers/
+        Text.js                          ← ✅ (added May 2026)
       effects/                           ← ready for future nodes
       generators/                        ← ready for future nodes
       utility/                           ← ready for future nodes
@@ -286,6 +289,7 @@ nodeRegistry.register({
 
 **Registered nodes:**
 - `core/comp` ✅ (`graph/nodes/categories/core/Comp.js`)
+- `TextNode` ✅ (`graph/nodes/categories/layers/Text.js`)
 - All other node types: to be added one per session as needed
 
 **Verification checklist:**
@@ -465,8 +469,8 @@ Each input port is a small circle. Port label appears on hover (e.g. `"data_font
 - `data` port: `#d4a04a` (amber)
 
 **Files to create/touch:**
-- `graph/node.js` — port rendering
-- `graph/canvas.js` — track wire-drag state, pass to node renderer
+- `graph/nodes/node.js` — port rendering
+- `graph/canvas/renderer.js` — track wire-drag state, pass to node renderer
 
 **Verification checklist:**
 - [ ] Output port circle always visible at bottom-center of every node
@@ -506,8 +510,10 @@ Each input port is a small circle. Port label appears on hover (e.g. `"data_font
 - Canvas redraws with wire rendered
 
 **Files to create/touch:**
-- `graph/wire.js` — wire class, bezier draw, type check, cycle check
-- `graph/canvas.js` — wire drag event handling, render all wires from graphState
+- `graph/Wire/wire.js` — drag state, commit/delete logic, cycle check
+- `graph/Wire/wireRenderer.js` — bezier draw, wire color, type check
+- `graph/canvas/input.js` — wire drag event handling
+- `graph/canvas/renderer.js` — render all wires from graphState
 
 **Verification checklist:**
 - [x] Dragging from output port shows live bezier curve to cursor
@@ -555,8 +561,9 @@ hasCompDownstream(uuid):
 **Wire deletion trigger:** double-click within 6px of a wire. Single-click selects (highlights) the wire.
 
 **Files to create/touch:**
-- `graph/wire.js` — wire selection (click proximity), cascade algorithm
-- `graph/canvas.js` — wire click detection, context menu
+- `graph/Wire/wire.js` — wire delete logic
+- `graph/Wire/nodeState.js` — cascade algorithm (hasCompDownstream, evaluateNodeState)
+- `graph/canvas/input.js` — wire click/double-click detection
 
 **Verification checklist:**
 - [x] Clicking within 6px of a wire selects it (wire highlights)
@@ -602,7 +609,7 @@ hasCompDownstream(uuid):
 
 ---
 
-### TASK 4.2 — writeGhostEntry (ExtendScript)
+### TASK 4.2 — writeGhostEntry (ExtendScript) ✅
 **What:** `jsx/persistence.jsx` — appends a ghost entry to dataLayer when a node is dropped.
 
 **ExtendScript function:** `writeGhostEntry(uuid, nodeType)`
@@ -621,14 +628,14 @@ hasCompDownstream(uuid):
 - `jsx/persistence.jsx`
 
 **Verification checklist:**
-- [ ] Dropping a node: ghost entry appears in `"__PROCEDIA_DATA__"` text layer JSON
-- [ ] Dropping 3 nodes: 3 entries in ghost array, all different UUIDs
-- [ ] Dropping same UUID twice does not duplicate the entry
-- [ ] Text layer remains locked after write
+- [x] Dropping a node: ghost entry appears in `"__PROCEDIA_DATA__"` text layer JSON
+- [x] Dropping 3 nodes: 3 entries in ghost array, all different UUIDs
+- [x] Dropping same UUID twice does not duplicate the entry
+- [x] Text layer remains locked after write
 
 ---
 
-### TASK 4.3 — makeNodeAlive (ExtendScript)
+### TASK 4.3 — makeNodeAlive (ExtendScript) ✅
 **What:** `jsx/nodeLifecycle.jsx` — creates AE objects when a node goes alive.
 
 **ExtendScript function:** `makeNodeAlive(uuid, nodeType, hostingCompUUID, propertiesJSON)`
@@ -651,11 +658,11 @@ hasCompDownstream(uuid):
 - `jsx/nodeLifecycle.jsx`
 
 **Verification checklist:**
-- [ ] Wiring a TextNode to a CompNode: TextLayer appears in the AE comp
-- [ ] `layer.comment` equals the node UUID
-- [ ] Node entry moves from ghost list to comp tree in dataLayer JSON
-- [ ] Wiring a NullNode: NullLayer appears in AE
-- [ ] Properties from inspector are reflected on the AE layer
+- [x] Wiring a TextNode to a CompNode: TextLayer appears in the AE comp
+- [x] `layer.comment` equals the node UUID
+- [x] Node entry moves from ghost list to comp tree in dataLayer JSON
+- [ ] Wiring a NullNode: NullLayer appears in AE — needs NullNode registry definition (same pattern as Text.js)
+- [ ] Properties from inspector are reflected on the AE layer — deferred to Task 5.1
 
 ---
 
@@ -683,7 +690,7 @@ hasCompDownstream(uuid):
 
 ---
 
-### TASK 4.5 — updateNodeProperty (ExtendScript)
+### TASK 4.5 — updateNodeProperty (ExtendScript) ✅
 **What:** `jsx/properties.jsx` — updates a single property on an alive AE layer from inspector input.
 
 **ExtendScript function:** `updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, valueJSON)`
@@ -700,10 +707,10 @@ hasCompDownstream(uuid):
 - `jsx/properties.jsx`
 
 **Verification checklist:**
-- [ ] Changing font size in inspector updates the TextLayer in AE immediately
-- [ ] Changing position updates the layer transform in AE
-- [ ] dataLayer JSON reflects the new value after update
-- [ ] Ghost node property change: inspector updates panel memory only, no AE call
+- [ ] Changing font size in inspector updates the TextLayer in AE immediately — verify in Task 5.1
+- [ ] Changing position updates the layer transform in AE — verify in Task 5.1
+- [ ] dataLayer JSON reflects the new value after update — verify in Task 5.1
+- [ ] Ghost node property change: inspector updates panel memory only, no AE call — verify in Task 5.1
 
 ---
 
@@ -868,10 +875,10 @@ PHASE 3 — Wire System
 
 PHASE 4 — AE Bridge
   4.1 Reserved comp init (ExtendScript)   ✅
-  4.2 writeGhostEntry
-  4.3 makeNodeAlive
+  4.2 writeGhostEntry                     ✅
+  4.3 makeNodeAlive                        ✅
   4.4 makeNodeGhost
-  4.5 updateNodeProperty
+  4.5 updateNodeProperty                   ✅
 
 PHASE 5 — Inspector
   5.1 Inspector node view
