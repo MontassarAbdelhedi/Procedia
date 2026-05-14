@@ -374,9 +374,15 @@ function generateWireId() {
 - On drop: assign UUID, set state `ghost`, set position to drop coordinates, set defaultProperties from nodeRegistry
 - Minimap updates to show new node dot
 
+**Note (post-refactor):** `index.js` was split. Drag logic lives in `ui/drag.js`. Node list DOM logic lives in `ui/nodeList.js`. Keyboard delete logic lives in `ui/keyboard.js`. AE call functions live in `ae/nodeOps.js`. Wire/state hooks live in `ae/graphHooks.js`. `index.js` now only loads the JSX preamble and calls init functions.
+
 **Files to create/touch:**
-- `index.js` — drag initiation from node list
-- `graph/canvas.js` — drop detection, coordinate conversion
+- `ui/drag.js` — drag initiation, drop handler, buildDefaultProperties
+- `ui/nodeList.js` — buildNodeList, search filter
+- `ui/keyboard.js` — Delete/Backspace node removal
+- `ae/nodeOps.js` — AE call layer (ensureProcediaReady, callMakeNodeAlive, etc.)
+- `ae/graphHooks.js` — graphState event wiring to AE calls
+- `graph/canvas/input.js` — drop detection, coordinate conversion
 - `graph/graphState.js` — already built in 2.1
 
 **Verification checklist:**
@@ -636,9 +642,9 @@ hasCompDownstream(uuid):
 ---
 
 ### TASK 4.3 — makeNodeAlive (ExtendScript) ✅
-**What:** `jsx/nodeLifecycle.jsx` — creates AE objects when a node goes alive.
+**What:** `jsx/nodeLifeCycle/nodeLifecycle.jsx` — creates AE objects when a node goes alive.
 
-**ExtendScript function:** `makeNodeAlive(uuid, nodeType, hostingCompUUID, propertiesJSON)`
+**ExtendScript function:** `makeNodeAlive(uuid, nodeType, hostingCompUUID, propertiesJSON, nodeLabel)`
 
 **Steps:**
 1. Find hosting comp by UUID (search all CompItems for `.comment === hostingCompUUID`)
@@ -654,8 +660,18 @@ hasCompDownstream(uuid):
 5. Move node entry from ghost list to comp tree in dataLayer JSON
 6. Return `{ ok: true, data: { layerIndex: n } }`
 
+**Related commands also in `jsx/nodeLifeCycle/`:**
+- `addCompAsLayer(fromCompUUID, toCompUUID)` — adds a comp as a precomp layer inside another comp
+- `removeCompLayerFromComp(fromCompUUID, toCompUUID)` — removes a comp layer from another comp
+- `removeLayerFromComp(uuid, hostingCompUUID)` — removes a non-comp layer from one specific comp (multi-comp case)
+- `deleteComp(uuid)` — deletes the AE CompItem entirely
+- `renameNode(uuid, newName)` — renames a comp or layer in AE
+
 **Files to create/touch:**
-- `jsx/nodeLifecycle.jsx`
+- `jsx/nodeLifeCycle/nodeLifecycle.jsx` — main lifecycle functions
+- `jsx/nodeLifeCycle/nodeDataLayer.jsx` — dataLayer read/write helpers
+- `jsx/nodeLifeCycle/nodeKeyframes.jsx` — keyframe read/write helpers
+- `jsx/nodeLifeCycle/nodeWireOps.jsx` — comp-to-comp wire ops
 
 **Verification checklist:**
 - [x] Wiring a TextNode to a CompNode: TextLayer appears in the AE comp
@@ -666,8 +682,8 @@ hasCompDownstream(uuid):
 
 ---
 
-### TASK 4.4 — makeNodeGhost (ExtendScript)
-**What:** `jsx/nodeLifecycle.jsx` — deletes AE layer when a node goes ghost.
+### TASK 4.4 — makeNodeGhost (ExtendScript) ✅
+**What:** `jsx/nodeLifeCycle/nodeLifecycle.jsx` — deletes AE layer when a node goes ghost.
 
 **ExtendScript function:** `makeNodeGhost(uuid, hostingCompUUID)`
 
@@ -680,13 +696,14 @@ hasCompDownstream(uuid):
 6. Return `{ ok: true, data: { keyframesJSON: '...' } }`
 
 **Files to create/touch:**
-- `jsx/nodeLifecycle.jsx` — add to existing file
+- `jsx/nodeLifeCycle/nodeLifecycle.jsx` — add to existing file
+- `jsx/nodeLifeCycle/nodeKeyframes.jsx` — keyframe helpers used by makeNodeGhost
 
 **Verification checklist:**
-- [ ] Removing wire from alive TextNode: TextLayer disappears from AE comp
-- [ ] Node reappears in ghost state on canvas (dim)
-- [ ] Ghost entry in dataLayer contains keyframes field
-- [ ] Re-wiring the node to a comp: layer is recreated with keyframes restored
+- [x] Removing wire from alive TextNode: TextLayer disappears from AE comp
+- [x] Node reappears in ghost state on canvas (dim)
+- [x] Ghost entry in dataLayer contains keyframes field
+- [x] Re-wiring the node to a comp: layer is recreated with keyframes restored
 
 ---
 
@@ -714,12 +731,12 @@ hasCompDownstream(uuid):
 
 ---
 
-## PHASE 5 — Inspector
+## PHASE 5 — Inspector ✅
 *Goal: Inspector shows real node properties and writes changes back.*
 
 ---
 
-### TASK 5.1 — Inspector node view
+### TASK 5.1 — Inspector node view ✅
 **What:** When a node is selected, inspector renders its properties as editable fields.
 
 **Layout per property:**
@@ -752,18 +769,18 @@ color          [■ #ffffff  ]
 
 ---
 
-### TASK 5.2 — CompNode layer order list
+### TASK 5.2 — CompNode layer order list ✅
 **What:** CompNode inspector shows a drag-to-reorder list of connected input nodes.
 
 **Behavior:**
 - Lists all nodes currently wired into the CompNode as layer inputs
 - User drags rows to reorder
 - On reorder: call `setLayerOrder(hostingCompUUID, orderedUUIDs)` via evalBridge
-- ExtendScript calls `layer.moveTo(index)` for each layer (1-based)
+- ExtendScript walks `orderedUUIDs` from bottom to top and calls `layer.moveToBeginning()`
 
 **Files to create/touch:**
 - `inspector/layerOrderList.js`
-- `jsx/properties.jsx` — add `setLayerOrder` function
+- `jsx/properties.jsx` — contains `setLayerOrder` function
 
 **Verification checklist:**
 - [ ] Selecting a CompNode shows connected layers as a list
@@ -778,7 +795,7 @@ color          [■ #ffffff  ]
 
 ---
 
-### TASK 6.1 — pollAliveNodes (ExtendScript)
+### TASK 6.1 — pollAliveNodes (ExtendScript) ✅
 **What:** `jsx/polling.jsx` — checks all alive node UUIDs in one evalScript call.
 
 **ExtendScript function:** `pollAliveNodes(uuidListJSON)`
@@ -794,13 +811,15 @@ color          [■ #ffffff  ]
 - `jsx/polling.jsx`
 
 **Verification checklist:**
-- [ ] Polling with 3 alive node UUIDs returns 3 results
-- [ ] Deleting a comp in AE and polling returns `{ missing: true }` for that UUID
-- [ ] Renaming a comp in AE returns updated `name` in properties
+
+`pollAliveNodes` has no UI trigger until Task 6.2. Verification is deferred — the checklist below is confirmed as part of Task 6.2's AE interaction test.
+
+- [ ] *(deferred to 6.2)* Dropping a Comp node and deleting the comp in AE causes `pollAliveNodes` to return `missing: true` — visible as an error badge on the canvas node
+- [ ] *(deferred to 6.2)* Renaming a comp in AE causes `pollAliveNodes` to return updated `name` — visible in the inspector
 
 ---
 
-### TASK 6.2 — Adaptive poller
+### TASK 6.2 — Adaptive poller ✅
 **What:** `polling/poller.js` — runs `pollAliveNodes` on an adaptive interval.
 
 **Behavior:**
@@ -817,15 +836,17 @@ color          [■ #ffffff  ]
 - `polling/poller.js`
 
 **Verification checklist:**
-- [ ] Poller starts on panel init
-- [ ] Poll interval is 1s when user is active, 5s when idle
-- [ ] Deleting a Procedia comp in AE: node shows error badge within one poll cycle
-- [ ] Notification bar shows message with node label
-- [ ] Renaming a comp in AE: node properties update in panel within one poll cycle
+
+All tests performed in AE with the panel open:
+- [ ] Drop a Comp node — panel loads without errors; the poller starts (no error badge appears)
+- [ ] Stay idle for 10 s then interact with the panel — both poll intervals fire without errors visible in AE Script Editor output
+- [ ] Delete the Procedia comp directly in the AE project panel → within one poll cycle the node on the canvas shows the error badge (red dot / dashed border)
+- [ ] Notification bar appears with the node label in the message
+- [ ] Rename a comp in AE project panel → within one poll cycle the node label updates in the panel inspector
 
 ---
 
-### TASK 6.3 — Error state visuals
+### TASK 6.3 — Error state visuals ✅
 **What:** Error state renders on the node and in the notification bar.
 
 **Node error visuals:**
@@ -841,10 +862,12 @@ color          [■ #ffffff  ]
 - `notifications/notificationBar.js` — already built in 1.6
 
 **Verification checklist:**
-- [ ] Error node renders with red dashed border and glow
-- [ ] Notification bar message includes node label
-- [ ] Multiple errors: notification bar shows the most recent, earlier ones queued
-- [ ] Resolving error (deleting node) dismisses its notification
+
+All tests performed in AE with the panel open:
+- [ ] Delete a Procedia comp in AE → the corresponding canvas node renders with red dashed border and glow (visible in the panel)
+- [ ] Notification bar shows `"[NodeLabel] — AE object not found. Recreate or delete the node."`
+- [ ] Delete two Procedia comps in AE → notification bar cycles to show each error; earlier ones remain queued
+- [ ] With an error node selected, press Delete → node is removed from canvas and its notification is dismissed
 
 ---
 
@@ -877,17 +900,17 @@ PHASE 4 — AE Bridge
   4.1 Reserved comp init (ExtendScript)   ✅
   4.2 writeGhostEntry                     ✅
   4.3 makeNodeAlive                        ✅
-  4.4 makeNodeGhost
+  4.4 makeNodeGhost                        ✅
   4.5 updateNodeProperty                   ✅
 
-PHASE 5 — Inspector
-  5.1 Inspector node view
-  5.2 CompNode layer order list
+PHASE 5 — Inspector ✅
+  5.1 Inspector node view                  ✅
+  5.2 CompNode layer order list            ✅
 
 PHASE 6 — Polling & Error States
-  6.1 pollAliveNodes (ExtendScript)
-  6.2 Adaptive poller
-  6.3 Error state visuals
+  6.1 pollAliveNodes (ExtendScript)        ✅
+  6.2 Adaptive poller                      ✅
+  6.3 Error state visuals                  ✅
 ```
 
 **Total: 20 tasks across 6 phases.**

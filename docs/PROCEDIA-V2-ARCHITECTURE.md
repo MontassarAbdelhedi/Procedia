@@ -196,7 +196,7 @@ GraphPositionNode:
 
 ### 4e. Layer Stacking Order in CompNode
 
-When multiple nodes feed into a CompNode, AE layer z-order is set manually by the user via the CompNode inspector. The inspector shows a list of connected input nodes that the user can reorder. On reorder, ExtendScript calls `layer.moveTo(index)` to match.
+When multiple nodes feed into a CompNode, AE layer z-order is set manually by the user via the CompNode inspector. The inspector shows a list of connected input nodes that the user can reorder. On reorder, ExtendScript walks the desired UUID order from bottom to top and calls `layer.moveToBeginning()` so the final stack matches the list.
 
 ---
 
@@ -425,15 +425,24 @@ All are written in strict ES3 (var only, no arrow functions, no template literal
 | Command | Trigger | Description |
 |---|---|---|
 | `writeGhostEntry(uuid, nodeType)` | onDrop | Appends entry to ghost list in dataLayer |
-| `makeNodeAlive(uuid, nodeType, hostingCompUUID, properties, keyframesJSON)` | onAlive | Creates AE project object if needed, adds layer to hosting comp, writes keyframes, updates dataLayer |
+| `makeNodeAlive(uuid, nodeType, hostingCompUUID, properties, nodeLabel)` | onAlive | Creates AE project object if needed, adds layer to hosting comp, writes keyframes, updates dataLayer |
 | `makeNodeGhost(uuid, hostingCompUUID)` | onGhost | Reads keyframes from AE layer, deletes layer, returns keyframes JSON, updates dataLayer |
 | `deleteNodeData(uuid)` | onDelete | Removes UUID from dataLayer ghost list or comp tree, removes wires from dataWire |
+| `deleteComp(uuid)` | CompNode deleted | Deletes the AE CompItem from the project |
+| `renameNode(uuid, newName)` | Node label changed | Renames the comp or layer in AE to match the new label |
+
+### Comp-to-Comp Layer Ops
+| Command | Trigger | Description |
+|---|---|---|
+| `addCompAsLayer(fromCompUUID, toCompUUID)` | Comp wired to comp | Adds the from-comp as a precomp layer inside the to-comp |
+| `removeCompLayerFromComp(fromCompUUID, toCompUUID)` | Comp-to-comp wire deleted | Removes the from-comp layer from the to-comp |
+| `removeLayerFromComp(uuid, hostingCompUUID)` | Non-comp wire to comp removed (multi-comp) | Removes only the layer in that specific hosting comp; node stays alive in remaining comps |
 
 ### Properties
 | Command | Trigger | Description |
 |---|---|---|
 | `updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, value)` | Inspector change | Updates a single property on the AE layer by match name |
-| `setLayerOrder(hostingCompUUID, orderedUUIDs)` | User reorders in inspector | Calls `layer.moveTo()` for each layer to match orderedUUIDs array |
+| `setLayerOrder(hostingCompUUID, orderedUUIDs)` | User reorders in inspector | Calls `layer.moveToBeginning()` from bottom to top to match orderedUUIDs array |
 | `setLayerParent(childUUID, parentUUID, hostingCompUUID)` | IsParentNode wired | Sets `childLayer.parent = parentLayer` |
 | `clearLayerParent(childUUID, hostingCompUUID)` | IsParentNode ghosted/deleted | Sets `childLayer.parent = null` |
 
@@ -443,10 +452,11 @@ All are written in strict ES3 (var only, no arrow functions, no template literal
 | `writeWire(wireJSON)` | Wire confirmed | Appends wire entry to dataWire text layer |
 | `deleteWire(wireId)` | Wire deleted | Removes wire entry from dataWire text layer |
 
-### Polling
+### Polling & AE View
 | Command | Trigger | Description |
 |---|---|---|
 | `pollAliveNodes(uuidList)` | Every poll tick | Checks all alive UUIDs: returns array of `{ uuid, exists, properties }` |
+| `focusCompInAE(uuid)` | Double-click CompNode | Opens the comp in the AE timeline viewer |
 
 ### Persistence (crash recovery)
 | Command | Trigger | Description |
@@ -468,11 +478,22 @@ procedia/
 ├── CSXS/
 │   └── manifest.xml                  # CEP manifest — panel registration
 │
-├── index.html                        # Panel entry point
-├── index.js                          # Panel bootstrap — init, event wiring
+├── index.html                        # Panel entry point — script load order
+├── index.js                          # Panel bootstrap — JSX preamble loader + init calls only
+│
+├── ae/                               # AE call layer — all evalScript calls live here
+│   ├── nodeOps.js                    # Node AE operations — ensureProcediaReady, callMakeNodeAlive,
+│   │                                 #   callMakeNodeGhost, callAddLayerToComp, callRemoveLayerFromComp,
+│   │                                 #   callDeleteComp, callRenameNode, callFocusCompInAE
+│   └── graphHooks.js                 # Wire/state event hooks — wires graphState events to ae/nodeOps calls
+│
+├── ui/                               # UI interaction layer — no AE calls, no graphState mutations
+│   ├── nodeList.js                   # Node list DOM — buildNodeList, category collapse, search filter
+│   ├── drag.js                       # Drag from node list to canvas — initDrag, buildDefaultProperties
+│   └── keyboard.js                  # Keyboard shortcuts — Delete/Backspace deletes selected node
 │
 ├── graph/
-│   ├── graphState.js                 # Panel memory — nodeMap, wireMap, selection
+│   ├── graphState.js                 # Panel memory — nodeMap, wireMap, selection; only file that mutates state
 │   ├── nodes/
 │   │   ├── node.js                   # Node rendering — drawNode, hit-testing
 │   │   ├── nodeRegistry.js           # Thin registry — register, lookup, category API
@@ -487,28 +508,26 @@ procedia/
 │   ├── canvas/
 │   │   ├── viewport.js               # Transform state — pan, zoom, coordinate conversion
 │   │   ├── renderer.js               # Draw loop — nodes, wires, grid
-│   │   ├── input.js                  # Mouse/keyboard events
+│   │   ├── input.js                  # Mouse events — pan, zoom, wire drag, node select/move
 │   │   ├── index.js                  # Canvas assembly — exposes canvas global
 │   │   └── minimap.js                # Overview minimap
 │   └── Wire/
-│       ├── wire.js                   # Drag state, commit/delete logic
+│       ├── wire.js                   # Wire drag state, commit/delete logic, cycle check
 │       ├── wireRenderer.js           # Bezier wire drawing
 │       └── nodeState.js              # Ghost cascade — hasCompDownstream, evaluateNodeState
 │
 ├── inspector/
-│   ├── inspector.js                  # Inspector panel — renders selected node properties
+│   ├── inspector.js                  # Inspector panel — renders selected node properties as editable fields
 │   └── layerOrderList.js             # Drag-to-reorder list for CompNode layer stacking
 │
 ├── data/
-│   ├── dataLayerSchema.js            # dataLayer JSON read/write helpers
-│   ├── dataWireSchema.js             # dataWire JSON read/write helpers
-│   └── uuidGenerator.js             # UUID generation — PROC-{timestamp}-{rand4}
+│   └── uuidGenerator.js             # UUID generation — PROC-{timestamp}-{rand4} / WIRE-{timestamp}-{rand4}
 │
 ├── polling/
-│   └── poller.js                     # Adaptive polling — alive node health check
+│   └── poller.js                     # Adaptive polling — alive node health check (1s active / 5s idle)
 │
 ├── notifications/
-│   └── notificationBar.js            # Panel-level notification bar
+│   └── notificationBar.js            # Panel-level notification bar — show/hide/dismiss per-node
 │
 ├── bridge/
 │   └── evalBridge.js                 # Single evalScript wrapper — Promise-based, always JSON.parse
@@ -517,9 +536,13 @@ procedia/
     ├── json.jsx                      # JSON polyfill — MUST be first in preamble (native JSON absent in AE 2025)
     ├── init.jsx                      # initReservedComp
     ├── persistence.jsx               # writeGhostEntry, readDataLayer, readDataWire, writeDataLayer, writeDataWire
-    ├── nodeLifecycle.jsx             # makeNodeAlive, makeNodeGhost, deleteNodeData
+    ├── nodeLifeCycle/                # Lifecycle JSX — split by responsibility
+    │   ├── nodeKeyframes.jsx         # Keyframe read/write helpers
+    │   ├── nodeDataLayer.jsx         # dataLayer read/write for node entries
+    │   ├── nodeWireOps.jsx           # addCompAsLayer, removeCompLayerFromComp, removeLayerFromComp
+    │   └── nodeLifecycle.jsx         # makeNodeAlive, makeNodeGhost, deleteComp, renameNode
     ├── properties.jsx                # updateNodeProperty, setLayerOrder, setLayerParent, clearLayerParent
-    ├── wires.jsx                     # writeWire, deleteWire
+    ├── aeFocus.jsx                   # focusCompInAE — opens comp in AE timeline viewer
     └── polling.jsx                   # pollAliveNodes
 ```
 
@@ -527,6 +550,8 @@ procedia/
 - One `.jsx` file per responsibility. Never mix lifecycle and persistence in the same file.
 - `evalBridge.js` is the **only** file that calls `csInterface.evalScript()`. All other JS files go through it.
 - `graphState.js` is the **only** file that mutates the in-memory node and wire maps.
+- `ae/nodeOps.js` is the **only** file that contains `callMake*` / `callDelete*` / `callFocus*` functions. `ae/graphHooks.js` wires graph events to those calls. Neither file touches the DOM.
+- `ui/` files contain only UI interaction logic (DOM events, drag, keyboard). They call into `graphState` and `ae/` but never call `csInterface.evalScript()` directly.
 - `graph/nodes/nodeRegistry.js` is the thin registry loader. Node type definitions live in `graph/nodes/categories/{category}/{NodeName}.js`. Read the relevant node file before touching any node logic.
 
 ---
@@ -541,9 +566,11 @@ procedia/
 
 4. **`graphState.js` is the only file that mutates panel state.** Dispatch actions to it, never mutate nodeMap or wireMap in place from other files.
 
+4a. **`ae/nodeOps.js` is the only file that contains AE call functions.** All `callMake*`, `callDelete*`, `callFocus*`, and `callAdd*` functions live here. `ae/graphHooks.js` listens to graphState events and calls into `ae/nodeOps.js` only. `ui/` files never call evalBridge directly.
+
 5. **Node UUID is the only identifier.** Never use node label, comp name, or layer name as an identifier. They can be changed by the user.
 
-6. **Layer stacking order in AE is 1-based. The `layerOrder` array in panel memory is 0-based.** Convert: `aeIndex = arrayIndex + 1`. Always.
+6. **Layer stacking order in AE is 1-based. The `layerOrder` array in panel memory is 0-based.** Array index 0 represents AE layer 1 (top). AE scripting does not provide `Layer.moveTo(index)`, so reorder by moving desired layers from bottom to top with `moveToBeginning()`.
 
 7. **Implement one command at a time, test in AE, then proceed.** Never chain multiple ExtendScript commands in one task without a verification checkpoint.
 

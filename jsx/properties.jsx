@@ -3,6 +3,68 @@
 // DEPENDS ON: jsx/json.jsx, jsx/init.jsx, jsx/persistence.jsx, jsx/nodeLifecycle.jsx
 //   (uses findCompByUUID, findReservedComp, findLayerByName, readLayerText, writeLayerText)
 
+// ── setLayerOrder ──────────────────────────────────────────────────────────
+// Reorders layers in a hosting comp to match orderedUUIDs (index 0 = AE layer 1 = top).
+// AE Layer has moveToBeginning/moveToEnd/moveBefore/moveAfter, not moveTo(index).
+
+function findLayerByCommentInComp(comp, uuid) {
+  for (var i = 1; i <= comp.numLayers; i++) {
+    if (comp.layer(i).comment === uuid) {
+      return comp.layer(i);
+    }
+  }
+  return null;
+}
+
+function updateLayerOrderInDataLayer(hostingCompUUID, orderedUUIDs) {
+  var reserved = findReservedComp();
+  if (!reserved) return;
+
+  reserved.locked = false;
+  var dataLyr = findLayerByName(reserved, '__PROCEDIA_DATA__');
+  if (!dataLyr) { reserved.locked = true; return; }
+
+  dataLyr.locked = false;
+  var data = JSON.parse(readLayerText(dataLyr));
+
+  if (data.project && data.project[hostingCompUUID]) {
+    data.project[hostingCompUUID].layerOrder = orderedUUIDs;
+    writeLayerText(dataLyr, JSON.stringify(data));
+  }
+
+  dataLyr.locked = true;
+  reserved.locked = true;
+}
+
+function setLayerOrder(hostingCompUUID, orderedUUIDsJSON) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var orderedUUIDs = JSON.parse(orderedUUIDsJSON);
+    var hostComp = findCompByUUID(hostingCompUUID);
+    if (!hostComp) {
+      result.error = 'setLayerOrder: comp not found: ' + hostingCompUUID;
+      return JSON.stringify(result);
+    }
+
+    app.beginUndoGroup('Procedia: setLayerOrder');
+
+    for (var i = orderedUUIDs.length - 1; i >= 0; i--) {
+      var layer = findLayerByCommentInComp(hostComp, orderedUUIDs[i]);
+      if (layer) layer.moveToBeginning();
+    }
+
+    updateLayerOrderInDataLayer(hostingCompUUID, orderedUUIDs);
+
+    app.endUndoGroup();
+    result.ok   = true;
+    result.data = 'reordered';
+  } catch (e) {
+    result.error = e.toString();
+    try { app.endUndoGroup(); } catch (ignored) {}
+  }
+  return JSON.stringify(result);
+}
+
 // ── updatePropertyInDataLayer ──────────────────────────────────────────────
 // Writes a new property value into project[hostingCompUUID].nodes[uuid].properties.
 // Uses the last segment of propertyMatchName as the storage key so both

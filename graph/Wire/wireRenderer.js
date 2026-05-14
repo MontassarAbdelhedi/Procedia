@@ -2,6 +2,13 @@ var wireRenderer = (function() {
 
   var WIRE_COLOR = { layer: '#5b8dd9', data: '#d4a04a' };
 
+  // cpOffset proportional to vertical distance so nearby nodes don't get a
+  // large S-curve. Clamped between 12px and 80px (screen pixels).
+  function calcCpOffset(y1, y2, scale) {
+    var dy = Math.abs(y2 - y1);
+    return Math.max(12 * scale, Math.min(80 * scale, dy * 0.45));
+  }
+
   // ─── Bezier draw ──────────────────────────────────────────────
   // cpOffset is in screen pixels (already scaled by transform.scale)
 
@@ -22,7 +29,6 @@ var wireRenderer = (function() {
   // Samples bezier at 20 steps. Returns wireId if within 6px, else null.
 
   function hitTestNearest(screenX, screenY, transform) {
-    var cpOffset = 80 * transform.scale;
     var HIT_R_SQ = 6 * 6;
     var STEPS    = 20;
     var allWires = graphState.getAllWires();
@@ -43,6 +49,7 @@ var wireRenderer = (function() {
       }
       if (!toPos) continue;
 
+      var cpOffset = calcCpOffset(fromPos.y, toPos.y, transform.scale);
       var x0 = fromPos.x, y0 = fromPos.y;
       var x1 = fromPos.x, y1 = fromPos.y + cpOffset;
       var x2 = toPos.x,   y2 = toPos.y - cpOffset;
@@ -64,7 +71,6 @@ var wireRenderer = (function() {
   // ─── Draw all confirmed wires + in-progress drag preview ──────
 
   function drawAll(ctx, transform, selectedWireId) {
-    var cpOffset = 80 * transform.scale;
     var allWires = graphState.getAllWires();
     var allNodes = graphState.getAllNodes();
 
@@ -84,6 +90,7 @@ var wireRenderer = (function() {
       }
       if (!toPos) continue;
 
+      var cpOffset   = calcCpOffset(fromPos.y, toPos.y, transform.scale);
       var portType   = nodeState.getPortType(w.toNode, w.toPort);
       var color      = WIRE_COLOR[portType] || '#888888';
       var dashed     = (portType !== 'layer');
@@ -106,7 +113,8 @@ var wireRenderer = (function() {
     if (d.active && d.fromNodeId) {
       var fromNode = allNodes[d.fromNodeId];
       if (fromNode) {
-        var fromPos = node.outputPortPos(fromNode, transform);
+        var fromPos  = node.outputPortPos(fromNode, transform);
+        var cpOffset = calcCpOffset(fromPos.y, d.cursorY, transform.scale);
         drawBezier(ctx, fromPos.x, fromPos.y, d.cursorX, d.cursorY, cpOffset, '#888888', 1.5, false);
       }
     }

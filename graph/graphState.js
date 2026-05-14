@@ -6,9 +6,11 @@ var graphState = (function() {
   var selection = null;  // UUID of selected node, or null
 
   // Registered callbacks
-  var selectionListeners = [];
-  var changeListeners    = [];
+  var selectionListeners   = [];
+  var changeListeners      = [];
   var stateChangeListeners = [];
+  var wireAddedListeners   = [];
+  var wireRemovedListeners = [];
 
   // ─── Internal helpers ─────────────────────────────────────────
 
@@ -27,6 +29,18 @@ var graphState = (function() {
   function fireStateChange(uuid, oldState, newState) {
     for (var i = 0; i < stateChangeListeners.length; i++) {
       stateChangeListeners[i](uuid, oldState, newState);
+    }
+  }
+
+  function fireWireAdded(wireData) {
+    for (var i = 0; i < wireAddedListeners.length; i++) {
+      wireAddedListeners[i](wireData);
+    }
+  }
+
+  function fireWireRemoved(wireData) {
+    for (var i = 0; i < wireRemovedListeners.length; i++) {
+      wireRemovedListeners[i](wireData);
     }
   }
 
@@ -87,12 +101,15 @@ var graphState = (function() {
   function addWire(wireData) {
     if (!wireData || !wireData.id) return;
     wires[wireData.id] = wireData;
+    fireWireAdded(wireData);
     fireChange();
   }
 
   function removeWire(wireId) {
     if (!wires[wireId]) return;
+    var removed = wires[wireId];
     delete wires[wireId];
+    fireWireRemoved(removed);
     fireChange();
   }
 
@@ -130,6 +147,14 @@ var graphState = (function() {
     stateChangeListeners.push(callback);
   }
 
+  function onWireAdded(callback) {
+    wireAddedListeners.push(callback);
+  }
+
+  function onWireRemoved(callback) {
+    wireRemovedListeners.push(callback);
+  }
+
   // ─── Public API ───────────────────────────────────────────────
 
   return {
@@ -146,7 +171,9 @@ var graphState = (function() {
     getSelection:      getSelection,
     onSelectionChange:  onSelectionChange,
     onChange:           onChange,
-    onNodeStateChange:  onNodeStateChange
+    onNodeStateChange:  onNodeStateChange,
+    onWireAdded:        onWireAdded,
+    onWireRemoved:      onWireRemoved
   };
 
 }());

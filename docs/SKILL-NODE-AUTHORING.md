@@ -1,7 +1,7 @@
 # SKILL-NODE-AUTHORING.md — Procedia
 ## How to Add, Test, and Debug a Node
 
-**Prerequisite:** Read `CLAUDE.md` in full before using this skill. All 10 skills in CLAUDE.md apply — especially SKILL 1 (ES3 syntax), SKILL 2 (bridge pattern), and SKILL 3 (error handling). This skill does not repeat those rules — it builds on top of them.
+**Prerequisite:** Read `CLAUDE.md` in full before using this skill. All 12 skills in CLAUDE.md apply — especially SKILL 1 (ES3 syntax), SKILL 2 (bridge pattern), SKILL 3 (error handling), and SKILL 11 (plain-script file splitting). This skill does not repeat those rules — it builds on top of them.
 
 ---
 

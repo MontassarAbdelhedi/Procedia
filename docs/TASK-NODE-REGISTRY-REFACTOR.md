@@ -8,7 +8,7 @@
 ## Prerequisites
 
 Before touching any file, read in this order:
-1. `CLAUDE.md` — all 10 skills apply, especially SKILL 1 (ES3), SKILL 2 (bridge), SKILL 3 (error handling)
+1. `CLAUDE.md` — all 12 skills apply, especially SKILL 1 (ES3), SKILL 2 (bridge), SKILL 3 (error handling), SKILL 11 (file splitting)
 2. `docs/SKILL-NODE-AUTHORING.md` — the node definition contract you must follow exactly
 3. This file — the task spec
 

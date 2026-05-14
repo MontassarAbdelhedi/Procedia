@@ -36,6 +36,17 @@ function writeLayerText(layer, text) {
   textProp.setValue(doc);
 }
 
+function findCompByUUID(uuid) {
+  var proj = app.project;
+  for (var i = 1; i <= proj.numItems; i++) {
+    var item = proj.item(i);
+    if (item instanceof CompItem && item.comment === uuid) {
+      return item;
+    }
+  }
+  return null;
+}
+
 function writeGhostEntry(uuid, nodeType) {
   var result = { ok: false, data: null, error: null };
   try {

@@ -2,7 +2,7 @@
 ## How to Build a New Node from a Brief
 
 **Prerequisites — read in this order before starting:**
-1. `CLAUDE.md` — all 11 skills, especially SKILL 1 (ES3), SKILL 2 (bridge), SKILL 3 (error handling), SKILL 11 (file splitting)
+1. `CLAUDE.md` — all 12 skills, especially SKILL 1 (ES3), SKILL 2 (bridge), SKILL 3 (error handling), SKILL 11 (file splitting), SKILL 12 (grounded decisions)
 2. `docs/SKILL-NODE-AUTHORING.md` — the node definition contract
 3. This file — the execution protocol
 

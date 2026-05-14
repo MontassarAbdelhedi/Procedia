@@ -51,7 +51,7 @@ var minimap = (function() {
     for (var i = 0; i < keys.length; i++) {
       var n = nodes[keys[i]];
       var def = nodeRegistry.getByType(n.type);
-      var color = def ? def.strokeColor : '#888888';
+      var color = nodeRegistry.getCategoryColor(def ? def.category : null);
       if (n.state === 'ghost') color = '#3a3a3a';
 
       var mmPos = worldToMM(n.position.x, n.position.y);

@@ -64,14 +64,30 @@ var wire = (function() {
 
     if (wouldCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
 
-    // Enforce one wire per input port — replace any existing wire on toPort
-    var allWires = graphState.getAllWires();
-    for (var wid in allWires) {
-      if (allWires.hasOwnProperty(wid) &&
-          allWires[wid].toNode === toNodeId &&
-          allWires[wid].toPort === toPortName) {
-        graphState.removeWire(wid);
-        break;
+    var allWires  = graphState.getAllWires();
+    var toNodeDef = graphState.getNode(toNodeId);
+    var isComp    = toNodeDef && toNodeDef.type === 'core/comp';
+
+    if (isComp) {
+      // Comp input accepts unlimited wires — only block exact duplicates
+      for (var wid in allWires) {
+        if (allWires.hasOwnProperty(wid) &&
+            allWires[wid].fromNode === drag.fromNodeId &&
+            allWires[wid].toNode  === toNodeId &&
+            allWires[wid].toPort  === toPortName) {
+          cancelDrag();
+          return false;
+        }
+      }
+    } else {
+      // All other nodes: one wire per input port — replace existing
+      for (var wid in allWires) {
+        if (allWires.hasOwnProperty(wid) &&
+            allWires[wid].toNode === toNodeId &&
+            allWires[wid].toPort === toPortName) {
+          graphState.removeWire(wid);
+          break;
+        }
       }
     }
 

@@ -21,9 +21,9 @@ nodeRegistry.register({
 
   // ── 3. PARAMS ────────────────────────────────────────────────────
   params: [
-    { key: 'content',  label: 'Content',   type: 'string', default: 'Text' },
-    { key: 'fontSize', label: 'Font Size', type: 'int',    default: 72, min: 1, max: 999 },
-    { key: 'color',    label: 'Color',     type: 'color',  default: [1, 1, 1] }
+    { key: 'content',  label: 'Content',   type: 'string', default: 'Text',       matchName: 'ADBE Text Properties/ADBE Text Document/content' },
+    { key: 'fontSize', label: 'Font Size', type: 'int',    default: 72, min: 1, max: 999, matchName: 'ADBE Text Properties/ADBE Text Document/fontSize' },
+    { key: 'color',    label: 'Color',     type: 'color',  default: [1, 1, 1],    matchName: 'ADBE Text Properties/ADBE Text Document/color' }
   ],
 
   // ── 4. APPLY ─────────────────────────────────────────────────────

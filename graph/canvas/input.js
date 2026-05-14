@@ -34,6 +34,93 @@ var canvasInput = (function() {
     canvasRenderer.render(getWireDragState());
   }
 
+  // ─── Header hit test ─────────────────────────────────────────
+  // Returns the node if screenX/Y lands in the top 30 world-units of any node.
+
+  function hitTestNodeHeader(nodeData, transform, screenX, screenY) {
+    var sx = nodeData.position.x * transform.scale + transform.offsetX;
+    var sy = nodeData.position.y * transform.scale + transform.offsetY;
+    var sw = node.NODE_WIDTH  * transform.scale;
+    var hh = 30 * transform.scale;
+    return screenX >= sx && screenX <= sx + sw &&
+           screenY >= sy && screenY <= sy + hh;
+  }
+
+  function hitTestNodeBody(nodeData, transform, screenX, screenY) {
+    var sx = nodeData.position.x * transform.scale + transform.offsetX;
+    var sy = nodeData.position.y * transform.scale + transform.offsetY;
+    var sw = node.NODE_WIDTH  * transform.scale;
+    var sh = node.NODE_HEIGHT * transform.scale;
+    var hh = 30 * transform.scale;
+    return screenX >= sx && screenX <= sx + sw &&
+           screenY >= sy + hh && screenY <= sy + sh;
+  }
+
+  // ─── Inline label editor ──────────────────────────────────────
+  // Shows an <input> overlaid on the node header for in-place rename.
+
+  function startLabelEdit(uuid) {
+    var n = graphState.getNode(uuid);
+    if (!n) return;
+    var transform  = canvasViewport.getTransform();
+    var def        = nodeRegistry.getByType(n.type);
+    var current    = n.label || (def ? def.label : n.type);
+
+    var sx = n.position.x * transform.scale + transform.offsetX;
+    var sy = n.position.y * transform.scale + transform.offsetY;
+    var sw = node.NODE_WIDTH * transform.scale;
+
+    var el   = canvasViewport.getEl();
+    var rect = el.getBoundingClientRect();
+
+    var inp = document.createElement('input');
+    inp.type  = 'text';
+    inp.value = current;
+    inp.style.cssText = [
+      'position:fixed',
+      'left:'   + (rect.left + sx + 20 * transform.scale) + 'px',
+      'top:'    + (rect.top  + sy + 10 * transform.scale) + 'px',
+      'width:'  + (sw - 30 * transform.scale) + 'px',
+      'height:' + (18 * transform.scale) + 'px',
+      'background:#1a1a1a',
+      'color:#cccccc',
+      'border:1px solid #5b8dd9',
+      'border-radius:2px',
+      'font:'   + Math.max(8, Math.round(11 * transform.scale)) + 'px monospace',
+      'padding:0 4px',
+      'outline:none',
+      'z-index:9999'
+    ].join(';');
+
+    document.body.appendChild(inp);
+    inp.focus();
+    inp.select();
+
+    var committed = false;
+
+    function commit() {
+      if (committed) return;
+      committed = true;
+      if (document.body.contains(inp)) document.body.removeChild(inp);
+      var newLabel = inp.value.trim();
+      if (newLabel && newLabel !== current) {
+        graphState.updateNode(uuid, { label: newLabel });
+        if (typeof callRenameNode === 'function') callRenameNode(uuid, newLabel);
+      }
+      render();
+    }
+
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') {
+        committed = true;
+        if (document.body.contains(inp)) document.body.removeChild(inp);
+      }
+      e.stopPropagation();
+    });
+    inp.addEventListener('blur', commit);
+  }
+
   function hitTestNodes(screenX, screenY) {
     var transform = canvasViewport.getTransform();
     var nodes = graphState.getAllNodes();
@@ -219,6 +306,25 @@ var canvasInput = (function() {
       selectedWireId = null;
       render();
       e.preventDefault();
+      return;
+    }
+
+    // Node header double-click → inline label edit (all node types)
+    // Comp node body double-click → focus comp in AE
+    var allNodes = graphState.getAllNodes();
+    var nodeKeys = Object.keys(allNodes);
+    for (var k = nodeKeys.length - 1; k >= 0; k--) {
+      var n = allNodes[nodeKeys[k]];
+      if (hitTestNodeHeader(n, transform, screenX, screenY)) {
+        startLabelEdit(n.id);
+        e.preventDefault();
+        return;
+      }
+      if (n.type === 'core/comp' && hitTestNodeBody(n, transform, screenX, screenY)) {
+        if (typeof callFocusCompInAE === 'function') callFocusCompInAE(n.id);
+        e.preventDefault();
+        return;
+      }
     }
   }
 
