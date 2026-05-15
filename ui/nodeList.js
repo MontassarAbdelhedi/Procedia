@@ -1,70 +1,54 @@
-// ─── Node list data ──────────────────────────────────────────────────────────
-// Mirrors the category/node definitions that nodeRegistry.js will own in Task 2.2.
-// This list drives the visual node panel only — no logic attached yet.
+// ui/nodeList.js
+// DEPENDS ON: graph/nodes/nodeRegistry.js
+// MUST LOAD BEFORE: index.js
 
-var NODE_CATEGORIES = [
-  {
-    id: 'containers',
-    label: 'Containers',
-    color: '#5b8dd9',
-    nodes: ['Comp', 'Solid', 'Null', 'Adjustment', 'Footage']
-  },
-  {
-    id: 'layers',
-    label: 'Layers',
-    color: '#7ec98f',
-    nodes: ['Text', 'Shape', 'Mask']
-  },
-  {
-    id: 'effects',
-    label: 'Effects',
-    color: '#d4a04a',
-    nodes: ['Effect']
-  },
-  {
-    id: 'graph',
-    label: 'Graph',
-    color: '#b07ed4',
-    nodes: ['GraphPosition', 'GraphRotation', 'GraphScale']
-  },
-  {
-    id: 'special',
-    label: 'Special',
-    color: '#d46e6e',
-    nodes: ['IsParent']
-  }
-];
-
-// ─── Build node list DOM ─────────────────────────────────────────────────────
+// ─── Build node list DOM ──────────────────────────────────────────
 
 function buildNodeList() {
   var container = document.getElementById('node-categories');
+  if (!container) return;
   container.innerHTML = '';
 
-  for (var i = 0; i < NODE_CATEGORIES.length; i++) {
-    var cat = NODE_CATEGORIES[i];
+  var cats = nodeRegistry.getCategories();
+
+  for (var i = 0; i < cats.length; i++) {
+    var cat   = cats[i];
+    var color = nodeRegistry.getCategoryColor(cat);
+    var defs  = nodeRegistry.getByCategory(cat);
+
+    // Deduplicate: 'core/comp' alias shares def object with 'CompNode'
+    var seen     = {};
+    var unique   = [];
+    for (var d = 0; d < defs.length; d++) {
+      if (!seen[defs[d].type]) {
+        seen[defs[d].type] = true;
+        unique.push(defs[d]);
+      }
+    }
+    if (unique.length === 0) continue;
 
     var catEl = document.createElement('div');
-    catEl.className = 'category';
-    catEl.dataset.id = cat.id;
+    catEl.className    = 'category';
+    catEl.dataset.cat  = cat;
 
-    // Header
     var header = document.createElement('div');
-    header.className = 'category-header';
-    header.innerHTML =
+    header.className   = 'category-header';
+    header.innerHTML   =
       '<span class="category-chevron">&#9660;</span>' +
-      '<span class="category-label">' + cat.label + '</span>';
+      '<span class="category-label">' + cat + '</span>';
+    header.style.borderLeftColor = color;
 
-    // Body
     var body = document.createElement('div');
     body.className = 'category-body';
 
-    for (var j = 0; j < cat.nodes.length; j++) {
+    for (var j = 0; j < unique.length; j++) {
+      var def  = unique[j];
       var item = document.createElement('div');
-      item.className = 'node-item';
-      item.dataset.name = cat.nodes[j].toLowerCase();
-      item.style.borderLeftColor = cat.color;
-      item.textContent = cat.nodes[j];
+      item.className             = 'node-item';
+      item.dataset.type          = def.type;
+      item.dataset.searchLabel   = (def.label || def.type).toLowerCase();
+      item.style.borderLeftColor = color;
+      item.textContent           = def.label || def.type;
       body.appendChild(item);
     }
 
@@ -81,20 +65,20 @@ function buildNodeList() {
   }
 }
 
-// ─── Search filter ───────────────────────────────────────────────────────────
+// ─── Search filter ────────────────────────────────────────────────
 
 function applySearch(query) {
-  var term = query.toLowerCase().trim();
+  var term       = query.toLowerCase().trim();
   var categories = document.querySelectorAll('.category');
 
   for (var i = 0; i < categories.length; i++) {
-    var cat = categories[i];
-    var items = cat.querySelectorAll('.node-item');
+    var cat      = categories[i];
+    var items    = cat.querySelectorAll('.node-item');
     var anyVisible = false;
 
     for (var j = 0; j < items.length; j++) {
-      var name = items[j].dataset.name || '';
-      if (term === '' || name.indexOf(term) !== -1) {
+      var label = items[j].dataset.searchLabel || '';
+      if (term === '' || label.indexOf(term) !== -1) {
         items[j].classList.remove('hidden');
         anyVisible = true;
       } else {
@@ -102,30 +86,23 @@ function applySearch(query) {
       }
     }
 
-    // Keep header visible if any child matches; hide entire category only when
-    // a search is active and nothing matches
     if (term !== '' && !anyVisible) {
       cat.style.display = 'none';
     } else {
       cat.style.display = '';
-      // Auto-expand collapsed categories when a search is active
-      if (term !== '') {
-        cat.classList.remove('collapsed');
-      }
+      if (term !== '') cat.classList.remove('collapsed');
     }
   }
 }
 
 function initSearch() {
-  var input = document.getElementById('node-search');
+  var input    = document.getElementById('node-search');
   var clearBtn = document.getElementById('node-search-clear');
+  if (!input || !clearBtn) return;
 
   function syncClearBtn() {
-    if (input.value.length > 0) {
-      clearBtn.classList.add('visible');
-    } else {
-      clearBtn.classList.remove('visible');
-    }
+    if (input.value.length > 0) clearBtn.classList.add('visible');
+    else                        clearBtn.classList.remove('visible');
   }
 
   function clearSearch() {
@@ -141,9 +118,7 @@ function initSearch() {
   });
 
   input.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      clearSearch();
-    }
+    if (e.key === 'Escape') clearSearch();
   });
 
   clearBtn.addEventListener('click', clearSearch);

@@ -1,32 +1,16 @@
-// ─── Drag from node list to canvas ───────────────────────────────────────────
-
-var dragState = {
-  active: false,
-  nodeType: null,   // e.g. 'TextNode'
-  nodeLabel: null,  // e.g. 'Text'
-  strokeColor: null
-};
+// ui/drag.js
+// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js, graph/canvas/viewport.js,
+//             graph/nodes/node.js, data/uuidGenerator.js
+// MUST LOAD BEFORE: index.js
 
 function initDrag() {
-  var preview = document.getElementById('drag-preview');
+  var preview      = document.getElementById('drag-preview');
   var canvasColumn = document.getElementById('canvas-column');
+  if (!preview || !canvasColumn) return;
 
-  // Map node list item labels to node type names in the registry
-  var LABEL_TO_TYPE = {
-    'comp':          'core/comp',
-    'solid':         'SolidNode',
-    'null':          'NullNode',
-    'adjustment':    'AdjustmentNode',
-    'footage':       'FootageNode',
-    'text':          'TextNode',
-    'shape':         'ShapeNode',
-    'mask':          'MaskNode',
-    'effect':        'EffectNode',
-    'graphposition': 'GraphPositionNode',
-    'graphrotation': 'GraphRotationNode',
-    'graphscale':    'GraphScaleNode',
-    'isparent':      'IsParentNode'
-  };
+  var activeDef  = null; // nodeRegistry definition while dragging
+
+  // ─── Mousedown on a node-item in the list ────────────────────
 
   document.getElementById('node-categories').addEventListener('mousedown', function(e) {
     var item = e.target;
@@ -35,102 +19,55 @@ function initDrag() {
     }
     if (!item) return;
 
-    var rawName = (item.dataset.name || '').toLowerCase();
-    var nodeType = LABEL_TO_TYPE[rawName];
+    var nodeType = item.dataset.type;
     if (!nodeType) return;
 
     var def = nodeRegistry.getByType(nodeType);
     if (!def) return;
 
-    dragState.active      = true;
-    dragState.nodeType    = nodeType;
-    dragState.nodeLabel   = def.label;
-    dragState.strokeColor = nodeRegistry.getCategoryColor(def.category);
+    activeDef = def;
 
-    preview.textContent   = def.label;
-    preview.style.borderColor = dragState.strokeColor;
-    preview.style.display = 'block';
-    preview.style.left    = (e.clientX + 10) + 'px';
-    preview.style.top     = (e.clientY - 14) + 'px';
+    preview.textContent        = def.label || nodeType;
+    preview.style.borderColor  = nodeRegistry.getCategoryColor(def.category);
+    preview.style.display      = 'block';
+    preview.style.left         = (e.clientX + 10) + 'px';
+    preview.style.top          = (e.clientY - 14) + 'px';
 
     e.preventDefault();
   });
 
+  // ─── Move preview ghost ───────────────────────────────────────
+
   document.addEventListener('mousemove', function(e) {
-    if (!dragState.active) return;
+    if (!activeDef) return;
     preview.style.left = (e.clientX + 10) + 'px';
     preview.style.top  = (e.clientY - 14) + 'px';
   });
 
+  // ─── Drop ─────────────────────────────────────────────────────
+
   document.addEventListener('mouseup', function(e) {
-    if (!dragState.active) return;
+    if (!activeDef) return;
 
+    var def   = activeDef;
+    activeDef = null;
     preview.style.display = 'none';
-    dragState.active = false;
 
-    // Check if drop landed inside the canvas column
     var rect = canvasColumn.getBoundingClientRect();
     var insideCanvas = (
       e.clientX >= rect.left && e.clientX <= rect.right &&
       e.clientY >= rect.top  && e.clientY <= rect.bottom
     );
-
     if (!insideCanvas) return;
 
-    // Convert screen position to canvas-relative screen position, then to world
-    var screenX = e.clientX - rect.left;
-    var screenY = e.clientY - rect.top;
+    var screenX  = e.clientX - rect.left;
+    var screenY  = e.clientY - rect.top;
     var worldPos = canvas.screenToWorld(screenX, screenY);
 
-    var def      = nodeRegistry.getByType(dragState.nodeType);
-    var id       = uuidGenerator.generateNodeId();
-    var nodeType = dragState.nodeType;
-    var pos      = { x: worldPos.x - node.NODE_WIDTH / 2, y: worldPos.y - node.NODE_HEIGHT / 2 };
-    var props    = buildDefaultProperties(def);
+    // Centre node on cursor
+    var wx = worldPos.x - node.NODE_WIDTH  / 2;
+    var wy = worldPos.y - node.NODE_HEIGHT / 2;
 
-    // CompNode is always alive immediately — it IS the AE comp, no wiring needed.
-    // All other nodes start as ghost and become alive when wired to a comp.
-    var initialState = (nodeType === 'core/comp') ? 'alive' : 'ghost';
-
-    graphState.addNode({
-      id:         id,
-      type:       nodeType,
-      state:      initialState,
-      position:   pos,
-      properties: props
-    });
-
-    if (csInterface) {
-      if (nodeType === 'core/comp') {
-        // CompNode: skip ghost, call makeNodeAlive directly.
-        // onNodeStateChange will NOT fire (state set via addNode, not updateNode).
-        callMakeNodeAlive(id);
-      } else {
-        // Ghost nodes: persist entry to dataLayer, await wiring to go alive.
-        ensureProcediaReady()
-          .then(function() {
-            return evalBridge.evalScript(
-              'writeGhostEntry(' + JSON.stringify(id) + ', ' + JSON.stringify(nodeType) + ')'
-            );
-          })
-          .then(function(res) {
-            if (!res.ok) {
-              console.error('[Procedia] writeGhostEntry failed:', res.error);
-            }
-          })
-          .catch(function(err) {
-            console.error('[Procedia] AE persistence failed:', err.message);
-          });
-      }
-    }
+    graphState.onDrop(def.type, wx, wy);
   });
-}
-
-function buildDefaultProperties(def) {
-  var props = {};
-  if (!def || !def.params) return props;
-  for (var i = 0; i < def.params.length; i++) {
-    props[def.params[i].key] = def.params[i].default;
-  }
-  return props;
 }

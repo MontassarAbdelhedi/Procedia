@@ -1,3 +1,7 @@
+// graph/nodes/node.js
+// DEPENDS ON: graph/nodes/nodeRegistry.js
+// MUST LOAD BEFORE: graph/canvas/renderer.js
+
 var node = (function() {
 
   var NODE_WIDTH  = 160;
@@ -139,10 +143,11 @@ var node = (function() {
 
     // ── Property preview (first defaultProperty) ─────────────────
     var previewText = '';
-    if (nodeData.properties) {
-      var keys = Object.keys(nodeData.properties);
+    var propsObj = nodeData.props || nodeData.properties;
+    if (propsObj) {
+      var keys = Object.keys(propsObj);
       if (keys.length > 0) {
-        var val = nodeData.properties[keys[0]];
+        var val = propsObj[keys[0]];
         var valStr = (typeof val === 'object') ? JSON.stringify(val) : String(val);
         if (valStr.length > 16) valStr = valStr.substr(0, 14) + '…';
         previewText = keys[0] + ': ' + valStr;
@@ -257,9 +262,54 @@ var node = (function() {
     return null;
   }
 
+  // ─── World-space hit tests (T2.2 v3 API) ─────────────────────
+  // These work in world coordinates — no transform needed.
+
+  function hitTestNode(nodeData, worldX, worldY) {
+    var nx = nodeData.x !== undefined ? nodeData.x : nodeData.position.x;
+    var ny = nodeData.y !== undefined ? nodeData.y : nodeData.position.y;
+    return worldX >= nx && worldX <= nx + NODE_WIDTH &&
+           worldY >= ny && worldY <= ny + NODE_HEIGHT;
+  }
+
+  function hitTestPort(nodeData, worldX, worldY) {
+    var nx  = nodeData.x !== undefined ? nodeData.x : nodeData.position.x;
+    var ny  = nodeData.y !== undefined ? nodeData.y : nodeData.position.y;
+    var def = nodeRegistry.getByType(nodeData.type);
+
+    // Output port (bottom-centre)
+    var outX  = nx + NODE_WIDTH / 2;
+    var outY  = ny + NODE_HEIGHT + 4;
+    var hitR  = 8;
+    var dxOut = worldX - outX;
+    var dyOut = worldY - outY;
+    if (dxOut * dxOut + dyOut * dyOut <= hitR * hitR) {
+      return { portId: 'output', portType: 'output' };
+    }
+
+    // Input ports (top edge)
+    if (def && def.inputs && def.inputs.length > 0) {
+      var count = def.inputs.length;
+      for (var i = 0; i < count; i++) {
+        var ipX  = nx + (NODE_WIDTH / (count + 1)) * (i + 1);
+        var ipY  = ny - 4;
+        var dxIn = worldX - ipX;
+        var dyIn = worldY - ipY;
+        var port = def.inputs[i].port || def.inputs[i].name;
+        if (dxIn * dxIn + dyIn * dyIn <= hitR * hitR) {
+          return { portId: port, portType: def.inputs[i].type || 'layer' };
+        }
+      }
+    }
+
+    return null;
+  }
+
   return {
     drawNode:            drawNode,
     hitTest:             hitTest,
+    hitTestNode:         hitTestNode,
+    hitTestPort:         hitTestPort,
     hitTestOutputPort:   hitTestOutputPort,
     hitTestInputPort:    hitTestInputPort,
     outputPortPos:       outputPortPos,

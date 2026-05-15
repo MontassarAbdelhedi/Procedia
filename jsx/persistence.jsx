@@ -47,7 +47,7 @@ function findCompByUUID(uuid) {
   return null;
 }
 
-function writeGhostEntry(uuid, nodeType) {
+function writeGhostEntry(uuid, nodeType, x, y) {
   var result = { ok: false, data: null, error: null };
   try {
     var comp = findReservedComp();
@@ -79,7 +79,9 @@ function writeGhostEntry(uuid, nodeType) {
       }
     }
 
-    data.ghost.push({ id: uuid, type: nodeType });
+    var posX = (x !== undefined && x !== null) ? x : 100;
+    var posY = (y !== undefined && y !== null) ? y : 100;
+    data.ghost.push({ id: uuid, type: nodeType, x: posX, y: posY });
     writeLayerText(dataLayer, JSON.stringify(data));
 
     dataLayer.locked = true;
@@ -87,6 +89,30 @@ function writeGhostEntry(uuid, nodeType) {
 
     result.ok = true;
     result.data = 'written';
+  } catch (e) {
+    result.error = e.toString();
+  }
+  return JSON.stringify(result);
+}
+
+// Returns full dataLayer JSON string for crash recovery.
+// Caller is responsible for restoring node positions from each entry's x/y fields.
+// Fallback: if x or y is missing from an entry, panel JS defaults to { x: 100, y: 100 }.
+function readDataLayer() {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var comp = findReservedComp();
+    if (!comp) {
+      result.error = 'RESERVED comp not found';
+      return JSON.stringify(result);
+    }
+    var dataLayer = findLayerByName(comp, '__PROCEDIA_DATA__');
+    if (!dataLayer) {
+      result.error = '__PROCEDIA_DATA__ layer not found';
+      return JSON.stringify(result);
+    }
+    result.ok = true;
+    result.data = readLayerText(dataLayer);
   } catch (e) {
     result.error = e.toString();
   }

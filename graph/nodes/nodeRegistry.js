@@ -1,12 +1,21 @@
+// graph/nodes/nodeRegistry.js
+// DEPENDS ON: (none)
+// MUST LOAD BEFORE: graph/nodes/categories/**, graph/nodes/node.js
+
 var nodeRegistry = (function() {
 
   var registry = {};
 
   var CATEGORY_COLORS = {
+    'core':       '#5b8dd9',
     'Core':       '#5b8dd9',
+    'layers':     '#7ec98f',
     'Layers':     '#7ec98f',
+    'effects':    '#d4a04a',
     'Effects':    '#d4a04a',
+    'generators': '#7ec98f',
     'Generators': '#7ec98f',
+    'utility':    '#b07ed4',
     'Utility':    '#b07ed4',
     'Special':    '#d46e6e'
   };
@@ -15,28 +24,58 @@ var nodeRegistry = (function() {
     return CATEGORY_COLORS[category] || '#888888';
   }
 
-  // ── Registration ─────────────────────────────────────────────────
+  // ── Registration ──────────────────────────────────────────────────
+  // Accepts either register(typeKey, def) or register(def) where def.type is the key.
 
-  function register(def) {
-    if (!def || !def.type) {
-      console.warn('[Registry] register() called with invalid definition — missing type');
+  function register(typeKeyOrDef, def) {
+    var typeKey, definition;
+    if (typeof typeKeyOrDef === 'string') {
+      typeKey    = typeKeyOrDef;
+      definition = def;
+    } else {
+      definition = typeKeyOrDef;
+      typeKey    = definition && definition.type;
+    }
+    if (!typeKey || !definition) {
+      console.warn('[nodeRegistry] register() called with invalid arguments');
       return;
     }
-    if (registry[def.type]) {
-      console.warn('[Registry] Duplicate node type: "' + def.type + '" — skipping');
+    if (registry[typeKey]) {
+      console.warn('[nodeRegistry] Duplicate node type: "' + typeKey + '" — skipping');
       return;
     }
-    registry[def.type] = def;
+    if (!definition.type) definition.type = typeKey;
+    registry[typeKey] = definition;
   }
 
-  // ── Public API ───────────────────────────────────────────────────
+  // ── Lookup ────────────────────────────────────────────────────────
 
-  function getDefinition(type) {
-    return registry[type] || null;
+  function lookup(typeKey) {
+    return registry[typeKey] || null;
   }
 
-  function getAllDefinitions() {
-    return registry;
+  function getDefinition(typeKey) {
+    return lookup(typeKey);
+  }
+
+  function getByType(typeKey) {
+    return lookup(typeKey);
+  }
+
+  // ── Category queries ──────────────────────────────────────────────
+
+  function getCategories() {
+    var seen = {};
+    var cats = [];
+    for (var t in registry) {
+      if (!registry.hasOwnProperty(t)) continue;
+      var cat = registry[t].category;
+      if (cat && !seen[cat]) {
+        seen[cat] = true;
+        cats.push(cat);
+      }
+    }
+    return cats;
   }
 
   function getByCategory(category) {
@@ -49,18 +88,10 @@ var nodeRegistry = (function() {
     return result;
   }
 
-  function listTypes() {
-    var types = [];
-    for (var t in registry) {
-      if (registry.hasOwnProperty(t)) types.push(t);
-    }
-    return types;
-  }
+  // ── Bulk queries ──────────────────────────────────────────────────
 
-  // ── Backward-compat aliases (used by index.js drag logic) ────────
-
-  function getByType(type) {
-    return getDefinition(type);
+  function getAllDefinitions() {
+    return registry;
   }
 
   function getAll() {
@@ -71,14 +102,26 @@ var nodeRegistry = (function() {
     return arr;
   }
 
+  function listTypes() {
+    var types = [];
+    for (var t in registry) {
+      if (registry.hasOwnProperty(t)) types.push(t);
+    }
+    return types;
+  }
+
+  // ── Public API ────────────────────────────────────────────────────
+
   return {
     register:         register,
+    lookup:           lookup,
     getDefinition:    getDefinition,
-    getAllDefinitions: getAllDefinitions,
-    getByCategory:    getByCategory,
-    listTypes:        listTypes,
     getByType:        getByType,
+    getCategories:    getCategories,
+    getByCategory:    getByCategory,
+    getAllDefinitions: getAllDefinitions,
     getAll:           getAll,
+    listTypes:        listTypes,
     getCategoryColor: getCategoryColor
   };
 

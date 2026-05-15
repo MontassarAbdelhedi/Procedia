@@ -1,29 +1,23 @@
-nodeRegistry.register({
+// graph/nodes/categories/core/Comp.js
+// DEPENDS ON: graph/nodes/nodeRegistry.js
+// MUST LOAD BEFORE: index.js
 
-  // ── 1. IDENTITY ──────────────────────────────────────────────────
-  type:     'core/comp',
-  label:    'Comp',
-  category: 'Core',
-  version:  '1.0.0',
-
-  // ── 2. PORTS ─────────────────────────────────────────────────────
+nodeRegistry.register('CompNode', {
+  nodeKind:  'affected',
+  category:  'core',
+  label:     'Comp',
   inputs: [
-    { name: 'layer_in', type: 'layer', required: false }
+    { port: 'layer_in', name: 'layer_in', type: 'layer', multiplicity: 'unlimited' }
   ],
   outputs: [],
-
-  // ── 3. PARAMS ────────────────────────────────────────────────────
-  params: [
-    { key: 'width',     label: 'Width',      type: 'int',   default: 1920, min: 1,   max: 7680 },
-    { key: 'height',    label: 'Height',     type: 'int',   default: 1080, min: 1,   max: 4320 },
-    { key: 'duration',  label: 'Duration',   type: 'float', default: 10,   min: 0.1, max: 3600 },
-    { key: 'frameRate', label: 'Frame Rate', type: 'float', default: 24,   min: 1,   max: 120  }
-  ],
-
-  // ── 4. APPLY ─────────────────────────────────────────────────────
-  // Comp is an orchestrator node — AE comp creation is handled by the engine, not apply().
-  apply: function(nodeData) {
-    return '';
+  defaultProps: {
+    name:      'New Comp',
+    width:     1920,
+    height:    1080,
+    duration:  5,
+    frameRate: 24
   }
-
 });
+
+// Backward-compat alias — v2 files check n.type === 'core/comp' until rewritten
+nodeRegistry.register('core/comp', nodeRegistry.lookup('CompNode'));

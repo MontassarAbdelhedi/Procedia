@@ -1,10 +1,12 @@
-// renderer.js — owns all draw calls against the 2D context
-// deps: canvasViewport, wireRenderer, node, graphState
+// graph/canvas/renderer.js
+// DEPENDS ON: graph/graphState.js, graph/nodes/node.js, graph/Wire/wireRenderer.js, graph/canvas/viewport.js
+// MUST LOAD BEFORE: graph/canvas/index.js
 
 var canvasRenderer = (function() {
 
   var GRID_SIZE = 24;
   var afterRenderCallbacks = [];
+  var loopRunning = false;
 
   function drawGrid(ctx, transform, width, height) {
     var spacing = GRID_SIZE * transform.scale;
@@ -64,11 +66,20 @@ var canvasRenderer = (function() {
     }
   }
 
-  return {
-    render: render,
-    onAfterRender: function(fn) {
-      afterRenderCallbacks.push(fn);
+  function startRenderLoop() {
+    if (loopRunning) return;
+    loopRunning = true;
+    function loop() {
+      render(null);
+      requestAnimationFrame(loop);
     }
+    requestAnimationFrame(loop);
+  }
+
+  return {
+    render:           render,
+    startRenderLoop:  startRenderLoop,
+    onAfterRender:    function(fn) { afterRenderCallbacks.push(fn); }
   };
 
 }());
