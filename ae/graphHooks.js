@@ -6,8 +6,11 @@ graphState.onWireAdded(function(w) {
   var toNode   = graphState.getNode(w.toNode);
   if (!fromNode || !toNode) return;
 
+  var fromIsComp = (fromNode.type === 'CompNode' || fromNode.type === 'core/comp');
+  var toIsComp   = (toNode.type   === 'CompNode' || toNode.type   === 'core/comp');
+
   // Non-comp layer wired to a comp — prepend to inspector layer order so newest is at top
-  if (fromNode.type !== 'core/comp' && toNode.type === 'core/comp') {
+  if (!fromIsComp && toIsComp) {
     var compNode0 = graphState.getNode(w.toNode);
     var order0 = (compNode0 && compNode0._layerOrder) ? compNode0._layerOrder.slice() : [];
     if (order0.indexOf(w.fromNode) === -1) {
@@ -21,7 +24,7 @@ graphState.onWireAdded(function(w) {
     return;
   }
 
-  if (fromNode.type !== 'core/comp' || toNode.type !== 'core/comp') return;
+  if (!fromIsComp || !toIsComp) return;
 
   // Comp wired to comp — prepend to inspector layer order so newest is at top
   var compNode1 = graphState.getNode(w.toNode);
@@ -51,13 +54,35 @@ graphState.onWireRemoved(function(w) {
   var toNode   = graphState.getNode(w.toNode);
   if (!fromNode || !toNode) return;
 
-  // Non-comp layer wire to comp removed — decrement hosting comp counter
-  if (fromNode.type !== 'core/comp' && toNode.type === 'core/comp') {
+  var fromIsComp = (fromNode.type === 'CompNode' || fromNode.type === 'core/comp');
+  var toIsComp   = (toNode.type   === 'CompNode' || toNode.type   === 'core/comp');
+
+  // Non-comp layer wire to comp removed — prune _layerOrder, then clean up AE layer
+  if (!fromIsComp && toIsComp) {
+    var compNode0 = graphState.getNode(w.toNode);
+    if (compNode0 && compNode0._layerOrder) {
+      var pruned0 = [];
+      for (var i = 0; i < compNode0._layerOrder.length; i++) {
+        if (compNode0._layerOrder[i] !== w.fromNode) pruned0.push(compNode0._layerOrder[i]);
+      }
+      graphState.updateNode(w.toNode, { _layerOrder: pruned0 });
+    }
     callRemoveLayerFromComp(w.fromNode, w.toNode);
     return;
   }
 
-  if (fromNode.type !== 'core/comp' || toNode.type !== 'core/comp') return;
+  if (!fromIsComp || !toIsComp) return;
+
+  // Comp-to-comp wire removed — prune _layerOrder
+  var compNode1 = graphState.getNode(w.toNode);
+  if (compNode1 && compNode1._layerOrder) {
+    var pruned1 = [];
+    for (var j = 0; j < compNode1._layerOrder.length; j++) {
+      if (compNode1._layerOrder[j] !== w.fromNode) pruned1.push(compNode1._layerOrder[j]);
+    }
+    graphState.updateNode(w.toNode, { _layerOrder: pruned1 });
+  }
+
   ensureProcediaReady()
     .then(function() {
       return evalBridge.evalScript(

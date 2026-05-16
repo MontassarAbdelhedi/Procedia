@@ -14,7 +14,9 @@
 - Panel memory holds the live graph. dataLayer/dataWire are written to on every action but only read on crash recovery
 - There is **no apply button**. Every graph or inspector action immediately triggers an ExtendScript command
 - Procedia never auto-repairs a broken Reserved folder or comp. The user owns that responsibility entirely
-- Canvas node positions (x, y) are **panel memory only** — never written to AE or dataLayer
+- Canvas node positions (x, y) are written to dataLayer on every node move and on onDrop.
+  They are restored from dataLayer on crash recovery.
+  Position is stored per-node at the top level of each node's entry (ghost list and comp tree).
 
 ---
 
@@ -27,7 +29,7 @@ Require a presence in the **AE Project panel** AND as a layer inside a hosting c
 |---|---|---|---|
 | `CompNode` | `CompItem` | — | Is the hosting comp itself. Always alive. |
 | `SolidNode` | `FootageItem` (solid) | `AVLayer` | Project object created first, then layered |
-| `NullNode` | — | `NullLayer` | No project object needed |
+| `NullNode` | — (no FootageItem) | `NullLayer` | Created via comp.layers.addNull(). AE auto-creates an internal object. |
 | `AdjustmentNode` | — | `AVLayer` | Adjustment flag set on layer |
 | `FootageNode` | `FootageItem` | `AVLayer` | User-imported footage |
 
@@ -94,7 +96,7 @@ Triggered when a node is dragged from the node list onto the canvas.
 1. Generate UUID on the panel JS side. Format: `PROC-{timestamp}-{rand4}` e.g. `PROC-1714900000000-a3f2`
 2. Set node state = `ghost`
 3. Store in panel memory: `{ id, type, state: 'ghost', position: {x, y}, properties: defaults }`
-4. Write to `dataLayer` ghost list: `{ id, type }` — no position, no properties
+4. Write to `dataLayer` ghost list: `{ id, type, x, y }` — position included, no properties
 5. If node type is `CompNode`: skip ghost, go directly to `onAlive`
 
 **ExtendScript called:** `writeGhostEntry(uuid, nodeType)` — writes to dataLayer text layer only
@@ -234,6 +236,31 @@ Before confirming any wire connection from Node A output → Node B input:
 2. If Node A is encountered in this traversal → cycle detected → reject wire silently
 3. If Node A is not encountered → wire is valid → confirm
 
+### 5e. Multi-Comp Node Alive Rule
+
+A node can be alive in multiple comps at once. In dataLayer, it appears as a node
+entry under each hosting comp's tree — one entry per comp.
+
+When a wire is deleted:
+  1. Run hasCompDownstream(nodeId) from nodeState.js
+  2. This function traverses ALL remaining output wires from the node
+  3. It collects every CompNode UUID reachable from any output wire
+  4. If the result list is empty → node has no comp path → call onGhost
+  5. If the result list is non-empty → node is still alive in those comps → do nothing
+
+A node can NEVER be ghosted in one comp while alive in another.
+Ghost is a binary state — it applies to the entire node, not per-comp.
+
+The exception: removeLayerFromComp is called when a specific comp path is broken
+but other paths remain. This removes the layer from that specific comp in AE and
+removes that comp's node entry from dataLayer — but does NOT change the node state.
+The node stays alive. onGhost is not called.
+
+Summary:
+  - Wire deleted → check ALL remaining output paths → any comp reachable? → stay alive
+  - Wire deleted → check ALL remaining output paths → no comp reachable? → onGhost
+  - Partial path broken (some comps remain) → removeLayerFromComp only, no state change
+
 ---
 
 ## 6. Data Model
@@ -246,8 +273,8 @@ Stored as the text content of a text layer named `"__PROCEDIA_DATA__"` inside th
 {
   "version": "2.0",
   "ghost": [
-    { "id": "PROC-xxx", "type": "TextNode" },
-    { "id": "PROC-yyy", "type": "ShapeNode" }
+    { "id": "PROC-xxx", "type": "TextNode", "x": 240, "y": 180 },
+    { "id": "PROC-yyy", "type": "ShapeNode", "x": 560, "y": 320 }
   ],
   "project": {
     "PROC-comp1-uuid": {
@@ -264,6 +291,8 @@ Stored as the text content of a text layer named `"__PROCEDIA_DATA__"` inside th
         "PROC-text1-uuid": {
           "type": "TextNode",
           "state": "alive",
+          "x": 240,
+          "y": 180,
           "properties": {
             "content": "Hello",
             "fontSize": 72,
@@ -576,7 +605,10 @@ procedia/
 
 8. **Polling must be paused during any ExtendScript write.** Check `isWriting` flag in `poller.js` before firing a poll tick.
 
-9. **Canvas positions are never persisted.** Do not add x/y to dataLayer, dataWire, or any ExtendScript call.
+9. **Canvas positions are persisted in dataLayer only** — never in dataWire, never passed as arguments
+   to any ExtendScript lifecycle call (makeNodeAlive, makeNodeGhost, etc.).
+   Position is written to dataLayer via writeDataLayer on every node move.
+   Position is never sent to AE — AE has no concept of canvas position.
 
 10. **Comp node is always alive.** It has no ghost state. Do not implement a ghost path for CompNode.
 

@@ -1,3 +1,6 @@
+// bridge/evalBridge.js
+// DEPENDS ON: CSInterface.js
+// MUST LOAD BEFORE: ae/nodeOps.js
 var evalBridge = (function() {
 
   var _preamble = '';

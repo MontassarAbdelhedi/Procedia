@@ -6,32 +6,117 @@ try {
 }
 
 // ─── JSX preamble loader ─────────────────────────────────────────────────────
-// cep.fs.readFile is synchronous — read all JSX files at startup and store the
-// combined source as the evalBridge preamble. evalBridge prepends this to every
-// evalScript call so JSX functions are always defined in the same scope as the
-// invocation. Required in AE 2025: evalScript calls do not share a persistent
-// ExtendScript global scope.
+// Reads JSX files at startup and stores combined source as the evalBridge
+// preamble. evalBridge prepends this to every evalScript call so JSX functions
+// are always defined in scope. Required: AE 2025 evalScript calls do not share
+// a persistent ExtendScript global scope.
+// ADD each new JSX file here as it is implemented (Phase 6+).
 
 (function() {
   if (!csInterface) return;
   var extPath = csInterface.getSystemPath(SystemPath.EXTENSION).replace(/[\/\\]+$/, '');
-  var r0 = window.cep.fs.readFile(extPath + '\\jsx\\json.jsx');
-  var r1 = window.cep.fs.readFile(extPath + '\\jsx\\init.jsx');
-  var r2 = window.cep.fs.readFile(extPath + '\\jsx\\persistence.jsx');
-  var r3 = window.cep.fs.readFile(extPath + '\\jsx\\nodeLifeCycle\\nodeKeyframes.jsx');
-  var r4 = window.cep.fs.readFile(extPath + '\\jsx\\nodeLifeCycle\\nodeDataLayer.jsx');
-  var r5 = window.cep.fs.readFile(extPath + '\\jsx\\nodeLifeCycle\\nodeWireOps.jsx');
-  var r6 = window.cep.fs.readFile(extPath + '\\jsx\\nodeLifeCycle\\nodeLifecycle.jsx');
-  var r7 = window.cep.fs.readFile(extPath + '\\jsx\\properties.jsx');
-  var r8 = window.cep.fs.readFile(extPath + '\\jsx\\aeFocus.jsx');
-  var r9 = window.cep.fs.readFile(extPath + '\\jsx\\polling.jsx');
-  if (r0.err !== 0 || r1.err !== 0 || r2.err !== 0 || r3.err !== 0 || r4.err !== 0 || r5.err !== 0 || r6.err !== 0 || r7.err !== 0 || r8.err !== 0 || r9.err !== 0) {
-    console.error('[Procedia] JSX read failed — json.err=' + r0.err + ' init.err=' + r1.err + ' persistence.err=' + r2.err + ' nodeKeyframes.err=' + r3.err + ' nodeDataLayer.err=' + r4.err + ' nodeWireOps.err=' + r5.err + ' nodeLifecycle.err=' + r6.err + ' properties.err=' + r7.err + ' aeFocus.err=' + r8.err + ' polling.err=' + r9.err);
-    return;
+
+  // Load order: json.jsx must be first (all others depend on JSON polyfill).
+  // ADD each new JSX file here as it is implemented (Phase 6+).
+  var jsxFiles = [
+    '\\jsx\\json.jsx',
+    '\\jsx\\init.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeLayerOps.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeEffectorOps.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeCompOps.jsx',
+    '\\jsx\\properties.jsx',
+    '\\jsx\\polling.jsx',
+    '\\jsx\\aeFocus.jsx',
+    '\\jsx\\persistence.jsx'
+  ];
+
+  var parts = [];
+  for (var i = 0; i < jsxFiles.length; i++) {
+    var r = window.cep.fs.readFile(extPath + jsxFiles[i]);
+    if (r.err !== 0) {
+      console.error('[Procedia] JSX read failed — ' + jsxFiles[i] + ' err=' + r.err);
+      return;
+    }
+    parts.push(r.data);
   }
-  evalBridge.setPreamble(r0.data + '\n' + r1.data + '\n' + r2.data + '\n' + r3.data + '\n' + r4.data + '\n' + r5.data + '\n' + r6.data + '\n' + r7.data + '\n' + r8.data + '\n' + r9.data);
-  console.log('[Procedia] JSX preamble ready (' + (r0.data.length + r1.data.length + r2.data.length + r3.data.length + r4.data.length + r5.data.length + r6.data.length + r7.data.length + r8.data.length + r9.data.length) + ' chars)');
+
+  var preamble = parts.join('\n');
+  evalBridge.setPreamble(preamble);
+  console.log('[Procedia] JSX preamble ready (' + preamble.length + ' chars, ' + jsxFiles.length + ' files)');
 }());
+
+// ─── Unload hooks — persist graph to AE before panel closes ──────────────────
+
+window.addEventListener('beforeunload', function() {
+  try { graphState.flushToPersistence(); } catch(e) { /* silent — panel is closing */ }
+});
+
+if (csInterface) {
+  csInterface.addEventListener('com.adobe.csxs.events.ApplicationBeforeUnload', function() {
+    try { graphState.flushToPersistence(); } catch(e) {}
+  });
+  csInterface.addEventListener('com.adobe.csxs.events.ApplicationQuit', function() {
+    try { graphState.flushToPersistence(); } catch(e) {}
+  });
+}
+
+// ─── Panel-open restore ───────────────────────────────────────────────────────
+// Reads node + wire registries from AE and restores graphState.
+// Runs after preamble is set so evalBridge is ready. Skipped if no AE.
+
+function restoreGraphFromAE() {
+  if (!csInterface) return;
+  Promise.all([callReadNodeRegistry(), callReadWireRegistry()])
+    .then(function(results) {
+      var nodesJson = results[0];
+      var wiresJson = results[1];
+
+      if (nodesJson) {
+        try {
+          var nodeData = JSON.parse(nodesJson);
+          var nodes = nodeData.nodes || {};
+          for (var uid in nodes) {
+            if (!nodes.hasOwnProperty(uid)) continue;
+            var n = nodes[uid];
+            graphState.addNode({
+              id:          uid,
+              type:        n.type,
+              nodeKind:    n.nodeKind || 'affected',
+              state:       n.state    || 'ghost',
+              dirty:       false,
+              x:           n.x || 0,
+              y:           n.y || 0,
+              props:       n.props || {},
+              hostingComps: n.hostingComps || [],
+              label:       n.label || '',
+              position:    { x: n.x || 0, y: n.y || 0 }
+            });
+          }
+        } catch(e) {
+          console.error('[Procedia] restore: failed to parse nodes:', e);
+        }
+      }
+
+      if (wiresJson) {
+        try {
+          var wireData = JSON.parse(wiresJson);
+          var wires = wireData.wires || [];
+          for (var i = 0; i < wires.length; i++) {
+            var w = wires[i];
+            graphState.addWire({ id: w.id, fromNode: w.fromNode, fromPort: w.fromPort, toNode: w.toNode, toPort: w.toPort });
+          }
+        } catch(e) {
+          console.error('[Procedia] restore: failed to parse wires:', e);
+        }
+      }
+
+      graphState.rebuildTempGraph();
+      console.log('[Procedia] graph restored from AE');
+    })
+    .catch(function(err) {
+      console.error('[Procedia] restoreGraphFromAE failed:', err && err.message);
+    });
+}
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 
@@ -44,3 +129,4 @@ try { inspector.init(); }       catch(e) { console.error('[Procedia] inspector.i
 try { initDrag(); }             catch(e) { console.error('[Procedia] initDrag failed:', e); }
 try { initKeyboard(); }         catch(e) { console.error('[Procedia] initKeyboard failed:', e); }
 try { poller.start(); }         catch(e) { console.error('[Procedia] poller.start failed:', e); }
+try { restoreGraphFromAE(); }   catch(e) { console.error('[Procedia] restoreGraphFromAE failed:', e); }

@@ -1,147 +1,43 @@
 // jsx/properties.jsx
-// ES3 - var only, named functions, for loops, string concat
-// DEPENDS ON: jsx/json.jsx, jsx/init.jsx, jsx/persistence.jsx, jsx/nodeLifecycle.jsx
-//   (uses findCompByUUID, findReservedComp, findLayerByName, readLayerText, writeLayerText)
+// DEPENDS ON: jsx/json.jsx, jsx/nodeLifeCycle/nodeLayerOps.jsx (findCompByUUID, findLayerByUUID)
+// Commands: updateNodeProperty, setLayerOrder, setLayerParent, clearLayerParent
+// ES3 — var only, named functions, for loops, string concat
 
-// ── setLayerOrder ──────────────────────────────────────────────────────────
-// Reorders layers in a hosting comp to match orderedUUIDs (index 0 = AE layer 1 = top).
-// AE Layer has moveToBeginning/moveToEnd/moveBefore/moveAfter, not moveTo(index).
-
-function findLayerByCommentInComp(comp, uuid) {
-  for (var i = 1; i <= comp.numLayers; i++) {
-    if (comp.layer(i).comment === uuid) {
-      return comp.layer(i);
-    }
-  }
-  return null;
-}
-
-function updateLayerOrderInDataLayer(hostingCompUUID, orderedUUIDs) {
-  var reserved = findReservedComp();
-  if (!reserved) return;
-
-  reserved.locked = false;
-  var dataLyr = findLayerByName(reserved, '__PROCEDIA_DATA__');
-  if (!dataLyr) { reserved.locked = true; return; }
-
-  dataLyr.locked = false;
-  var data = JSON.parse(readLayerText(dataLyr));
-
-  if (data.project && data.project[hostingCompUUID]) {
-    data.project[hostingCompUUID].layerOrder = orderedUUIDs;
-    writeLayerText(dataLyr, JSON.stringify(data));
-  }
-
-  dataLyr.locked = true;
-  reserved.locked = true;
-}
-
-function setLayerOrder(hostingCompUUID, orderedUUIDsJSON) {
-  var result = { ok: false, data: null, error: null };
-  try {
-    var orderedUUIDs = JSON.parse(orderedUUIDsJSON);
-    var hostComp = findCompByUUID(hostingCompUUID);
-    if (!hostComp) {
-      result.error = 'setLayerOrder: comp not found: ' + hostingCompUUID;
-      return JSON.stringify(result);
-    }
-
-    app.beginUndoGroup('Procedia: setLayerOrder');
-
-    for (var i = orderedUUIDs.length - 1; i >= 0; i--) {
-      var layer = findLayerByCommentInComp(hostComp, orderedUUIDs[i]);
-      if (layer) layer.moveToBeginning();
-    }
-
-    updateLayerOrderInDataLayer(hostingCompUUID, orderedUUIDs);
-
-    app.endUndoGroup();
-    result.ok   = true;
-    result.data = 'reordered';
-  } catch (e) {
-    result.error = e.toString();
-    try { app.endUndoGroup(); } catch (ignored) {}
-  }
-  return JSON.stringify(result);
-}
-
-// ── updatePropertyInDataLayer ──────────────────────────────────────────────
-// Writes a new property value into project[hostingCompUUID].nodes[uuid].properties.
-// Uses the last segment of propertyMatchName as the storage key so both
-// "ADBE Transform Group/ADBE Position" and "…/ADBE Text Document/fontSize"
-// resolve to a readable key ("ADBE Position", "fontSize").
-
-function updatePropertyInDataLayer(uuid, hostingCompUUID, propertyMatchName, value) {
-  var reserved = findReservedComp();
-  if (!reserved) return;
-
-  reserved.locked = false;
-  var dataLyr = findLayerByName(reserved, '__PROCEDIA_DATA__');
-  if (!dataLyr) { reserved.locked = true; return; }
-
-  dataLyr.locked = false;
-  var data = JSON.parse(readLayerText(dataLyr));
-
-  var parts  = propertyMatchName.split('/');
-  var storeKey = parts[parts.length - 1]; // last segment as property key
-
-  if (data.project &&
-      data.project[hostingCompUUID] &&
-      data.project[hostingCompUUID].nodes &&
-      data.project[hostingCompUUID].nodes[uuid] &&
-      data.project[hostingCompUUID].nodes[uuid].properties) {
-    data.project[hostingCompUUID].nodes[uuid].properties[storeKey] = value;
-  }
-
-  writeLayerText(dataLyr, JSON.stringify(data));
-  dataLyr.locked = true;
-  reserved.locked = true;
-}
-
-// ── updateNodeProperty ─────────────────────────────────────────────────────
-// Updates a single property on an alive AE layer.
+// ─── updateNodeProperty ───────────────────────────────────────────────────────
+// Sets a single property on an alive AE layer identified by uuid.
 //
 // propertyMatchName formats:
-//   "ADBE Transform Group/ADBE Position"        — standard group/prop path
-//   "ADBE Text Properties/ADBE Text Document/fontSize"  — TextDocument sub-key
-//   "ADBE Text Properties/ADBE Text Document/color"
-//   "ADBE Text Properties/ADBE Text Document/content"
+//   "ADBE Transform Group/ADBE Position"               — group/prop path (2 segments)
+//   "ADBE Text Properties/ADBE Text Document/fontSize"  — TextDocument sub-key (3 segments)
+//   "ADBE Text Properties/ADBE Text Document/color"     — expects [r,g,b] array 0–1
+//   "ADBE Text Properties/ADBE Text Document/content"   — text string
 //
-// valueJSON — JSON-serialised value: number, array, or string
+// valueJSON — JSON-serialised value: number, array, or string.
 
 function updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, valueJSON) {
   var result = { ok: false, data: null, error: null };
   try {
     var value = JSON.parse(valueJSON);
 
-    // ── Find hosting comp ──────────────────────────────────────────────
     var hostComp = findCompByUUID(hostingCompUUID);
     if (!hostComp) {
       result.error = 'updateNodeProperty: hosting comp not found: ' + hostingCompUUID;
       return JSON.stringify(result);
     }
 
-    // ── Find layer by UUID comment ─────────────────────────────────────
-    var layer = null;
-    for (var i = 1; i <= hostComp.numLayers; i++) {
-      if (hostComp.layer(i).comment === uuid) {
-        layer = hostComp.layer(i);
-        break;
-      }
-    }
+    var layer = findLayerByUUID(hostComp, uuid);
     if (!layer) {
-      result.error = 'updateNodeProperty: layer not found for uuid: ' + uuid;
+      result.error = 'updateNodeProperty: layer not found: ' + uuid;
       return JSON.stringify(result);
     }
 
-    // ── Navigate and set ───────────────────────────────────────────────
     var parts = propertyMatchName.split('/');
 
     if (parts[0] === 'ADBE Text Properties' &&
         parts[1] === 'ADBE Text Document' &&
         parts.length === 3) {
 
-      // TextDocument sub-property — must read → modify → setValue
+      // TextDocument sub-property — read → modify → setValue.
       var textPropGroup = layer.property('ADBE Text Properties');
       if (!textPropGroup) {
         result.error = 'updateNodeProperty: ADBE Text Properties not found';
@@ -158,7 +54,6 @@ function updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, valueJSON)
       if (subKey === 'fontSize') {
         doc.fontSize = value;
       } else if (subKey === 'color') {
-        // value expected as [r, g, b] array (0-1 range)
         if (value instanceof Array && value.length >= 3) {
           doc.fillColor = [value[0], value[1], value[2]];
         }
@@ -172,7 +67,7 @@ function updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, valueJSON)
 
     } else if (parts.length === 2) {
 
-      // Standard group/property path
+      // Standard group/property path.
       var group = layer.property(parts[0]);
       if (!group) {
         result.error = 'updateNodeProperty: property group not found: ' + parts[0];
@@ -190,10 +85,105 @@ function updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, valueJSON)
       return JSON.stringify(result);
     }
 
-    // ── Persist to dataLayer ───────────────────────────────────────────
-    updatePropertyInDataLayer(uuid, hostingCompUUID, propertyMatchName, value);
+    result.ok   = true;
+    result.data = { uuid: uuid, propertyMatchName: propertyMatchName };
+  } catch (e) {
+    result.error = e.toString();
+  }
+  return JSON.stringify(result);
+}
 
-    result.ok = true;
+// ─── setLayerOrder ────────────────────────────────────────────────────────────
+// Reorders layers in hostingComp to match orderedUUIDs (index 0 = AE top = layer 1).
+// Walk array in reverse so the last moveToBeginning call places index 0 at the top.
+// Uses moveToBeginning — AE layers have no moveTo(index).
+
+function setLayerOrder(hostingCompUUID, orderedUUIDsJSON) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var orderedUUIDs = JSON.parse(orderedUUIDsJSON);
+
+    var hostComp = findCompByUUID(hostingCompUUID);
+    if (!hostComp) {
+      result.error = 'setLayerOrder: comp not found: ' + hostingCompUUID;
+      return JSON.stringify(result);
+    }
+
+    app.beginUndoGroup('Procedia: setLayerOrder');
+
+    // Reverse walk: last item gets moveToBeginning first, first item last → correct order.
+    for (var i = orderedUUIDs.length - 1; i >= 0; i--) {
+      var layer = findLayerByUUID(hostComp, orderedUUIDs[i]);
+      if (layer) layer.moveToBeginning();
+    }
+
+    app.endUndoGroup();
+    result.ok   = true;
+    result.data = { hostingCompUUID: hostingCompUUID, count: orderedUUIDs.length };
+  } catch (e) {
+    result.error = e.toString();
+    try { app.endUndoGroup(); } catch (ignored) {}
+  }
+  return JSON.stringify(result);
+}
+
+// ─── setLayerParent ───────────────────────────────────────────────────────────
+// Sets childLayer.parent = parentLayer inside hostingComp.
+// Both layers must be in the same comp.
+
+function setLayerParent(childUUID, parentUUID, hostingCompUUID) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var hostComp = findCompByUUID(hostingCompUUID);
+    if (!hostComp) {
+      result.error = 'setLayerParent: hosting comp not found: ' + hostingCompUUID;
+      return JSON.stringify(result);
+    }
+
+    var childLayer = findLayerByUUID(hostComp, childUUID);
+    if (!childLayer) {
+      result.error = 'setLayerParent: child layer not found: ' + childUUID;
+      return JSON.stringify(result);
+    }
+
+    var parentLayer = findLayerByUUID(hostComp, parentUUID);
+    if (!parentLayer) {
+      result.error = 'setLayerParent: parent layer not found: ' + parentUUID;
+      return JSON.stringify(result);
+    }
+
+    childLayer.parent = parentLayer;
+
+    result.ok   = true;
+    result.data = { childUUID: childUUID, parentUUID: parentUUID };
+  } catch (e) {
+    result.error = e.toString();
+  }
+  return JSON.stringify(result);
+}
+
+// ─── clearLayerParent ─────────────────────────────────────────────────────────
+// Removes the parent link from childLayer. Layer transforms become absolute.
+
+function clearLayerParent(childUUID, hostingCompUUID) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var hostComp = findCompByUUID(hostingCompUUID);
+    if (!hostComp) {
+      result.error = 'clearLayerParent: hosting comp not found: ' + hostingCompUUID;
+      return JSON.stringify(result);
+    }
+
+    var childLayer = findLayerByUUID(hostComp, childUUID);
+    if (!childLayer) {
+      result.error = 'clearLayerParent: child layer not found: ' + childUUID;
+      return JSON.stringify(result);
+    }
+
+    childLayer.parent = null;
+
+    result.ok   = true;
+    result.data = { childUUID: childUUID };
   } catch (e) {
     result.error = e.toString();
   }

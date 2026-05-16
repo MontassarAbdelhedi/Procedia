@@ -1,5 +1,6 @@
-// index.js — assembly: initialises all canvas modules, exposes the canvas global
-// deps: canvasViewport, canvasRenderer, canvasInput, graphState
+// graph/canvas/index.js
+// DEPENDS ON: graph/canvas/viewport.js, graph/canvas/renderer.js, graph/canvas/input.js
+// MUST LOAD BEFORE: index.js
 
 var canvas = (function() {
 
@@ -9,10 +10,7 @@ var canvas = (function() {
     });
 
     canvasInput.init();
-
-    graphState.onChange(function() {
-      canvasRenderer.render(null);
-    });
+    canvasRenderer.startRenderLoop();
   }
 
   return {
@@ -53,6 +51,14 @@ var canvas = (function() {
 
     getHoveredPort: function() {
       return canvasInput.getHoveredPort();
+    },
+
+    getSelectedWire: function() {
+      return canvasInput.getSelectedWire();
+    },
+
+    clearWireSelection: function() {
+      canvasInput.clearWireSelection();
     }
   };
 

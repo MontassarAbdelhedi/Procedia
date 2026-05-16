@@ -1,5 +1,7 @@
-// input.js — translates raw DOM events into graph mutations
-// deps: canvasViewport, canvasRenderer, wire, wireRenderer, node, graphState
+// graph/canvas/input.js
+// DEPENDS ON: graph/graphState.js, graph/nodes/node.js, graph/Wire/wire.js,
+//             graph/Wire/wireRenderer.js, graph/canvas/viewport.js, graph/canvas/renderer.js
+// MUST LOAD BEFORE: graph/canvas/index.js
 
 var canvasInput = (function() {
 
@@ -101,6 +103,7 @@ var canvasInput = (function() {
     function commit() {
       if (committed) return;
       committed = true;
+      document.removeEventListener('mousedown', onOutsideMouseDown, true);
       if (document.body.contains(inp)) document.body.removeChild(inp);
       var newLabel = inp.value.trim();
       if (newLabel && newLabel !== current) {
@@ -110,10 +113,16 @@ var canvasInput = (function() {
       render();
     }
 
+    function onOutsideMouseDown(e) {
+      if (e.target !== inp) commit();
+    }
+    document.addEventListener('mousedown', onOutsideMouseDown, true);
+
     inp.addEventListener('keydown', function(e) {
       if (e.key === 'Enter')  { e.preventDefault(); commit(); }
       if (e.key === 'Escape') {
         committed = true;
+        document.removeEventListener('mousedown', onOutsideMouseDown, true);
         if (document.body.contains(inp)) document.body.removeChild(inp);
       }
       e.stopPropagation();
@@ -216,12 +225,11 @@ var canvasInput = (function() {
       var scale = canvasViewport.getTransform().scale;
       var n = graphState.getNode(movingNodeId);
       if (n) {
-        graphState.updateNode(movingNodeId, {
-          position: {
-            x: n.position.x + dx / scale,
-            y: n.position.y + dy / scale
-          }
-        });
+        graphState.setNodePosition(
+          movingNodeId,
+          n.position.x + dx / scale,
+          n.position.y + dy / scale
+        );
       }
       return;
     }
@@ -320,7 +328,7 @@ var canvasInput = (function() {
         e.preventDefault();
         return;
       }
-      if (n.type === 'core/comp' && hitTestNodeBody(n, transform, screenX, screenY)) {
+      if ((n.type === 'CompNode' || n.type === 'core/comp') && hitTestNodeBody(n, transform, screenX, screenY)) {
         if (typeof callFocusCompInAE === 'function') callFocusCompInAE(n.id);
         e.preventDefault();
         return;
@@ -372,6 +380,13 @@ var canvasInput = (function() {
     },
     getHoveredPort: function() {
       return hoveredPort ? { nodeId: hoverNodeId, port: hoveredPort } : null;
+    },
+
+    getSelectedWire: function() { return selectedWireId; },
+
+    clearWireSelection: function() {
+      selectedWireId = null;
+      render();
     }
   };
 

@@ -1,3 +1,7 @@
+// graph/Wire/wireRenderer.js
+// DEPENDS ON: graph/graphState.js, graph/nodes/node.js, graph/Wire/nodeState.js, graph/Wire/wire.js
+// MUST LOAD BEFORE: graph/canvas/renderer.js
+
 var wireRenderer = (function() {
 
   var WIRE_COLOR = { layer: '#5b8dd9', data: '#d4a04a' };
@@ -120,9 +124,19 @@ var wireRenderer = (function() {
     }
   }
 
+  // ─── Public: draw a single wire between two screen-space points ──
+
+  function drawWire(ctx, fromX, fromY, toX, toY, wireType, isPreview) {
+    var color    = WIRE_COLOR[wireType] || '#888888';
+    var lw       = (wireType === 'layer') ? 2 : 1.5;
+    var cpOffset = calcCpOffset(fromY, toY, 1);
+    drawBezier(ctx, fromX, fromY, toX, toY, cpOffset, color, lw, isPreview || false);
+  }
+
   // ─── Public API ───────────────────────────────────────────────
 
   return {
+    drawWire:       drawWire,
     drawAll:        drawAll,
     hitTestNearest: hitTestNearest
   };

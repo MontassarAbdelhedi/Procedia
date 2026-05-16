@@ -1,3 +1,7 @@
+// graph/Wire/wire.js
+// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js, graph/Wire/nodeState.js, data/uuidGenerator.js
+// MUST LOAD BEFORE: graph/Wire/wireRenderer.js, graph/canvas/input.js
+
 var wire = (function() {
 
   // ─── Drag state ───────────────────────────────────────────────
@@ -62,14 +66,33 @@ var wire = (function() {
     var toPortType = nodeState.getPortType(toNodeId, toPortName);
     if (!toPortType) { cancelDrag(); return false; }
 
+    // Resolve output port type of the source node
+    var fromNode    = graphState.getNode(drag.fromNodeId);
+    var fromDef     = fromNode ? nodeRegistry.getByType(fromNode.type) : null;
+    var fromPortType = null;
+    if (fromDef && fromDef.outputs) {
+      for (var oi = 0; oi < fromDef.outputs.length; oi++) {
+        if (fromDef.outputs[oi].port === 'output') { fromPortType = fromDef.outputs[oi].type; break; }
+      }
+    }
+    if (fromPortType && fromPortType !== toPortType) { cancelDrag(); return false; }
+
     if (wouldCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
 
-    var allWires  = graphState.getAllWires();
-    var toNodeDef = graphState.getNode(toNodeId);
-    var isComp    = toNodeDef && toNodeDef.type === 'core/comp';
+    var allWires    = graphState.getAllWires();
+    var toNodeData  = graphState.getNode(toNodeId);
+    var toRegistryDef = toNodeData ? nodeRegistry.getByType(toNodeData.type) : null;
+    var toPortDef   = null;
+    if (toRegistryDef && toRegistryDef.inputs) {
+      for (var pi = 0; pi < toRegistryDef.inputs.length; pi++) {
+        var inp = toRegistryDef.inputs[pi];
+        if (inp.port === toPortName || inp.name === toPortName) { toPortDef = inp; break; }
+      }
+    }
+    var isUnlimited = toPortDef && toPortDef.multiplicity === 'unlimited';
 
-    if (isComp) {
-      // Comp input accepts unlimited wires — only block exact duplicates
+    if (isUnlimited) {
+      // Unlimited-multiplicity port — only block exact duplicates
       for (var wid in allWires) {
         if (allWires.hasOwnProperty(wid) &&
             allWires[wid].fromNode === drag.fromNodeId &&
@@ -102,8 +125,15 @@ var wire = (function() {
       toPort:   toPortName
     });
 
-    nodeState.evaluateNodeState(fromNodeId);
-    nodeState.evaluateNodeState(toNodeId);
+    var fromNewState = nodeState.evaluateNodeState(fromNodeId);
+    var toNewState   = nodeState.evaluateNodeState(toNodeId);
+
+    if (fromNewState === 'alive') {
+      graphState.onAlive(fromNodeId);
+    } else {
+      graphState.updateNode(fromNodeId, { state: fromNewState });
+    }
+    graphState.updateNode(toNodeId, { state: toNewState });
 
     cancelDrag();
     return true;
@@ -112,18 +142,8 @@ var wire = (function() {
   function deleteWire(wireId) {
     var w = graphState.getWire(wireId);
     if (!w) return;
-    var portType = nodeState.getPortType(w.toNode, w.toPort);
-    var fromNode = w.fromNode;
-    var toNode   = w.toNode;
     graphState.removeWire(wireId);
-
-    if (portType === 'data') {
-      graphState.updateNode(fromNode, { state: 'ghost' });
-      return;
-    }
-
-    nodeState.evaluateNodeState(fromNode);
-    nodeState.evaluateNodeState(toNode);
+    nodeState.cascadeGhost(w);
   }
 
   // ─── Public API ───────────────────────────────────────────────
