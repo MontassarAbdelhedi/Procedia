@@ -231,6 +231,17 @@ var graphState = (function() {
     return id;
   }
 
+  // ─── onGhost ──────────────────────────────────────────────────────────────────
+  // Called by cascadeGhost for each node that has lost its comp path.
+  // AE parkLayer call is driven by the onNodeStateChange hook in ae/graphHooks.js —
+  // do NOT call callMakeNodeGhost here to avoid duplicate parkLayer calls.
+
+  function onGhost(uuid) {
+    var n = nodeMap[uuid];
+    if (!n) return;
+    updateNode(uuid, { state: 'ghost', hostingComps: [] });
+  }
+
   // ─── onAlive ──────────────────────────────────────────────────────────────────
   // Called when a node gains a comp path (wire committed, or cascaded).
   // Updates state + hostingComps. AE layer creation is guarded until T6.1.
@@ -238,19 +249,42 @@ var graphState = (function() {
   function onAlive(uuid) {
     var reachableComps = nodeState.getReachableComps(uuid);
     if (reachableComps.length === 0) return;
+    // AE call is driven by the onNodeStateChange hook in ae/graphHooks.js.
+    // Do NOT call callMakeNodeAlive here — updateNode fires stateChange which
+    // triggers the hook, so a direct call here would create duplicate AE layers.
     updateNode(uuid, { state: 'alive', hostingComps: reachableComps });
-    // AE call — fails gracefully until JSX preamble is ready (T6.1+)
-    if (typeof callMakeNodeAlive === 'function') {
-      callMakeNodeAlive(uuid);
-    }
   }
 
   // ─── onDelete ─────────────────────────────────────────────────────────────────
-  // Removes a node and all its wires. T5.4 expands with AE teardown.
+  // Removes a node and all its wires. Full AE teardown per architecture §3d.
 
   function onDelete(uuid) {
     if (!nodeMap[uuid]) return;
-    // Save connected node IDs before removing wires
+    var n          = nodeMap[uuid];
+    var isCompNode = (n.type === 'CompNode' || n.type === 'core/comp');
+
+    // Step 1 — AE teardown before removing from nodeMap.
+    if (n.state === 'alive') {
+      if (isCompNode) {
+        // CompNode has no ghost state — delete the AE comp directly.
+        if (typeof callDeleteComp === 'function') {
+          callDeleteComp(uuid);
+        }
+      } else {
+        // Non-comp alive: ghost first (parks layer for affected, clears effector state).
+        onGhost(uuid);
+      }
+    }
+
+    // Step 2 — Permanently delete the parked layer from reserved comp.
+    // Only for affected non-comp nodes (now in ghost state after step 1, or was already ghost).
+    if (!isCompNode && n.nodeKind === 'affected') {
+      if (typeof callDeleteParkedLayer === 'function') {
+        callDeleteParkedLayer(uuid);
+      }
+    }
+
+    // Step 3 — Collect connected peers before wires are gone.
     var connectedNodes = [];
     var toRemove       = [];
     for (var wid in wireMap) {
@@ -262,21 +296,87 @@ var graphState = (function() {
         if (peer !== uuid) connectedNodes.push(peer);
       }
     }
+
+    // Step 4 — Remove wires (fires wireRemoved events for graphHooks cascade at T12.2).
     for (var i = 0; i < toRemove.length; i++) {
       var removed = wireMap[toRemove[i]];
       delete wireMap[toRemove[i]];
       fireWireRemoved(removed);
     }
+
+    // Step 5 — Remove node.
     delete nodeMap[uuid];
-    if (selection === uuid) selection = null;
+    if (selection === uuid) {
+      selection = null;
+      fireSelectionChange(null);
+    }
+
     rebuildTempGraph();
     fireChange();
-    // Re-evaluate remaining connected nodes
-    for (var i = 0; i < connectedNodes.length; i++) {
-      var cid = connectedNodes[i];
-      if (nodeMap[cid]) {
-        updateNode(cid, { state: nodeState.evaluateNodeState(cid) });
+
+    // Step 6 — Re-evaluate connected peers: they may have lost their comp path.
+    for (var j = 0; j < connectedNodes.length; j++) {
+      var cid = connectedNodes[j];
+      if (!nodeMap[cid]) continue;
+      var newState = nodeState.evaluateNodeState(cid);
+      if (nodeMap[cid].state !== newState) {
+        if (newState === 'ghost') {
+          onGhost(cid);
+        } else {
+          updateNode(cid, { state: newState });
+        }
       }
+    }
+  }
+
+  // ─── flushToPersistence ───────────────────────────────────────────────────────
+  // Serializes nodeMap + wireMap to AE text layers. Called on panel unload.
+  // Fire-and-forget — no await, no UI feedback needed.
+
+  function flushToPersistence() {
+    if (typeof callWriteNodeRegistry !== 'function') return;
+
+    // Serialize nodes — strip internal tracking fields (_hostingCompUUID etc.)
+    var nodesOut = {};
+    for (var uid in nodeMap) {
+      if (!nodeMap.hasOwnProperty(uid)) continue;
+      var n = nodeMap[uid];
+      nodesOut[uid] = {
+        type:         n.type,
+        nodeKind:     n.nodeKind,
+        state:        n.state,
+        x:            n.x,
+        y:            n.y,
+        props:        n.props,
+        hostingComps: n.hostingComps,
+        label:        n.label || ''
+      };
+    }
+    var nodesJson = JSON.stringify({ version: '2.0', nodes: nodesOut });
+    callWriteNodeRegistry(nodesJson);
+
+    // Serialize wires.
+    var wiresOut = [];
+    for (var wid in wireMap) {
+      if (!wireMap.hasOwnProperty(wid)) continue;
+      var w = wireMap[wid];
+      wiresOut.push({ id: wid, fromNode: w.fromNode, fromPort: w.fromPort, toNode: w.toNode, toPort: w.toPort });
+    }
+    var wiresJson = JSON.stringify({ version: '2.0', wires: wiresOut });
+    callWriteWireRegistry(wiresJson);
+
+    // Write comp membership for each alive CompNode.
+    for (var cid in nodeMap) {
+      if (!nodeMap.hasOwnProperty(cid)) continue;
+      var cn = nodeMap[cid];
+      if ((cn.type !== 'CompNode' && cn.type !== 'core/comp') || cn.state !== 'alive') continue;
+      var members = [];
+      for (var wid2 in wireMap) {
+        if (!wireMap.hasOwnProperty(wid2)) continue;
+        var cw = wireMap[wid2];
+        if (cw.toNode === cid) members.push(cw.fromNode);
+      }
+      callWriteCompMembership(cid, JSON.stringify(members));
     }
   }
 
@@ -310,11 +410,15 @@ var graphState = (function() {
     // Node lifecycle
     onDrop:   onDrop,
     onAlive:  onAlive,
+    onGhost:  onGhost,
     onDelete: onDelete,
 
     // Selection
     setSelection: setSelection,
     getSelection: getSelection,
+
+    // Persistence
+    flushToPersistence: flushToPersistence,
 
     // Events
     onChange:          onChange,

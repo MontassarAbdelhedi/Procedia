@@ -103,6 +103,7 @@ var canvasInput = (function() {
     function commit() {
       if (committed) return;
       committed = true;
+      document.removeEventListener('mousedown', onOutsideMouseDown, true);
       if (document.body.contains(inp)) document.body.removeChild(inp);
       var newLabel = inp.value.trim();
       if (newLabel && newLabel !== current) {
@@ -112,10 +113,16 @@ var canvasInput = (function() {
       render();
     }
 
+    function onOutsideMouseDown(e) {
+      if (e.target !== inp) commit();
+    }
+    document.addEventListener('mousedown', onOutsideMouseDown, true);
+
     inp.addEventListener('keydown', function(e) {
       if (e.key === 'Enter')  { e.preventDefault(); commit(); }
       if (e.key === 'Escape') {
         committed = true;
+        document.removeEventListener('mousedown', onOutsideMouseDown, true);
         if (document.body.contains(inp)) document.body.removeChild(inp);
       }
       e.stopPropagation();
@@ -321,7 +328,7 @@ var canvasInput = (function() {
         e.preventDefault();
         return;
       }
-      if (n.type === 'core/comp' && hitTestNodeBody(n, transform, screenX, screenY)) {
+      if ((n.type === 'CompNode' || n.type === 'core/comp') && hitTestNodeBody(n, transform, screenX, screenY)) {
         if (typeof callFocusCompInAE === 'function') callFocusCompInAE(n.id);
         e.preventDefault();
         return;

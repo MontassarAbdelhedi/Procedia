@@ -34,39 +34,12 @@ var inspector = (function() {
     var nodeData = graphState.getNode(uuid);
     if (!nodeData) return;
 
-    // Build updated properties object
-    var updatedProps = {};
-    var k;
-    if (nodeData.properties) {
-      for (k in nodeData.properties) {
-        if (nodeData.properties.hasOwnProperty(k)) {
-          updatedProps[k] = nodeData.properties[k];
-        }
-      }
-    }
-    updatedProps[param.key] = newValue;
-
-    // Suppress inspector re-render while we mutate state
     suppressRerender = true;
-    graphState.updateNode(uuid, { properties: updatedProps });
+    graphState.setNodeProp(uuid, param.key, newValue);
     suppressRerender = false;
 
-    // If alive and the param declares an AE match name → write to AE layer
-    if (nodeData.state === 'alive' && param.matchName) {
-      var hostingCompUUID = nodeData._hostingCompUUID || null;
-      var valueJSON = JSON.stringify(newValue);
-      evalBridge.evalScript(
-        'updateNodeProperty(' +
-          JSON.stringify(uuid) + ', ' +
-          JSON.stringify(hostingCompUUID) + ', ' +
-          JSON.stringify(param.matchName) + ', ' +
-          JSON.stringify(valueJSON) +
-        ')'
-      ).then(function(res) {
-        if (!res.ok) console.error('[Procedia] updateNodeProperty failed:', res.error);
-      }).catch(function(err) {
-        console.error('[Procedia] updateNodeProperty error:', err.message);
-      });
+    if (typeof dirtyFlusher !== 'undefined') {
+      dirtyFlusher.markDirty(uuid);
     }
   }
 
@@ -200,32 +173,32 @@ var inspector = (function() {
     header.appendChild(badgeSpan);
     el.appendChild(header);
 
-    if (!def || !def.params || def.params.length === 0) return;
+    // Body — one row per param (skipped if node type has no params)
+    if (def && def.params && def.params.length > 0) {
+      var body = document.createElement('div');
+      body.className = 'inspector-body';
 
-    // Body — one row per param
-    var body = document.createElement('div');
-    body.className = 'inspector-body';
+      for (var i = 0; i < def.params.length; i++) {
+        var param = def.params[i];
+        var row = document.createElement('div');
+        row.className = 'inspector-row';
 
-    for (var i = 0; i < def.params.length; i++) {
-      var param = def.params[i];
-      var row = document.createElement('div');
-      row.className = 'inspector-row';
+        var lbl = document.createElement('label');
+        lbl.className = 'inspector-row-label';
+        lbl.textContent = param.label;
 
-      var lbl = document.createElement('label');
-      lbl.className = 'inspector-row-label';
-      lbl.textContent = param.label;
+        var field = buildField(nodeData.id, param, nodeData.props);
 
-      var field = buildField(nodeData.id, param, nodeData.properties);
+        row.appendChild(lbl);
+        if (field) row.appendChild(field);
+        body.appendChild(row);
+      }
 
-      row.appendChild(lbl);
-      if (field) row.appendChild(field);
-      body.appendChild(row);
+      el.appendChild(body);
     }
 
-    el.appendChild(body);
-
     // ── Layer order section (CompNode only) ──────────────────────────────────
-    if (nodeData.type === 'core/comp') {
+    if (nodeData.type === 'CompNode' || nodeData.type === 'core/comp') {
       var divider = document.createElement('div');
       divider.className = 'inspector-section-label';
       divider.textContent = 'Layers';

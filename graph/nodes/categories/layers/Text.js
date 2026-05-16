@@ -18,5 +18,15 @@ nodeRegistry.register('TextNode', {
     content:  'Text',
     fontSize: 72,
     color:    [1, 1, 1, 1]
-  }
+  },
+  propMatchNames: {
+    content:  'ADBE Text Properties/ADBE Text Document/content',
+    fontSize: 'ADBE Text Properties/ADBE Text Document/fontSize',
+    color:    'ADBE Text Properties/ADBE Text Document/color'
+  },
+  params: [
+    { key: 'content',  label: 'Content',   type: 'string' },
+    { key: 'fontSize', label: 'Font Size', type: 'number', min: 1 },
+    { key: 'color',    label: 'Color',     type: 'color'  }
+  ]
 });

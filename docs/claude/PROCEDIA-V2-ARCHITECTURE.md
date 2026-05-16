@@ -29,7 +29,7 @@ Require a presence in the **AE Project panel** AND as a layer inside a hosting c
 |---|---|---|---|
 | `CompNode` | `CompItem` | — | Is the hosting comp itself. Always alive. |
 | `SolidNode` | `FootageItem` (solid) | `AVLayer` | Project object created first, then layered |
-| `NullNode` | — | `NullLayer` | No project object needed |
+| `NullNode` | — (no FootageItem) | `NullLayer` | Created via comp.layers.addNull(). AE auto-creates an internal object. |
 | `AdjustmentNode` | — | `AVLayer` | Adjustment flag set on layer |
 | `FootageNode` | `FootageItem` | `AVLayer` | User-imported footage |
 

@@ -129,6 +129,8 @@ var nodeState = (function() {
     // Effectors deepest first
     effectors.sort(function(a, b) { return b.depth - a.depth; });
 
+    // Effectors: AE removeEffector first (cascade responsibility), then state update via onGhost.
+    // Guard: nodeOps.removeEffector wired at T12.1 — no-op until then.
     for (var i = 0; i < effectors.length; i++) {
       var uuid = effectors[i].id;
       var en   = graphState.getNode(uuid);
@@ -139,20 +141,12 @@ var nodeState = (function() {
           }
         }
       }
-      graphState.updateNode(uuid, { state: 'ghost', hostingComps: [] });
+      graphState.onGhost(uuid);
     }
 
+    // Affected nodes: onGhost parks the layer in AE and updates state.
     for (var i = 0; i < affected.length; i++) {
-      var uuid = affected[i].id;
-      var an   = graphState.getNode(uuid);
-      if (an && an.hostingComps) {
-        for (var j = 0; j < an.hostingComps.length; j++) {
-          if (typeof nodeOps !== 'undefined' && typeof nodeOps.parkLayer === 'function') {
-            nodeOps.parkLayer(uuid, an.hostingComps[j]);
-          }
-        }
-      }
-      graphState.updateNode(uuid, { state: 'ghost', hostingComps: [] });
+      graphState.onGhost(affected[i].id);
     }
 
     graphState.rebuildTempGraph();

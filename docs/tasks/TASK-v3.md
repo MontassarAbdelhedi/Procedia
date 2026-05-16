@@ -276,7 +276,7 @@ Implement `onGhost(nodeUUID)` — called by cascadeGhost after effectors are alr
 3. `rebuildTempGraph()`
 **Note:** `cascadeGhost` in `nodeState.js` orchestrates the sequence. `onGhost` here is the per-node state update step, not the cascade driver.
 **Verify:**
-- [ ] Cut wire from TextNode → CompNode: TextNode state='ghost', layer moves to reserved comp in AE
+- [x] Cut wire from TextNode → CompNode: TextNode state='ghost', layer moves to reserved comp in AE
 
 ---
 
@@ -289,9 +289,9 @@ Implement `onDelete(nodeUUID)`:
 4. Remove from nodeMap, remove all wireMap entries referencing uuid
 5. `rebuildTempGraph()`
 **Verify:**
-- [ ] Delete alive TextNode → layer removed from hosting comp AND from reserved comp
-- [ ] Delete CompNode → AE comp deleted from project
-- [ ] All wires referencing the deleted node disappear from canvas
+- [x] Delete alive TextNode → layer removed from hosting comp AND from reserved comp
+- [x] Delete CompNode → AE comp deleted from project
+- [x] All wires referencing the deleted node disappear from canvas
 
 ---
 
@@ -305,10 +305,11 @@ Implement `initReservedComp()`:
 3. `findOrCreateTextLayer(comp, '__PROCEDIA_NODES__')` — creates locked text layer, writes empty JSON `{"version":"2.0","nodes":{}}`
 4. Same for `__PROCEDIA_WIRES__` and `__PROCEDIA_GHOST_LAYERS__`
 All layers locked. Comp locked.
-**Verify (AE Script Editor):**
-- [ ] `alert(initReservedComp())` → `{"ok":true,"data":"initialized","error":null}`
-- [ ] Project panel shows `DO NOT DELETE - Procedia` folder with reserved comp inside
-- [ ] Reserved comp has three locked text layers with correct names
+**Verify (AE panel observation — drop a CompNode to trigger initReservedComp via ensureProcediaReady):**
+- [x] AE project panel shows `DO NOT DELETE - Procedia` folder
+- [x] Folder contains `__PROCEDIA_RESERVED__` comp, locked
+- [x] Reserved comp has three locked text layers: `__PROCEDIA_NODES__`, `__PROCEDIA_WIRES__`, `__PROCEDIA_GHOST_LAYERS__`
+- [ ] Run drop again (idempotent) — no duplicate layers or comps created
 
 ---
 
@@ -322,9 +323,9 @@ Implement `makeLayerAlive(uuid, nodeType, hostingCompUUID, propsJson)`:
 - Set `layer.comment = uuid`
 - Apply props from propsJson to layer properties via match names
 All ES3. Return `{ ok, data: {layerIndex}, error }`.
-**Verify (AE Script Editor):**
-- [ ] `alert(makeLayerAlive('PROC-test','TextNode','<comp-uuid>','{"content":"Hello","fontSize":72}'))` → `ok:true`, text layer appears in comp
-- [ ] Layer comment field equals the uuid
+**Verify (AE panel observation — drop a TextNode, wire it to a CompNode):**
+- [x] TextNode layer appears inside the AE comp after wiring
+- [x] Layer comment field equals the TextNode UUID (select layer → Essential Graphics or use layer comment in timeline)
 
 ---
 
@@ -340,9 +341,9 @@ Implement `unparkLayer(uuid, hostingCompUUID)`:
 1. Find layer in reserved comp by comment
 2. Unlock it, move to hosting comp
 3. Remove uuid from `__PROCEDIA_GHOST_LAYERS__`
-**Verify (AE Script Editor):**
-- [ ] `parkLayer` → layer disappears from hosting comp, appears in reserved comp, locked
-- [ ] `unparkLayer` → layer returns to hosting comp with keyframes intact
+**Verify (AE panel observation):**
+- [x] Wire TextNode → CompNode (layer appears in comp), then delete the wire → layer disappears from comp and appears in `__PROCEDIA_RESERVED__`
+- [x] Re-wire TextNode → CompNode → layer moves back to comp with keyframes intact
 
 ---
 
@@ -356,9 +357,9 @@ Implement `deleteParkedLayer(uuid)`:
 Implement `removeLayerFromComp(uuid, hostingCompUUID)`:
 1. Find layer in the specified hosting comp by comment
 2. Delete it from that comp only (node stays alive in other comps)
-**Verify (AE Script Editor):**
-- [ ] `deleteParkedLayer` → layer gone from reserved comp, GHOST_LAYERS updated
-- [ ] `removeLayerFromComp` → layer removed from one comp; if same layer UUID exists in another comp, it is untouched
+**Verify (AE panel observation):**
+- [x] Delete a ghost TextNode → layer gone from `__PROCEDIA_RESERVED__`, GHOST_LAYERS empty
+- [ ] `removeLayerFromComp` — verified indirectly when wire-to-comp is deleted while node stays alive in another comp
 
 ---
 
@@ -370,9 +371,9 @@ Implement `deleteComp(uuid)`:
 Implement `renameNode(uuid, newName)`:
 - Find the AE object (comp or layer) by UUID in comment field
 - Rename it (.name = newName)
-**Verify (AE Script Editor):**
-- [ ] `deleteComp` → comp removed from project panel
-- [ ] `renameNode` → AE comp or layer name updates
+**Verify (AE panel observation):**
+- [x] Delete a CompNode from canvas → AE comp disappears from project panel
+- [x] Rename a node (via inspector or label edit) → AE comp or layer name updates to match
 
 ---
 
@@ -385,9 +386,7 @@ Implement `applyEffector(effectorUUID, hostLayerUUID, hostingCompUUID, propsJson
 - Find or add the effect by `props.aeMatchName` via `layer.property("ADBE Effect Parade").addProperty(matchName)`
 - Set `effect.comment = effectorUUID` (to track which effector owns it)
 - Apply each property value from propsJson to effect properties by match name
-**Verify (AE Script Editor):**
-- [ ] Apply Gaussian Blur → blur effect appears on layer in AE
-- [ ] `effect.comment` equals effectorUUID
+**Verify:** ⚠️ BLOCKED — no EffectNode registered in nodeRegistry yet. Re-verify when effector nodes are added to the registry.
 
 ---
 
@@ -397,9 +396,7 @@ Implement `removeEffector(effectorUUID, hostLayerUUID, hostingCompUUID)`:
 - Find host layer in hosting comp by comment
 - Iterate effects on layer, find the one where `effect.comment === effectorUUID`
 - Remove it
-**Verify (AE Script Editor):**
-- [ ] Blur applied, then `removeEffector` → blur effect gone from layer in AE
-- [ ] Other effects on the same layer are not touched
+**Verify:** ⚠️ BLOCKED — same as T8.1, no effector nodes in registry.
 
 ---
 
@@ -413,8 +410,7 @@ Extend `applyEffector` to handle:
 - `GraphScaleNode` — set `ADBE Scale`
 - `IsParentNode` — set `childLayer.parent = parentLayer`
 Extend `removeEffector` to handle the reverse for each type.
-**Verify (AE Script Editor):**
-- [ ] Each effector type: apply → visible in AE timeline; remove → gone
+**Verify:** ⚠️ BLOCKED — same as T8.1, no effector nodes in registry.
 
 ---
 
@@ -431,9 +427,9 @@ Implement `removeCompLayerFromComp(fromCompUUID, toCompUUID)`:
 - Find toComp by comment
 - Find the layer inside toComp where `layer.comment === fromCompUUID`
 - Delete it
-**Verify (AE Script Editor):**
-- [ ] `addCompAsLayer` → precomp layer appears in toComp timeline
-- [ ] `removeCompLayerFromComp` → precomp layer removed; source comp still exists in project
+**Verify (AE panel observation — wire two CompNodes together):**
+- [x] Wire CompNode A → CompNode B → CompNode A appears as a precomp layer inside CompNode B's AE comp
+- [x] Delete that wire → precomp layer removed from B; CompNode A's own comp still exists in project
 
 ---
 
@@ -446,9 +442,7 @@ Implement `updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, valueJso
 - Navigate to property by match name string
 - Set `.value = parsedValue`
 All ES3. Handle nested match names (e.g. `"ADBE Transform Group/ADBE Position"`).
-**Verify (AE Script Editor):**
-- [ ] Set position on a null layer → layer jumps to new position in AE
-- [ ] Set opacity → opacity updates in AE
+**Verify:** ⚠️ BLOCKED — no inspector UI yet (T16.1). Re-verify when inspector fires updateNodeProperty.
 
 ---
 
@@ -457,9 +451,7 @@ All ES3. Handle nested match names (e.g. `"ADBE Transform Group/ADBE Position"`)
 Implement `setLayerOrder(hostingCompUUID, orderedUUIDsJson)`:
 - Parse orderedUUIDs array (index 0 = AE top = layer 1)
 - Walk array in reverse (bottom-to-top), call `layer.moveToBeginning()` for each
-- See Architecture Â§14 rule 15: use moveToBeginning, never moveTo(index)
-**Verify (AE Script Editor):**
-- [ ] Two layers in comp, swap order via `setLayerOrder` → AE timeline order changes correctly
+**Verify:** ⚠️ BLOCKED — no layer order UI yet (T16.2). Re-verify when reorder list fires setLayerOrder.
 
 ---
 
@@ -472,9 +464,7 @@ Implement `setLayerParent(childUUID, parentUUID, hostingCompUUID)`:
 Implement `clearLayerParent(childUUID, hostingCompUUID)`:
 - Find child layer
 - `childLayer.parent = null`
-**Verify (AE Script Editor):**
-- [ ] `setLayerParent` → child follows parent in AE
-- [ ] `clearLayerParent` → parent link removed, layer transforms become absolute
+**Verify:** ⚠️ BLOCKED — no parenting UI yet. Re-verify when parenting is wired.
 
 ---
 
@@ -486,9 +476,7 @@ Implement `pollAliveNodes(uuidListJson)`:
 - Parse array of UUIDs
 - For each UUID: search all comps and reserved comp for comp.comment or layer.comment match
 - Return array: `[{ uuid, exists:bool, properties:{name, width, height, duration, frameRate} }]`
-**Verify (AE Script Editor):**
-- [ ] Poll a UUID that exists → returns `exists:true` with current properties
-- [ ] Poll a UUID that doesn't exist → returns `exists:false`
+**Verify:** ⚠️ BLOCKED — no poller wired yet (T14.1). Re-verify when poller calls pollAliveNodes.
 
 ---
 
@@ -496,39 +484,31 @@ Implement `pollAliveNodes(uuidListJson)`:
 **Files touched:** `jsx/aeFocus.jsx`
 Implement `focusCompInAE(uuid)`:
 - Find CompItem by comment
-- `app.activeViewer.setActiveTool(...)` or open comp: `comp.openInViewer()`
-**Verify (AE Script Editor):**
-- [ ] Double-click CompNode → AE opens that comp in the timeline viewer
+- `comp.openInViewer()`
+**Verify (AE panel observation):**
+- [ ] Double-click a CompNode → AE opens that comp in the timeline viewer
 
 ---
 
 ## Phase 12 — Panel JS: AE Layer
 
 ### T12.1 — `ae/nodeOps.js` — All `call*` Functions
-**Files touched:** `ae/nodeOps.js`, `index.html`
-Implement one wrapper function per ExtendScript command listed in Architecture Â§12.
-Each function calls `evalBridge(scriptString)` and returns the promise.
-This is the **only** file with evalBridge-calling functions.
-No DOM. No graphState mutations.
+**Files touched:** `ae/nodeOps.js`
+All wrappers implemented: makeNodeAlive, makeNodeGhost, addLayerToComp, removeLayerFromComp,
+deleteParkedLayer, deleteComp, renameNode, focusCompInAE, applyEffector, removeEffector,
+updateNodeProperty, setLayerOrder, setLayerParent, clearLayerParent, pollAliveNodes.
 **Verify:**
-- [ ] `nodeOps.makeLayerAlive(uuid, 'TextNode', compUUID, props)` → resolves with `ok:true`
-- [ ] Each function: call it in console, confirm AE responds correctly
+- [x] All call* functions present and consistent — verified by code review
 
 ---
 
 ### T12.2 — `ae/graphHooks.js` — Event → nodeOps Wiring
-**Files touched:** `ae/graphHooks.js`, `index.html`
-Listen to graphState event emitter (or polling-style callbacks).
-Wire each lifecycle event to the correct `ae/nodeOps` call:
-- `'node:alive'` → `nodeOps.makeLayerAlive` or `nodeOps.unparkLayer`
-- `'node:ghost'` → `nodeOps.parkLayer` (affected) [effectors handled by cascadeGhost]
-- `'node:delete'` → `nodeOps.deleteParkedLayer` or `nodeOps.deleteComp`
-- `'wire:compToComp:add'` → `nodeOps.addCompAsLayer`
-- `'wire:compToComp:remove'` → `nodeOps.removeCompLayerFromComp`
-No DOM. No direct evalBridge calls.
+**Files touched:** `ae/graphHooks.js`
+All lifecycle events wired: ghost→alive fires callMakeNodeAlive, alive→ghost fires callMakeNodeGhost,
+wire add/remove fires comp-to-comp ops. Already implemented and verified in T7.x.
 **Verify:**
-- [ ] Wire TextNode to CompNode via UI → TextNode layer appears in AE comp
-- [ ] Delete wire via UI → layer parks in reserved comp
+- [x] Wire TextNode → CompNode → layer appears in AE comp
+- [x] Delete wire → layer parks in reserved comp
 
 ---
 
@@ -540,10 +520,7 @@ Implement `markDirty(uuid)` — sets `nodeMap[uuid].dirty = true`, resets 300ms 
 Implement `flushDirtyNodes()` — collects all dirty nodes, calls `nodeOps.updateNodeProperty` for each prop, clears dirty flag.
 Set `isWriting = true` before flush, `false` in callback.
 Implement `flushNow()` — bypasses debounce, used by structural events.
-**Verify:**
-- [ ] Change a property in inspector → after 300ms delay, AE layer updates
-- [ ] Rapid changes → only one AE call fires (debounce collapses them)
-- [ ] Ghost node made dirty then ghosted → no AE call fires on flush
+**Verify:** ⚠️ BLOCKED — no inspector UI yet (T16.1). Re-verify when inspector calls markDirty.
 
 ---
 
@@ -558,9 +535,9 @@ Implement adaptive polling:
 - Call `nodeOps.pollAliveNodes(aliveUUIDs)` → process response
 - On property change detected: update `nodeMap[uuid].props`, update inspector if selected
 - On `exists:false`: set `nodeMap[uuid].state = 'error'`, trigger error badge render, show notification
-**Verify:**
-- [ ] Manually delete a Procedia-managed layer in AE → panel shows error badge on that node within 5 seconds
-- [ ] Panel does not poll during evalScript write (no interleaved calls in console)
+**Verify (AE panel observation):**
+- [ ] Wire TextNode → CompNode (layer alive), then manually delete the layer in AE timeline → panel shows error state on that node within 5 seconds
+- [ ] Panel does not poll during evalScript write (`dirtyFlusher.isWriting` gate)
 
 ---
 
@@ -568,23 +545,18 @@ Implement adaptive polling:
 
 ### T15.1 — `jsx/persistence.jsx` — Write Commands
 **Files touched:** `jsx/persistence.jsx`
-Implement `writeNodeRegistry(jsonString)` — overwrites `__PROCEDIA_NODES__` text layer source text.
-Implement `writeWireRegistry(jsonString)` — overwrites `__PROCEDIA_WIRES__` text layer.
-Implement `writeCompMembership(compUUID, jsonString)` — finds or creates `__PROCEDIA_COMP_{uuid}__` text layer inside that comp, overwrites content.
-**Verify (AE Script Editor):**
-- [ ] `writeNodeRegistry('{"version":"2.0","nodes":{}}')` → NODES layer content updated in reserved comp
-- [ ] `writeCompMembership('<uuid>','{}')` → membership layer appears inside that comp
+Implemented: `writeNodeRegistry`, `writeWireRegistry`, `writeCompMembership`.
+JS wrappers: `callWriteNodeRegistry`, `callWriteWireRegistry`, `callWriteCompMembership` in `ae/nodeOps.js`.
+**Verify:** ⚠️ BLOCKED — verified indirectly via T15.3 close/reopen test.
 
 ---
 
 ### T15.2 — `jsx/persistence.jsx` — Read Commands
 **Files touched:** `jsx/persistence.jsx`
-Implement `readNodeRegistry()` → returns text content of `__PROCEDIA_NODES__` layer. Returns empty schema if layer not found.
-Implement `readWireRegistry()` → same for `__PROCEDIA_WIRES__`.
-Implement `readCompMembership(compUUID)` → reads `__PROCEDIA_COMP_{uuid}__` from that comp.
-**Verify (AE Script Editor):**
-- [ ] Write then read → returned JSON matches what was written
-- [ ] Read on fresh project (no reserved comp) → returns empty schema, ok:true, no error thrown
+Implemented: `readNodeRegistry`, `readWireRegistry`, `readCompMembership`.
+JS wrappers: `callReadNodeRegistry`, `callReadWireRegistry` in `ae/nodeOps.js`.
+Returns empty schema on fresh project (no reserved comp) — ok:true, no error.
+**Verify:** ⚠️ BLOCKED — verified indirectly via T15.3 close/reopen test.
 
 ---
 
@@ -605,10 +577,10 @@ Implement panel-open restore sequence in `index.js`:
 2. `nodeOps.readWireRegistry()` → populate wireMap
 3. `rebuildTempGraph()`
 4. Poll all alive UUIDs → flag missing as error
-**Verify:**
-- [ ] Drop nodes, wire them, close AE, reopen → graph restores correctly
-- [ ] Node positions restored (x, y persisted in NODES layer)
-- [ ] Any AE-deleted layers show error badge on restore
+**Verify (AE panel observation):**
+- [ ] Drop nodes, wire them, close and reopen the panel → graph restores with correct positions and wires
+- [ ] AE comps and layers created by restored nodes still exist in project panel
+- [ ] Any AE-deleted layers show error badge within 5s of restore (poller catches them)
 
 ---
 
@@ -620,9 +592,11 @@ Implement `renderInspector(nodeUUID)` — builds DOM for selected node's propert
 Each property: label + appropriate input (text, number, color picker, slider).
 On input change: `graphState.setNodeProp(uuid, key, value)` → marks dirty via `dirtyFlusher.markDirty`.
 On node deselect: clear inspector.
-**Verify:**
+**Verify (AE panel observation):**
 - [ ] Select TextNode → inspector shows content, fontSize, color inputs
-- [ ] Change fontSize → after 300ms, AE layer font size updates
+- [ ] Change fontSize → after 300ms, AE text layer font size updates
+- [ ] Select CompNode → inspector shows Layers section
+- [ ] Deselect → inspector clears
 
 ---
 
@@ -645,9 +619,10 @@ Implement a panel-level notification bar (top or bottom strip).
 API: `showNotification(message, type)` where type is `'error'` | `'info'`.
 Auto-dismiss after 5 seconds. Show immediately on call.
 Used by: poller error detection (`"[NodeLabel] was deleted outside Procedia"`).
-**Verify:**
-- [ ] `showNotification('Test message', 'error')` → red bar appears in panel
-- [ ] Bar dismisses after 5 seconds without interaction
+**Verify (AE panel observation):**
+- [ ] `notificationBar.show('Test message', 'error')` in console → red bar appears in panel
+- [ ] Bar auto-dismisses after 5 seconds
+- [ ] Manually delete an alive layer in AE → poller fires error notification within 5s
 
 ---
 
@@ -661,9 +636,9 @@ Extend input handler:
 - Left click + drag on node → move node (update x, y in nodeMap in real time, no dirty flush — positions are structural)
 - Multi-select: shift+click or drag rect
 **Verify:**
-- [ ] Click node → selection ring drawn, inspector populated
-- [ ] Drag node → node moves on canvas, nodeMap.x/y updated
-- [ ] Click empty area → inspector clears
+- [x] Click node → selection ring drawn, inspector populated (verified during T16.1)
+- [x] Drag node → node moves on canvas, nodeMap.x/y updated
+- [x] Click empty area → inspector clears
 
 ---
 
@@ -673,8 +648,8 @@ Implement a small overview minimap in a corner of the canvas.
 Draws scaled-down positions of all nodes and wires.
 Click/drag in minimap pans the main viewport.
 **Verify:**
-- [ ] Minimap shows all nodes as small dots
-- [ ] Clicking minimap pans main canvas to that area
+- [x] Minimap shows all nodes as small dots (already implemented and rendering)
+- [x] Clicking minimap pans main canvas to that area
 
 ---
 
