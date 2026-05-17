@@ -1,6 +1,6 @@
 // data/uuidGenerator.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: graph/graphState.js
+// MUST LOAD BEFORE: graph/graphState/store.js
 var uuidGenerator = (function() {
 
   function generateNodeId() {

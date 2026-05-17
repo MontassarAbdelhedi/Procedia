@@ -1,5 +1,5 @@
 // polling/poller.js
-// DEPENDS ON: graph/graphState.js, ae/nodeOps.js (callPollAliveNodes),
+// DEPENDS ON: graph/graphState/store.js, ae/nodeOps.js (callPollAliveNodes),
 //             flush/dirtyFlusher.js, notifications/notificationBar.js
 // MUST LOAD BEFORE: index.js
 

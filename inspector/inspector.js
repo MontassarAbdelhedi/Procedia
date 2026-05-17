@@ -1,5 +1,5 @@
 // inspector/inspector.js
-// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js, bridge/evalBridge.js,
+// DEPENDS ON: graph/graphState/store.js, graph/nodes/nodeRegistry.js, bridge/evalBridge.js,
 //             inspector/layerOrderList.js
 // MUST LOAD BEFORE: index.js
 
@@ -229,7 +229,7 @@ var inspector = (function() {
     // Suppressed while the inspector itself triggers a property update.
     graphState.onChange(function() {
       if (suppressRerender) return;
-      var uuid = graphState.getSelection();
+      var uuid = graphState.getLastSelected();
       if (!uuid) return;
       var nodeData = graphState.getNode(uuid);
       if (nodeData) showNode(nodeData);

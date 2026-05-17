@@ -1,5 +1,5 @@
 // inspector/layerOrderList.js
-// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js, bridge/evalBridge.js
+// DEPENDS ON: graph/graphState/store.js, graph/nodes/nodeRegistry.js, bridge/evalBridge.js
 // MUST LOAD BEFORE: inspector/inspector.js
 
 var layerOrderList = (function() {
