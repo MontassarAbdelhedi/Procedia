@@ -127,6 +127,7 @@ try { minimap.init(); }         catch(e) { console.error('[Procedia] minimap.ini
 try { notificationBar.init(); } catch(e) { console.error('[Procedia] notificationBar.init failed:', e); }
 try { inspector.init(); }       catch(e) { console.error('[Procedia] inspector.init failed:', e); }
 try { initDrag(); }             catch(e) { console.error('[Procedia] initDrag failed:', e); }
+try { nodePicker.init(); }      catch(e) { console.error('[Procedia] nodePicker.init failed:', e); }
 try { initKeyboard(); }         catch(e) { console.error('[Procedia] initKeyboard failed:', e); }
 try { poller.start(); }         catch(e) { console.error('[Procedia] poller.start failed:', e); }
 try { restoreGraphFromAE(); }   catch(e) { console.error('[Procedia] restoreGraphFromAE failed:', e); }

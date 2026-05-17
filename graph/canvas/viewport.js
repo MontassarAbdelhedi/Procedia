@@ -1,6 +1,6 @@
 // graph/canvas/viewport.js
 // DEPENDS ON: (none — reads DOM only)
-// MUST LOAD BEFORE: graph/canvas/renderer.js, graph/canvas/input.js
+// MUST LOAD BEFORE: graph/canvas/renderer.js, graph/canvas/input/labelEditor.js
 
 var canvasViewport = (function() {
 

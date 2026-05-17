@@ -1,6 +1,6 @@
 // graph/Wire/wire.js
-// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js, graph/Wire/nodeState.js, data/uuidGenerator.js
-// MUST LOAD BEFORE: graph/Wire/wireRenderer.js, graph/canvas/input.js
+// DEPENDS ON: graph/graphState/lifecycle.js, graph/nodes/nodeRegistry.js, graph/Wire/nodeState.js, data/uuidGenerator.js
+// MUST LOAD BEFORE: graph/Wire/wireRenderer.js, graph/canvas/input/labelEditor.js
 
 var wire = (function() {
 
@@ -9,6 +9,7 @@ var wire = (function() {
   var drag = {
     active:     false,
     fromNodeId: null,
+    portType:   null,
     cursorX:    0,
     cursorY:    0
   };
@@ -16,9 +17,10 @@ var wire = (function() {
   function isDragging()  { return drag.active; }
   function getDragState() { return drag; }
 
-  function startDrag(fromNodeId, screenX, screenY) {
+  function startDrag(fromNodeId, screenX, screenY, portType) {
     drag.active     = true;
     drag.fromNodeId = fromNodeId;
+    drag.portType   = portType || null;
     drag.cursorX    = screenX;
     drag.cursorY    = screenY;
   }
@@ -31,6 +33,20 @@ var wire = (function() {
   function cancelDrag() {
     drag.active     = false;
     drag.fromNodeId = null;
+    drag.portType   = null;
+  }
+
+  // Fired when mouse is released on empty canvas — keeps drag alive for nodePicker.
+  function onCanvasMiss(clientX, clientY) {
+    if (!drag.active) return;
+    document.dispatchEvent(new CustomEvent('wireReleasedOnCanvas', {
+      detail: {
+        sourceNodeId: drag.fromNodeId,
+        portType:     drag.portType,
+        dropX:        clientX,
+        dropY:        clientY
+      }
+    }));
   }
 
   // ─── Cycle detection — DFS downstream from startId ───────────
@@ -149,13 +165,14 @@ var wire = (function() {
   // ─── Public API ───────────────────────────────────────────────
 
   return {
-    isDragging:   isDragging,
-    getDragState: getDragState,
-    startDrag:    startDrag,
-    moveDrag:     moveDrag,
-    cancelDrag:   cancelDrag,
-    tryCommit:    tryCommit,
-    deleteWire:   deleteWire
+    isDragging:    isDragging,
+    getDragState:  getDragState,
+    startDrag:     startDrag,
+    moveDrag:      moveDrag,
+    cancelDrag:    cancelDrag,
+    onCanvasMiss:  onCanvasMiss,
+    tryCommit:     tryCommit,
+    deleteWire:    deleteWire
   };
 
 }());

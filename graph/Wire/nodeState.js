@@ -1,5 +1,5 @@
 // graph/Wire/nodeState.js
-// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js
+// DEPENDS ON: graph/graphState/store.js, graph/nodes/nodeRegistry.js
 // MUST LOAD BEFORE: graph/Wire/wire.js
 
 var nodeState = (function() {

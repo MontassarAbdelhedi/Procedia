@@ -1,5 +1,5 @@
 // graph/canvas/index.js
-// DEPENDS ON: graph/canvas/viewport.js, graph/canvas/renderer.js, graph/canvas/input.js
+// DEPENDS ON: graph/canvas/viewport.js, graph/canvas/renderer.js, graph/canvas/input/input.js
 // MUST LOAD BEFORE: index.js
 
 var canvas = (function() {

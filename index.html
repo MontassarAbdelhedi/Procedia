@@ -37,6 +37,10 @@
       <div id="canvas-column">
         <canvas id="main-canvas"></canvas>
         <canvas id="minimap-canvas"></canvas>
+        <div id="node-picker" class="node-picker hidden">
+          <input type="text" id="node-picker-search" placeholder="Search nodes..." autocomplete="off" spellcheck="false" />
+          <div id="node-picker-list"></div>
+        </div>
       </div>
 
       <!-- Right: Inspector -->
@@ -47,18 +51,22 @@
 
   <script src="CSInterface.js"></script>
   <script src="bridge/evalBridge.js"></script>
-  <script src="graph/graphState.js"></script>
+  <script src="graph/graphState/store.js"></script>
+  <script src="graph/graphState/lifecycle.js"></script>
   <script src="graph/nodes/nodeRegistry.js"></script>
   <script src="graph/nodes/categories/core/Comp.js"></script>
   <script src="graph/nodes/categories/layers/Text.js"></script>
   <script src="data/uuidGenerator.js"></script>
-  <script src="graph/nodes/node.js"></script>
+  <script src="graph/nodes/nodeGeometry.js"></script>
+  <script src="graph/nodes/nodeRenderer.js"></script>
+  <script src="graph/nodes/nodeHitTest.js"></script>
   <script src="graph/Wire/nodeState.js"></script>
   <script src="graph/Wire/wire.js"></script>
   <script src="graph/Wire/wireRenderer.js"></script>
   <script src="graph/canvas/viewport.js"></script>
   <script src="graph/canvas/renderer.js"></script>
-  <script src="graph/canvas/input.js"></script>
+  <script src="graph/canvas/input/labelEditor.js"></script>
+  <script src="graph/canvas/input/input.js"></script>
   <script src="graph/canvas/index.js"></script>
   <script src="graph/canvas/minimap.js"></script>
   <script src="notifications/notificationBar.js"></script>
@@ -71,6 +79,7 @@
   <script src="flush/dirtyFlusher.js"></script>
   <script src="ui/nodeList.js"></script>
   <script src="ui/drag.js"></script>
+  <script src="ui/nodePicker.js"></script>
   <script src="ui/keyboard.js"></script>
   <script src="index.js"></script>
 </body>

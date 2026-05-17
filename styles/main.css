@@ -530,3 +530,83 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ─── Node picker (wire-release overlay) ─────────────────────── */
+
+.node-picker {
+  position: absolute;
+  z-index: 1000;
+  background: #1e1e1e;
+  border: 1px solid #444444;
+  border-radius: 6px;
+  width: 220px;
+  padding: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+.node-picker.hidden {
+  display: none;
+}
+
+#node-picker-search {
+  width: 100%;
+  box-sizing: border-box;
+  background: #2a2a2a;
+  border: 1px solid #555555;
+  border-radius: 4px;
+  color: #dddddd;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: monospace, "Courier New", Courier;
+  outline: none;
+}
+
+#node-picker-search:focus {
+  border-color: #5b8dd9;
+}
+
+#node-picker-list {
+  margin-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+#node-picker-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+#node-picker-list::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 2px;
+}
+
+.picker-category-label {
+  font-size: 10px;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 4px 2px;
+  user-select: none;
+}
+
+.picker-node-item {
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #cccccc;
+  cursor: pointer;
+}
+
+.picker-node-item:hover,
+.picker-node-item.active {
+  background: #3a3a3a;
+  color: #ffffff;
+}
+
+.picker-no-results {
+  font-size: 12px;
+  color: #555555;
+  padding: 6px 8px;
+  text-align: center;
+  user-select: none;
+}

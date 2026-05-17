@@ -1,6 +1,6 @@
 // ui/drag.js
-// DEPENDS ON: graph/graphState.js, graph/nodes/nodeRegistry.js, graph/canvas/viewport.js,
-//             graph/nodes/node.js, data/uuidGenerator.js
+// DEPENDS ON: graph/graphState/lifecycle.js, graph/nodes/nodeRegistry.js, graph/canvas/viewport.js,
+//             graph/nodes/nodeGeometry.js, data/uuidGenerator.js
 // MUST LOAD BEFORE: index.js
 
 function initDrag() {
@@ -65,8 +65,8 @@ function initDrag() {
     var worldPos = canvas.screenToWorld(screenX, screenY);
 
     // Centre node on cursor
-    var wx = worldPos.x - node.NODE_WIDTH  / 2;
-    var wy = worldPos.y - node.NODE_HEIGHT / 2;
+    var wx = worldPos.x - nodeGeometry.NODE_WIDTH  / 2;
+    var wy = worldPos.y - nodeGeometry.NODE_HEIGHT / 2;
 
     graphState.onDrop(def.type, wx, wy);
   });

@@ -1,5 +1,5 @@
 // ui/keyboard.js
-// DEPENDS ON: graph/graphState.js, graph/Wire/wire.js, graph/canvas/index.js
+// DEPENDS ON: graph/graphState/lifecycle.js, graph/Wire/wire.js, graph/canvas/index.js
 // MUST LOAD BEFORE: index.js
 
 function initKeyboard() {
@@ -15,11 +15,14 @@ function initKeyboard() {
       return;
     }
 
-    // Node selected — full node delete (AE teardown added in T5.4)
-    var selNode = graphState.getSelection();
-    if (selNode) {
-      graphState.setSelection(null);
-      graphState.onDelete(selNode);
+    // Node(s) selected — full node delete (AE teardown added in T5.4)
+    if (graphState.selectedNodeIds.size > 0) {
+      var idsToDelete = [];
+      graphState.selectedNodeIds.forEach(function(id) { idsToDelete.push(id); });
+      graphState.clearSelection();
+      for (var i = 0; i < idsToDelete.length; i++) {
+        graphState.onDelete(idsToDelete[i]);
+      }
     }
   });
 }
