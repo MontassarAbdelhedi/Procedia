@@ -27,7 +27,7 @@ Every node has a `nodeKind` field in its definition. This is the most important 
 | Kind | Definition | Examples |
 |---|---|---|
 | `affected` | Creates and owns a standalone AE layer. The layer can be moved between comps. When ghosted, the layer is **parked** in the reserved comp — keyframes survive natively in AE. | TextNode, ShapeNode, NullNode, SolidNode, AdjustmentNode, FootageNode, CompNode |
-| `effector` | Modifies an existing layer owned by an affected node. Has no standalone AE layer of its own. When ghosted, its AE modification is removed from the host layer and its properties are preserved in `nodeMap`. | EffectNode, MaskNode, ExpressionNode, GraphPositionNode, GraphRotationNode, GraphScaleNode, IsParentNode |
+| `effector` | Modifies an existing layer owned by an affected node. Has no standalone AE layer of its own. When ghosted, its AE modification is removed from the host layer and its properties are preserved in `nodeMap`. | EffectNode, MaskNode, ExpressionNode, GraphPositionNode, GraphRotationNode, GraphScaleNode |
 
 **Key rule:** Before an affected node's layer is parked, all effector modifications must be stripped from it first. The `parkLayer` ExtendScript call receives the layer only after all effects, masks, and expressions applied by effector nodes have been removed. The parked layer is always clean — it contains only what the user added directly in AE (keyframes, manual property changes), never Procedia-managed effector modifications.
 
@@ -71,7 +71,7 @@ Live on top of an affected node's layer. No standalone AE presence of their own.
 | `GraphPositionNode` | `effector` | Drives position property of host layer | Expects `vector2` data input |
 | `GraphRotationNode` | `effector` | Drives rotation property of host layer | Expects `number` data input |
 | `GraphScaleNode` | `effector` | Drives scale property of host layer | Expects `vector2` data input |
-| `IsParentNode` | `effector` | Sets `layer.parent` in AE | Ghost nodes cannot be parents. If parent goes ghost → children lose parent silently. |
+// IsParentNode removed — replaced by native parent/child ports on affected nodes
 
 All effector nodes expect their specific data type on their input port. The input port type is declared on the node definition, not negotiated at runtime.
 
@@ -311,6 +311,7 @@ Every port has a declared type.
 |---|---|---|
 | `layer` | An AE layer reference — an affected node that becomes a layer in a comp | TextNode → CompNode |
 | `data` | A value — number, color, vector, string | NumberNode → EffectNode blur amount |
+| `parent` | A parenting declaration between two affected node layers | TextNode child port → NullNode parent port |
 
 ### 6b. Output Ports
 
@@ -323,20 +324,33 @@ Example: TextNode output wired to CompNode layer input → carries a layer. Same
 Input ports are always visible. They highlight (fill + increase radius) when a wire drag is active and the cursor enters the ~20px snap radius. Port labels appear only on highlight.
 
 ```
-TextNode:
+TextNode (affected):
   inputs:
+    - port: "parent_in"        type: parent  accepts: unlimited wires from any affected node's child_out port
+    - port: "data_content"     type: data    accepts: string
     - port: "data_fontSize"    type: data    accepts: number
     - port: "data_color"       type: data    accepts: color
-    - port: "data_content"     type: data    accepts: string
+  outputs:
+    - port: "output"           type: layer   (standard layer output)
+    - port: "child_out"        type: parent  one wire max — replaced on conflict
+
+NullNode (affected):
+  inputs:
+    - port: "parent_in"        type: parent  accepts: unlimited wires from any affected node's child_out port
+  outputs:
+    - port: "output"           type: layer
+    - port: "child_out"        type: parent  one wire max — replaced on conflict
 
 EffectNode (Gaussian Blur):
   inputs:
     - port: "layer_in"         type: layer   accepts: any layer
     - port: "data_blurAmount"  type: data    accepts: number
 
-CompNode:
+CompNode (affected):
   inputs:
     - port: "layer_in_{n}"     type: layer   accepts: any layer   multiplicity: unlimited
+    - port: "parent_in"        type: parent  accepts: unlimited wires from any affected node's child_out port
+  outputs: none — CompNode is always the root, never a child
 
 GraphPositionNode:
   inputs:
@@ -349,6 +363,11 @@ GraphPositionNode:
 - One output port per node. Multiple wires can originate from the same output port.
 - `data` wire cannot connect to `layer` port and vice versa. Mismatch: port does not highlight, no connection made, no error shown.
 - Cycles are blocked at wire creation. Traverse downstream from the target node before confirming. If source node is found → cycle → reject silently.
+- `parent` wire can only connect between a `child_out` port and a `parent_in` port. Mismatch with `layer` or `data` ports: port does not highlight, no connection made.
+- `child_out` port accepts one wire only. If a second wire is dragged to an occupied `child_out`, the existing wire is disconnected (`clearLayerParent` called) and replaced with the new wire (`setLayerParent` called).
+- `parent_in` port accepts unlimited wires — one per child node.
+- Parent wires never trigger ghost cascade. Neither connect nor disconnect changes node state.
+- Cycle check applies to parent wires too: a node cannot be both an ancestor and a descendant of the same node via parent wires.
 
 ### 6e. Layer Stacking Order in CompNode
 
@@ -364,6 +383,7 @@ AE layer z-order is set manually by the user via the CompNode inspector. The ins
 |---|---|---|
 | `layer` wire | Cascade ghost upstream (see Section 4) | Re-evaluates its own comp path |
 | `data` wire | No cascade — state unchanged | Loses the data input, reverts to default |
+| `parent` wire | No cascade — parenting link cleared silently | No cascade — parenting link cleared silently |
 
 ### 7b. Cascade Algorithm (implemented in `graph/Wire/nodeState.js`)
 
@@ -372,7 +392,7 @@ function cascadeGhost(deletedWire):
 
   1. Find all nodes upstream of deletedWire.toNode
      that no longer have a comp path after this deletion.
-     Stop traversal at: data wire boundaries, CompNode boundaries.
+     Stop traversal at: data wire boundaries, parent wire boundaries, CompNode boundaries.
 
   2. Sort collected nodes:
      - Effectors first, ordered deepest (outermost) to shallowest
@@ -383,8 +403,16 @@ function cascadeGhost(deletedWire):
      b. Call removeEffector(uuid, hostLayerUUID, hostingCompUUID)
      c. nodeMap[uuid].state = 'ghost'
 
+  3.5 For each affected node about to be parked:
+     a. Find all wires in wireMap where wire.type === 'parent' AND wire.fromNode === this UUID
+        (this node is a child) → call clearLayerParent(this UUID, hostingCompUUID)
+     b. Find all wires in wireMap where wire.type === 'parent' AND wire.toNode === this UUID
+        (this node is a parent) → for each such child wire:
+          if child node is also in this ghost cascade → skip (child is parking too)
+          if child node is alive in the same comp → call clearLayerParent(childUUID, hostingCompUUID)
+
   4. For each affected node:
-     a. Layer is now clean (all effectors removed in step 3)
+     a. Layer is now clean (all effectors removed in step 3, parent links cleared in step 3.5)
      b. Call parkLayer(uuid, hostingCompUUID)
      c. nodeMap[uuid].state = 'ghost'
 
@@ -715,8 +743,8 @@ All written in strict ES3 (var, named functions, string concatenation, for loops
 |---|---|---|
 | `updateNodeProperty(uuid, hostingCompUUID, propertyMatchName, value)` | Dirty flush (debounced 300ms) | Updates single property on AE layer by match name |
 | `setLayerOrder(hostingCompUUID, orderedUUIDs)` | User reorders in CompNode inspector | Calls `layer.moveToBeginning()` bottom-to-top to match orderedUUIDs |
-| `setLayerParent(childUUID, parentUUID, hostingCompUUID)` | IsParentNode wired | Sets `childLayer.parent = parentLayer` |
-| `clearLayerParent(childUUID, hostingCompUUID)` | IsParentNode ghosted/deleted | Sets `childLayer.parent = null` |
+| `setLayerParent(childUUID, parentUUID, hostingCompUUID)` | parent wire connected (both nodes alive in same comp) | Sets `childLayer.parent = parentLayer` |
+| `clearLayerParent(childUUID, hostingCompUUID)` | parent wire disconnected, OR parent/child node ghosts | Sets `childLayer.parent = null` |
 
 ### Persistence
 | Command | Trigger | Description |
@@ -771,7 +799,8 @@ procedia/
 │   │       ├── core/
 │   │       │   └── Comp.js           # CompNode — nodeKind: 'affected'
 │   │       ├── layers/
-│   │       │   └── Text.js           # TextNode — nodeKind: 'affected'
+│   │       │   ├── Text.js           # TextNode — nodeKind: 'affected'
+│   │       │   └── Null.js           # NullNode — nodeKind: 'affected'
 │   │       ├── effects/              # EffectNode — nodeKind: 'effector'
 │   │       ├── generators/
 │   │       └── utility/
@@ -813,10 +842,18 @@ procedia/
     ├── persistence.jsx               # writeNodeRegistry, writeWireRegistry, writeCompMembership,
     │                                 #   readNodeRegistry, readWireRegistry, readCompMembership
     ├── nodeLifeCycle/
-    │   ├── nodeLayerOps.jsx          # makeLayerAlive, unparkLayer, parkLayer, deleteParkedLayer,
-    │   │                             #   removeLayerFromComp, deleteComp, renameNode
+    │   ├── nodeLayerOps/             # split from nodeLayerOps.jsx — load in order below
+    │   │   ├── nodeLayerLookup.jsx   # findCompByUUID, findLayerByUUID, findReservedComp,
+    │   │   │                         #   findLayerByName, readGhostUUIDs, writeGhostUUIDs
+    │   │   ├── nodeLayerCreate.jsx   # createNullLayer, applyNullTransform, makeLayerAlive, makeNodeAlive
+    │   │   ├── nodeLayerPark.jsx     # parkLayer, unparkLayer, deleteParkedLayer
+    │   │   └── nodeLayerRemove.jsx   # deleteComp, renameNode, removeLayerFromComp
     │   ├── nodeEffectorOps.jsx       # applyEffector, removeEffector
-    │   └── nodeCompOps.jsx           # addCompAsLayer, removeCompLayerFromComp
+    │   ├── nodeCompOps.jsx           # addCompAsLayer, removeCompLayerFromComp
+    │   ├── nodeKeyframes.jsx         # keyframe read/write helpers
+    │   ├── nodeDataLayer.jsx         # data-layer (RESERVED stamps) read/write
+    │   ├── nodeWireOps.jsx           # wire state helpers called from panel
+    │   └── nodeLifecycle.jsx         # lifecycle orchestration helpers
     ├── properties.jsx                # updateNodeProperty, setLayerOrder, setLayerParent, clearLayerParent
     ├── aeFocus.jsx                   # focusCompInAE
     └── polling.jsx                   # pollAliveNodes
@@ -866,5 +903,5 @@ procedia/
 
 ---
 
-*Procedia v2 — Architecture Specification — May 2026*
+*Procedia v3 — Architecture Specification — May 2026*
 *This document is the single source of truth for Claude Code. Any behavior not described here must be clarified with the developer before implementation.*

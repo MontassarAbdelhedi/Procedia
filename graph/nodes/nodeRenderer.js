@@ -144,18 +144,22 @@ var nodeRenderer = (function() {
       ctx.fillText(previewText, sx + 10 * transform.scale, sy + 48 * transform.scale);
     }
 
-    // ── Output port (bottom-center) — always visible ─────────────
-    var portR = 4 * transform.scale;
-    var portX = sx + sw / 2;
-    var portY = sy + sh + portR;
+    // ── Output ports — bottom edge, distributed evenly ──────────
+    var outPorts = nodeGeometry.outputPortPositions(nodeData, transform);
+    for (var op = 0; op < outPorts.length; op++) {
+      var outp   = outPorts[op];
+      var opR    = 4 * transform.scale;
+      // layer output uses the node category color; parent output uses PORT_COLOR['parent']
+      var opColor = outp.type === 'layer' ? strokeColor : (PORT_COLOR[outp.type] || strokeColor);
 
-    ctx.beginPath();
-    ctx.arc(portX, portY, portR, 0, Math.PI * 2);
-    ctx.fillStyle   = '#1a1a1a';
-    ctx.fill();
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth   = 1.5;
-    ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(outp.x, outp.y, opR, 0, Math.PI * 2);
+      ctx.fillStyle   = '#1a1a1a';
+      ctx.fill();
+      ctx.strokeStyle = opColor;
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    }
 
     // ── Input ports — always visible, highlight on hover ─────────
     var inPorts = nodeGeometry.inputPortPositions(nodeData, transform);

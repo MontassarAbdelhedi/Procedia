@@ -7,7 +7,8 @@ nodeRegistry.register('CompNode', {
   category:  'core',
   label:     'Comp',
   inputs: [
-    { port: 'layer_in', name: 'layer_in', type: 'layer', multiplicity: 'unlimited' }
+    { port: 'layer_in',  name: 'layer_in',  type: 'layer',  multiplicity: 'unlimited' },
+    { port: 'parent_in', name: 'parent_in', type: 'parent', multiplicity: 'unlimited' }
   ],
   outputs: [],
   defaultProps: {

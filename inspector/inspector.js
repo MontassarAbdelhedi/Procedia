@@ -69,6 +69,18 @@ var inspector = (function() {
     input.addEventListener('change', function() {
       handleParamChange(uuid, param, input.value);
     });
+    if (param.rename && typeof callRenameNode === 'function') {
+      var renameTimer = null;
+      input.addEventListener('input', function() {
+        var val = input.value;
+        if (renameTimer) clearTimeout(renameTimer);
+        renameTimer = setTimeout(function() {
+          renameTimer = null;
+          graphState.updateNode(uuid, { label: val });
+          callRenameNode(uuid, val);
+        }, 300);
+      });
+    }
     return input;
   }
 
@@ -128,6 +140,36 @@ var inspector = (function() {
     return label;
   }
 
+  function buildVector2Field(uuid, param, value) {
+    var arr = (Array.isArray(value) && value.length === 2) ? value : [0, 0];
+
+    var wrap = document.createElement('div');
+    wrap.className = 'inspector-vector2-wrap';
+
+    function makeAxis(index) {
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'inspector-field inspector-vector2-axis';
+      input.step = 'any';
+      input.value = arr[index];
+      input.addEventListener('change', function() {
+        var v = parseFloat(input.value);
+        if (isNaN(v)) return;
+        var nodeData = graphState.getNode(uuid);
+        var current = (nodeData && nodeData.props && Array.isArray(nodeData.props[param.key]))
+          ? nodeData.props[param.key].slice()
+          : arr.slice();
+        current[index] = v;
+        handleParamChange(uuid, param, current);
+      });
+      return input;
+    }
+
+    wrap.appendChild(makeAxis(0));
+    wrap.appendChild(makeAxis(1));
+    return wrap;
+  }
+
   function buildField(uuid, param, properties) {
     var value = properties ? properties[param.key] : undefined;
     if (param.type === 'number' || param.type === 'int' || param.type === 'float') {
@@ -141,6 +183,9 @@ var inspector = (function() {
     }
     if (param.type === 'boolean') {
       return buildBooleanField(uuid, param, value);
+    }
+    if (param.type === 'vector2') {
+      return buildVector2Field(uuid, param, value);
     }
     return null;
   }

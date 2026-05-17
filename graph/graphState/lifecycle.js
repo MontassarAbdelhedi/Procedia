@@ -157,7 +157,7 @@ graphState.flushToPersistence = function() {
   for (var wid in graphState.wireMap) {
     if (!graphState.wireMap.hasOwnProperty(wid)) continue;
     var wire = graphState.wireMap[wid];
-    wiresOut.push({ id: wid, fromNode: wire.fromNode, fromPort: wire.fromPort, toNode: wire.toNode, toPort: wire.toPort });
+    wiresOut.push({ id: wid, fromNode: wire.fromNode, fromPort: wire.fromPort, toNode: wire.toNode, toPort: wire.toPort, type: wire.type });
   }
   var wiresJson = JSON.stringify({ version: '2.0', wires: wiresOut });
   callWriteWireRegistry(wiresJson);

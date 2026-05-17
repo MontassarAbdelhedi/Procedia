@@ -118,14 +118,10 @@ var canvasInput = (function() {
       var allNodes = graphState.getAllNodes();
       var nodeKeys = Object.keys(allNodes);
       for (var k = nodeKeys.length - 1; k >= 0; k--) {
-        if (nodeHitTest.hitTestOutputPort(allNodes[nodeKeys[k]], transform, screenX, screenY)) {
-          var _srcNode  = allNodes[nodeKeys[k]];
-          var _srcDef   = nodeRegistry.getByType(_srcNode.type);
-          var _portType = null;
-          if (_srcDef && _srcDef.outputs && _srcDef.outputs.length > 0) {
-            _portType = _srcDef.outputs[0].type || null;
-          }
-          wire.startDrag(_srcNode.id, screenX, screenY, _portType);
+        var _portHit = nodeHitTest.hitTestOutputPort(allNodes[nodeKeys[k]], transform, screenX, screenY);
+        if (_portHit) {
+          var _srcNode = allNodes[nodeKeys[k]];
+          wire.startDrag(_srcNode.id, screenX, screenY, _portHit.type, _portHit.port);
           wireDragActive = true;
           render();
           e.preventDefault();

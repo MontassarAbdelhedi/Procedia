@@ -411,6 +411,20 @@ html, body {
   -webkit-appearance: none;
 }
 
+/* Vector2 row */
+.inspector-vector2-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.inspector-vector2-axis {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Color row */
 .inspector-color-wrap {
   display: flex;

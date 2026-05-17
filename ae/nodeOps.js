@@ -45,6 +45,55 @@ function findHostingCompUUID(uuid) {
   return dfs(uuid);
 }
 
+// ─── getSharedHostingComp ────────────────────────────────────────────────────
+// Returns the first comp UUID where both uuidA and uuidB are alive, or null.
+// Used to determine where to apply/clear setLayerParent.
+
+function getSharedHostingComp(uuidA, uuidB) {
+  var nA = graphState.getNode(uuidA);
+  var nB = graphState.getNode(uuidB);
+  if (!nA || !nB) return null;
+  var compsA = nA._hostingCompUUIDs || (nA._hostingCompUUID ? [nA._hostingCompUUID] : []);
+  var compsB = nB._hostingCompUUIDs || (nB._hostingCompUUID ? [nB._hostingCompUUID] : []);
+  for (var i = 0; i < compsA.length; i++) {
+    for (var j = 0; j < compsB.length; j++) {
+      if (compsA[i] === compsB[j]) return compsA[i];
+    }
+  }
+  return null;
+}
+
+// ─── reApplyParentLinks ───────────────────────────────────────────────────────
+// Called after a node goes alive. Re-establishes any parent wires involving
+// this node where the other end is also alive in the same comp.
+
+function reApplyParentLinks(uuid) {
+  var allWires = graphState.getAllWires();
+  for (var wid in allWires) {
+    if (!allWires.hasOwnProperty(wid)) continue;
+    var w = allWires[wid];
+    if (w.type !== 'parent' && w.toPort !== 'parent_in') continue;
+
+    // I am the child — set my parent
+    if (w.fromNode === uuid) {
+      var parentNode = graphState.getNode(w.toNode);
+      if (parentNode && parentNode.state === 'alive') {
+        var sharedA = getSharedHostingComp(uuid, w.toNode);
+        if (sharedA) { callSetLayerParent(uuid, w.toNode, sharedA); }
+      }
+    }
+
+    // I am the parent — set parent for each alive child
+    if (w.toNode === uuid) {
+      var childNode = graphState.getNode(w.fromNode);
+      if (childNode && childNode.state === 'alive') {
+        var sharedB = getSharedHostingComp(w.fromNode, uuid);
+        if (sharedB) { callSetLayerParent(w.fromNode, uuid, sharedB); }
+      }
+    }
+  }
+}
+
 // ─── callMakeNodeAlive ────────────────────────────────────────────────────────
 
 function callMakeNodeAlive(uuid) {
@@ -64,7 +113,7 @@ function callMakeNodeAlive(uuid) {
     });
   }
 
-  var propsStr  = JSON.stringify(n.properties || {});
+  var propsStr  = JSON.stringify(n.props || {});
   var nodeLabel = n.label || '';
 
   ensureProcediaReady()
@@ -82,7 +131,24 @@ function callMakeNodeAlive(uuid) {
     .then(function(res) {
       if (!res.ok) {
         console.error('[Procedia] makeNodeAlive failed for ' + uuid + ':', res.error);
+        return;
       }
+      // Sync any AE-derived props (e.g. NullNode position read back from addNull center).
+      if (res.data && res.data.props) {
+        var current = graphState.getNode(uuid);
+        if (current) {
+          var merged = {};
+          for (var k in current.props) {
+            if (current.props.hasOwnProperty(k)) merged[k] = current.props[k];
+          }
+          for (var k2 in res.data.props) {
+            if (res.data.props.hasOwnProperty(k2)) merged[k2] = res.data.props[k2];
+          }
+          graphState.updateNode(uuid, { props: merged });
+        }
+      }
+      // Re-apply any parent wire links involving this node now that its layer exists in AE.
+      reApplyParentLinks(uuid);
     })
     .catch(function(err) {
       console.error('[Procedia] makeNodeAlive error:', err.message);
@@ -140,7 +206,7 @@ function callAddLayerToComp(uuid, compUUID) {
   updated.push(compUUID);
   graphState.updateNode(uuid, { _hostingCompUUIDs: updated });
 
-  var propsStr  = JSON.stringify(n.properties || {});
+  var propsStr  = JSON.stringify(n.props || {});
   var nodeLabel = n.label || '';
   ensureProcediaReady()
     .then(function() {

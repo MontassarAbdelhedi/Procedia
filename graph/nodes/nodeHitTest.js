@@ -13,12 +13,16 @@ var nodeHitTest = (function() {
            screenY >= sy && screenY <= sy + sh;
   }
 
+  // Returns { x, y, port, type } for the first output port hit, or null.
   function hitTestOutputPort(nodeData, transform, screenX, screenY) {
-    var pos  = nodeGeometry.outputPortPos(nodeData, transform);
-    var hitR = 8 * transform.scale;
-    var dx   = screenX - pos.x;
-    var dy   = screenY - pos.y;
-    return (dx * dx + dy * dy <= hitR * hitR) ? pos : null;
+    var ports = nodeGeometry.outputPortPositions(nodeData, transform);
+    var hitR  = 8 * transform.scale;
+    for (var i = 0; i < ports.length; i++) {
+      var dx = screenX - ports[i].x;
+      var dy = screenY - ports[i].y;
+      if (dx * dx + dy * dy <= hitR * hitR) return ports[i];
+    }
+    return null;
   }
 
   function hitTestInputPort(nodeData, transform, screenX, screenY) {

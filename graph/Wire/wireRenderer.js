@@ -17,8 +17,9 @@ var wireRenderer = (function() {
   }
 
   function getWireColor(wire) {
-    if (wire.error)    return '#e05555';
-    if (wire.selected) return '#ffffff';
+    if (wire.error)             return '#e05555';
+    if (wire.selected)          return '#ffffff';
+    if (wire.type === 'parent') return '#c8922a';
     return '#888888';
   }
 
@@ -55,7 +56,14 @@ var wireRenderer = (function() {
       var toNode   = allNodes[w.toNode];
       if (!fromNode || !toNode) continue;
 
-      var fromPos = nodeGeometry.outputPortPos(fromNode, transform);
+      var htOutPorts = nodeGeometry.outputPortPositions(fromNode, transform);
+      var fromPos    = null;
+      for (var hfp = 0; hfp < htOutPorts.length; hfp++) {
+        if (htOutPorts[hfp].port === (w.fromPort || 'output')) { fromPos = htOutPorts[hfp]; break; }
+      }
+      if (!fromPos && htOutPorts.length > 0) fromPos = htOutPorts[0];
+      if (!fromPos) continue;
+
       var inPorts = nodeGeometry.inputPortPositions(toNode, transform);
       var toPos   = null;
       for (var i = 0; i < inPorts.length; i++) {
@@ -96,7 +104,15 @@ var wireRenderer = (function() {
       var toNode   = allNodes[w.toNode];
       if (!fromNode || !toNode) continue;
 
-      var fromPos = nodeGeometry.outputPortPos(fromNode, transform);
+      // Find the specific output port position based on w.fromPort
+      var outPorts = nodeGeometry.outputPortPositions(fromNode, transform);
+      var fromPos  = null;
+      for (var fp = 0; fp < outPorts.length; fp++) {
+        if (outPorts[fp].port === (w.fromPort || 'output')) { fromPos = outPorts[fp]; break; }
+      }
+      if (!fromPos && outPorts.length > 0) fromPos = outPorts[0];
+      if (!fromPos) continue;
+
       var inPorts = nodeGeometry.inputPortPositions(toNode, transform);
       var toPos   = null;
       for (var i = 0; i < inPorts.length; i++) {
@@ -125,11 +141,19 @@ var wireRenderer = (function() {
     // In-progress drag preview — static dashes, no animation
     var d = wire.getDragState();
     if (d.active && d.fromNodeId) {
-      var fromNode = allNodes[d.fromNodeId];
-      if (fromNode) {
-        var fromPos  = nodeGeometry.outputPortPos(fromNode, transform);
-        var cpOffset = calcCpOffset(fromPos.y, d.cursorY, transform.scale);
-        drawBezier(ctx, fromPos.x, fromPos.y, d.cursorX, d.cursorY, cpOffset, '#666666', 1.5, 0);
+      var dragNode = allNodes[d.fromNodeId];
+      if (dragNode) {
+        var dragPorts = nodeGeometry.outputPortPositions(dragNode, transform);
+        var dragFrom  = null;
+        for (var dp = 0; dp < dragPorts.length; dp++) {
+          if (dragPorts[dp].port === (d.fromPort || 'output')) { dragFrom = dragPorts[dp]; break; }
+        }
+        if (!dragFrom && dragPorts.length > 0) dragFrom = dragPorts[0];
+        if (dragFrom) {
+          var previewColor = (d.fromPort === 'child_out') ? '#c8922a' : '#666666';
+          var cpOffset     = calcCpOffset(dragFrom.y, d.cursorY, transform.scale);
+          drawBezier(ctx, dragFrom.x, dragFrom.y, d.cursorX, d.cursorY, cpOffset, previewColor, 1.5, 0);
+        }
       }
     }
   }

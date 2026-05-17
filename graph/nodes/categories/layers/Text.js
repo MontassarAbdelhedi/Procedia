@@ -7,12 +7,14 @@ nodeRegistry.register('TextNode', {
   category:  'layers',
   label:     'Text',
   inputs: [
-    { port: 'data_content',  name: 'data_content',  type: 'data', accepts: 'string' },
-    { port: 'data_fontSize', name: 'data_fontSize', type: 'data', accepts: 'number' },
-    { port: 'data_color',    name: 'data_color',    type: 'data', accepts: 'color'  }
+    { port: 'data_content',  name: 'data_content',  type: 'data',   accepts: 'string' },
+    { port: 'data_fontSize', name: 'data_fontSize', type: 'data',   accepts: 'number' },
+    { port: 'data_color',    name: 'data_color',    type: 'data',   accepts: 'color'  },
+    { port: 'parent_in',     name: 'parent_in',     type: 'parent', multiplicity: 'unlimited' }
   ],
   outputs: [
-    { port: 'output', name: 'output', type: 'layer' }
+    { port: 'output',    name: 'output',    type: 'layer'  },
+    { port: 'child_out', name: 'child_out', type: 'parent', multiplicity: 'single' }
   ],
   defaultProps: {
     content:  'Text',

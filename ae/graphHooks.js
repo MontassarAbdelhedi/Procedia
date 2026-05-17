@@ -24,6 +24,18 @@ graphState.onWireAdded(function(w) {
     return;
   }
 
+  // Parent wire added — call setLayerParent if both nodes are alive in the same comp.
+  // Fallback: check toPort in case type is missing (old persistence data).
+  if (w.type === 'parent' || w.toPort === 'parent_in') {
+    if (fromNode.state === 'alive' && toNode.state === 'alive') {
+      var sharedCompPA = getSharedHostingComp(w.fromNode, w.toNode);
+      if (sharedCompPA) {
+        callSetLayerParent(w.fromNode, w.toNode, sharedCompPA);
+      }
+    }
+    return;
+  }
+
   if (!fromIsComp || !toIsComp) return;
 
   // Comp wired to comp — prepend to inspector layer order so newest is at top
@@ -68,6 +80,18 @@ graphState.onWireRemoved(function(w) {
       graphState.updateNode(w.toNode, { _layerOrder: pruned0 });
     }
     callRemoveLayerFromComp(w.fromNode, w.toNode);
+    return;
+  }
+
+  // Parent wire removed — clear the parenting link if child is still alive.
+  // Fallback: check toPort in case type is missing (old persistence data).
+  if (w.type === 'parent' || w.toPort === 'parent_in') {
+    if (fromNode.state === 'alive') {
+      var sharedCompPR = getSharedHostingComp(w.fromNode, w.toNode);
+      if (sharedCompPR) {
+        callClearLayerParent(w.fromNode, sharedCompPR);
+      }
+    }
     return;
   }
 

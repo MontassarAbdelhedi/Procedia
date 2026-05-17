@@ -33,6 +33,12 @@ function parkLayer(uuid, hostingCompUUID) {
       return JSON.stringify(result);
     }
 
+    // AE cannot copyToComp a layer that has a parent in a different comp.
+    // Clear the parent link first — the layer is leaving this comp anyway.
+    if (layer.parent !== null) {
+      layer.parent = null;
+    }
+
     // Save index before copyToComp can stale the layer reference.
     var srcIndex = layer.index;
 

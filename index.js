@@ -106,7 +106,8 @@ function restoreGraphFromAE() {
           var wires = wireData.wires || [];
           for (var i = 0; i < wires.length; i++) {
             var w = wires[i];
-            graphState.addWire({ id: w.id, fromNode: w.fromNode, fromPort: w.fromPort, toNode: w.toNode, toPort: w.toPort });
+            var wireType = w.type || (w.toPort === 'parent_in' ? 'parent' : undefined);
+            graphState.addWire({ id: w.id, fromNode: w.fromNode, fromPort: w.fromPort, toNode: w.toNode, toPort: w.toPort, type: wireType });
           }
         } catch(e) {
           console.error('[Procedia] restore: failed to parse wires:', e);

@@ -9,6 +9,7 @@ var wire = (function() {
   var drag = {
     active:     false,
     fromNodeId: null,
+    fromPort:   null,   // which output port the drag originated from ('output' or 'child_out')
     portType:   null,
     cursorX:    0,
     cursorY:    0
@@ -17,9 +18,10 @@ var wire = (function() {
   function isDragging()  { return drag.active; }
   function getDragState() { return drag; }
 
-  function startDrag(fromNodeId, screenX, screenY, portType) {
+  function startDrag(fromNodeId, screenX, screenY, portType, fromPort) {
     drag.active     = true;
     drag.fromNodeId = fromNodeId;
+    drag.fromPort   = fromPort || 'output';
     drag.portType   = portType || null;
     drag.cursorX    = screenX;
     drag.cursorY    = screenY;
@@ -33,6 +35,7 @@ var wire = (function() {
   function cancelDrag() {
     drag.active     = false;
     drag.fromNodeId = null;
+    drag.fromPort   = null;
     drag.portType   = null;
   }
 
@@ -72,6 +75,28 @@ var wire = (function() {
     return hasDownstreamPath(toId, fromId);
   }
 
+  // Cycle check restricted to parent wires only.
+  // fromId = the child node (has child_out), toId = the parent node (has parent_in).
+  // Traverses parent wires upstream from toId — if fromId is found, it's a cycle.
+  function wouldParentCycle(fromId, toId) {
+    var visited = {};
+    function dfs(id) {
+      if (id === fromId) return true;
+      if (visited[id]) return false;
+      visited[id] = true;
+      var wires = graphState.getAllWires();
+      for (var wid in wires) {
+        if (!wires.hasOwnProperty(wid)) continue;
+        var w = wires[wid];
+        if (w.toNode === id && (w.type === 'parent' || w.toPort === 'parent_in')) {
+          if (dfs(w.fromNode)) return true;
+        }
+      }
+      return false;
+    }
+    return dfs(toId);
+  }
+
   // ─── Commit wire on mouseup over a valid input port ───────────
   // Returns true if a wire was confirmed, false if rejected.
 
@@ -82,23 +107,33 @@ var wire = (function() {
     var toPortType = nodeState.getPortType(toNodeId, toPortName);
     if (!toPortType) { cancelDrag(); return false; }
 
-    // Resolve output port type of the source node
-    var fromNode    = graphState.getNode(drag.fromNodeId);
-    var fromDef     = fromNode ? nodeRegistry.getByType(fromNode.type) : null;
+    // Resolve output port type from the actual port being dragged (Rule A)
+    var fromPortName = drag.fromPort || 'output';
+    var fromNode     = graphState.getNode(drag.fromNodeId);
+    var fromDef      = fromNode ? nodeRegistry.getByType(fromNode.type) : null;
     var fromPortType = null;
     if (fromDef && fromDef.outputs) {
       for (var oi = 0; oi < fromDef.outputs.length; oi++) {
-        if (fromDef.outputs[oi].port === 'output') { fromPortType = fromDef.outputs[oi].type; break; }
+        if (fromDef.outputs[oi].port === fromPortName) {
+          fromPortType = fromDef.outputs[oi].type;
+          break;
+        }
       }
     }
+    // Type mismatch — port does not highlight and no connection is made
     if (fromPortType && fromPortType !== toPortType) { cancelDrag(); return false; }
 
-    if (wouldCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
+    // Rule C — parent wire: use parent-chain cycle check only (not layer-wire cycle check)
+    if (toPortType === 'parent') {
+      if (wouldParentCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
+    } else {
+      if (wouldCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
+    }
 
-    var allWires    = graphState.getAllWires();
-    var toNodeData  = graphState.getNode(toNodeId);
+    var allWires      = graphState.getAllWires();
+    var toNodeData    = graphState.getNode(toNodeId);
     var toRegistryDef = toNodeData ? nodeRegistry.getByType(toNodeData.type) : null;
-    var toPortDef   = null;
+    var toPortDef     = null;
     if (toRegistryDef && toRegistryDef.inputs) {
       for (var pi = 0; pi < toRegistryDef.inputs.length; pi++) {
         var inp = toRegistryDef.inputs[pi];
@@ -106,6 +141,18 @@ var wire = (function() {
       }
     }
     var isUnlimited = toPortDef && toPortDef.multiplicity === 'unlimited';
+
+    // Rule B — child_out single-wire enforcement: replace any existing wire from child_out
+    if (fromPortName === 'child_out') {
+      for (var widB in allWires) {
+        if (allWires.hasOwnProperty(widB) &&
+            allWires[widB].fromNode === drag.fromNodeId &&
+            allWires[widB].fromPort === 'child_out') {
+          graphState.removeWire(widB); // triggers onWireRemoved → clearLayerParent via hooks
+          break;
+        }
+      }
+    }
 
     if (isUnlimited) {
       // Unlimited-multiplicity port — only block exact duplicates
@@ -119,7 +166,7 @@ var wire = (function() {
         }
       }
     } else {
-      // All other nodes: one wire per input port — replace existing
+      // Single-multiplicity input port — replace existing wire on toPort
       for (var wid in allWires) {
         if (allWires.hasOwnProperty(wid) &&
             allWires[wid].toNode === toNodeId &&
@@ -133,23 +180,28 @@ var wire = (function() {
     var wireId     = uuidGenerator.generateWireId();
     var fromNodeId = drag.fromNodeId;
 
+    // Rule D — wire type stored in wireMap
     graphState.addWire({
       id:       wireId,
       fromNode: fromNodeId,
-      fromPort: 'output',
+      fromPort: fromPortName,
       toNode:   toNodeId,
-      toPort:   toPortName
+      toPort:   toPortName,
+      type:     toPortType
     });
 
-    var fromNewState = nodeState.evaluateNodeState(fromNodeId);
-    var toNewState   = nodeState.evaluateNodeState(toNodeId);
+    // Parent wires never change node state — cascade is blind to them
+    if (toPortType !== 'parent') {
+      var fromNewState = nodeState.evaluateNodeState(fromNodeId);
+      var toNewState   = nodeState.evaluateNodeState(toNodeId);
 
-    if (fromNewState === 'alive') {
-      graphState.onAlive(fromNodeId);
-    } else {
-      graphState.updateNode(fromNodeId, { state: fromNewState });
+      if (fromNewState === 'alive') {
+        graphState.onAlive(fromNodeId);
+      } else {
+        graphState.updateNode(fromNodeId, { state: fromNewState });
+      }
+      graphState.updateNode(toNodeId, { state: toNewState });
     }
-    graphState.updateNode(toNodeId, { state: toNewState });
 
     cancelDrag();
     return true;
@@ -159,7 +211,11 @@ var wire = (function() {
     var w = graphState.getWire(wireId);
     if (!w) return;
     graphState.removeWire(wireId);
-    nodeState.cascadeGhost(w);
+    // Parent wires never trigger ghost cascade — clearLayerParent fires via onWireRemoved hook.
+    // Fallback: check toPort in case type is missing (e.g. wires loaded from old persistence data).
+    if (w.type !== 'parent' && w.toPort !== 'parent_in') {
+      nodeState.cascadeGhost(w);
+    }
   }
 
   // ─── Public API ───────────────────────────────────────────────

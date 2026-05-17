@@ -148,7 +148,7 @@ function setLayerParent(childUUID, parentUUID, hostingCompUUID) {
 
     var parentLayer = findLayerByUUID(hostComp, parentUUID);
     if (!parentLayer) {
-      result.error = 'setLayerParent: parent layer not found: ' + parentUUID;
+      result.error = 'null not ready';
       return JSON.stringify(result);
     }
 

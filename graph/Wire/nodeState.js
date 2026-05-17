@@ -43,6 +43,7 @@ var nodeState = (function() {
         var w = allWires[wid];
         if (w.fromNode !== id) continue;
         if (getPortType(w.toNode, w.toPort) === 'data') continue;
+        if (getPortType(w.toNode, w.toPort) === 'parent') continue;
         dfs(w.toNode);
       }
     }
@@ -67,8 +68,9 @@ var nodeState = (function() {
         if (!allWires.hasOwnProperty(wid)) continue;
         var w = allWires[wid];
         if (w.fromNode !== id) continue;
-        // Skip data-wire boundaries
+        // Skip data and parent wire boundaries — neither traverses into comp paths
         if (getPortType(w.toNode, w.toPort) === 'data') continue;
+        if (getPortType(w.toNode, w.toPort) === 'parent') continue;
         if (dfs(w.toNode)) return true;
       }
       return false;
@@ -121,7 +123,8 @@ var nodeState = (function() {
         if (!allWires.hasOwnProperty(wid)) continue;
         var w = allWires[wid];
         if (w.toNode !== id) continue;
-        if (getPortType(id, w.toPort) === 'data') continue; // skip data boundaries
+        if (getPortType(id, w.toPort) === 'data') continue;   // skip data boundaries
+        if (getPortType(id, w.toPort) === 'parent') continue; // skip parent boundaries — parent wires never cascade
         queue.push({ id: w.fromNode, depth: depth + 1 });
       }
     }
@@ -142,6 +145,50 @@ var nodeState = (function() {
         }
       }
       graphState.onGhost(uuid);
+    }
+
+    // Step 3.5 — clear AE parent links before parking
+    // Parent wires are invisible to the cascade, so we clear them explicitly here.
+    for (var s = 0; s < affected.length; s++) {
+      var sUUID = affected[s].id;
+      var sNode = graphState.getNode(sUUID);
+      var sComp = null;
+      if (sNode && sNode.hostingComps && sNode.hostingComps.length > 0) {
+        sComp = sNode.hostingComps[0];
+      }
+      if (!sComp && sNode) { sComp = sNode._hostingCompUUID || null; }
+      if (!sComp) continue;
+
+      var allWires35 = graphState.getAllWires();
+      for (var wid35 in allWires35) {
+        if (!allWires35.hasOwnProperty(wid35)) continue;
+        var w35 = allWires35[wid35];
+        if (w35.type !== 'parent' && w35.toPort !== 'parent_in') continue;
+
+        // This node is a child — clear its outbound parent link
+        if (w35.fromNode === sUUID) {
+          if (typeof callClearLayerParent === 'function') {
+            callClearLayerParent(sUUID, sComp);
+          }
+        }
+
+        // This node is a parent — clear links for children still alive
+        if (w35.toNode === sUUID) {
+          var childUUID35  = w35.fromNode;
+          var childGhosting = false;
+          for (var sg = 0; sg < affected.length; sg++) {
+            if (affected[sg].id === childUUID35) { childGhosting = true; break; }
+          }
+          if (!childGhosting) {
+            var childNode35 = graphState.getNode(childUUID35);
+            if (childNode35 && childNode35.state === 'alive') {
+              if (typeof callClearLayerParent === 'function') {
+                callClearLayerParent(childUUID35, sComp);
+              }
+            }
+          }
+        }
+      }
     }
 
     // Affected nodes: onGhost parks the layer in AE and updates state.
