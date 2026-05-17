@@ -65,10 +65,10 @@ html, body {
 
 /* ─── Reload button (dev) ───────────────────────────────────── */
 
+#reset-btn,
 #reload-btn {
   position: fixed;
   top: 6px;
-  right: 8px;
   z-index: 9999;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
@@ -85,9 +85,23 @@ html, body {
   justify-content: center;
 }
 
+#reset-btn {
+  right: 34px;
+}
+
+#reload-btn {
+  right: 8px;
+}
+
+#reset-btn:hover,
 #reload-btn:hover {
   background: #333333;
   color: #cccccc;
+}
+
+#reset-btn:active {
+  background: #ff3333;
+  color: #ffffff;
 }
 
 /* ─── Three-column layout ───────────────────────────────────── */

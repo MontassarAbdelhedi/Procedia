@@ -1,5 +1,5 @@
 // jsx/properties.jsx
-// DEPENDS ON: jsx/json.jsx, jsx/nodeLifeCycle/nodeLayerOps.jsx (findCompByUUID, findLayerByUUID)
+// DEPENDS ON: jsx/json.jsx, jsx/nodeLifeCycle/nodeLayerOps/nodeLayerLookup.jsx (findCompByUUID, findLayerByUUID)
 // Commands: updateNodeProperty, setLayerOrder, setLayerParent, clearLayerParent
 // ES3 — var only, named functions, for loops, string concat
 

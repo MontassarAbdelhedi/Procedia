@@ -1,6 +1,6 @@
 // jsx/aeFocus.jsx
 // ES3 - var only, named functions, for loops, string concat
-// DEPENDS ON: jsx/nodeLifeCycle/nodeLayerOps.jsx (findCompByUUID)
+// DEPENDS ON: jsx/nodeLifeCycle/nodeLayerOps/nodeLayerLookup.jsx (findCompByUUID)
 
 function focusCompInAE(uuid) {
   var result = { ok: false, data: null, error: null };

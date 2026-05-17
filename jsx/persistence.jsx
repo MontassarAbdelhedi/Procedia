@@ -1,5 +1,5 @@
 // jsx/persistence.jsx
-// DEPENDS ON: jsx/json.jsx, jsx/nodeLifeCycle/nodeLayerOps.jsx
+// DEPENDS ON: jsx/json.jsx, jsx/nodeLifeCycle/nodeLayerOps/nodeLayerLookup.jsx
 //   (findReservedComp, findLayerByName, findCompByUUID already defined there)
 // Commands: writeNodeRegistry, writeWireRegistry, readNodeRegistry, readWireRegistry,
 //           writeCompMembership, readCompMembership

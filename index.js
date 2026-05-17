@@ -21,7 +21,10 @@ try {
   var jsxFiles = [
     '\\jsx\\json.jsx',
     '\\jsx\\init.jsx',
-    '\\jsx\\nodeLifeCycle\\nodeLayerOps.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeLayerOps\\nodeLayerLookup.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeLayerOps\\nodeLayerCreate.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeLayerOps\\nodeLayerPark.jsx',
+    '\\jsx\\nodeLifeCycle\\nodeLayerOps\\nodeLayerRemove.jsx',
     '\\jsx\\nodeLifeCycle\\nodeEffectorOps.jsx',
     '\\jsx\\nodeLifeCycle\\nodeCompOps.jsx',
     '\\jsx\\properties.jsx',
