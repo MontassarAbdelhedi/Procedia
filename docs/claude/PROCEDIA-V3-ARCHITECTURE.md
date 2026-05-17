@@ -43,7 +43,7 @@ Require a presence in AE — either as a project item, a layer, or both.
 
 | Node | nodeKind | AE Project Object | AE Layer Type | Notes |
 |---|---|---|---|---|
-| `CompNode` | `affected` | `CompItem` | — | Is the hosting comp. Always alive. Never ghosts. Never parks. |
+| `CompNode` | `affected` | `CompItem` | — | Is the hosting comp. Always alive. Never ghosts. Never parks. Has `parent_in` and `child_out` ports — can be parented to a sibling layer when used as a precomp inside another comp. |
 | `SolidNode` | `affected` | `FootageItem` (solid) | `AVLayer` | Project object created first, then layered |
 | `NullNode` | `affected` | — | `NullLayer` | No project object needed |
 | `AdjustmentNode` | `affected` | — | `AVLayer` | Adjustment flag set on layer |
@@ -71,7 +71,8 @@ Live on top of an affected node's layer. No standalone AE presence of their own.
 | `GraphPositionNode` | `effector` | Drives position property of host layer | Expects `vector2` data input |
 | `GraphRotationNode` | `effector` | Drives rotation property of host layer | Expects `number` data input |
 | `GraphScaleNode` | `effector` | Drives scale property of host layer | Expects `vector2` data input |
-// IsParentNode removed — replaced by native parent/child ports on affected nodes
+
+**Note:** `IsParentNode` has been removed. Parent/child relationships are expressed through native `parent_in` and `child_out` ports declared on every affected node definition (including CompNode). There is no longer a dedicated node type for parenting.
 
 All effector nodes expect their specific data type on their input port. The input port type is declared on the node definition, not negotiated at runtime.
 
@@ -350,7 +351,9 @@ CompNode (affected):
   inputs:
     - port: "layer_in_{n}"     type: layer   accepts: any layer   multiplicity: unlimited
     - port: "parent_in"        type: parent  accepts: unlimited wires from any affected node's child_out port
-  outputs: none — CompNode is always the root, never a child
+  outputs:
+    - port: "output"           type: layer                        (used when CompNode is wired as a precomp into another comp)
+    - port: "child_out"        type: parent  one wire max — the precomp layer's AE parent inside the hosting comp
 
 GraphPositionNode:
   inputs:
@@ -372,6 +375,27 @@ GraphPositionNode:
 ### 6e. Layer Stacking Order in CompNode
 
 AE layer z-order is set manually by the user via the CompNode inspector. The inspector shows connected input nodes in a reorderable list. On reorder, ExtendScript walks the desired UUID order bottom-to-top and calls `layer.moveToBeginning()` to match.
+
+---
+
+### 6f. Port Rendering Convention
+
+Two visual shapes, strict assignment — never mixed:
+
+| Port type | Shape | Screen position | Geometry function |
+|---|---|---|---|
+| `layer` input | filled circle | top edge of node | `nodeGeometry.inputPortPositions()` |
+| `data` input | filled circle | top edge of node | `nodeGeometry.inputPortPositions()` |
+| `layer` output | filled circle | bottom edge of node | `nodeGeometry.outputPortPositions()` |
+| `data` output | filled circle | bottom edge of node | `nodeGeometry.outputPortPositions()` |
+| `parent_in` | rectangle tab | left edge, vertically centered | `nodeGeometry.parentInPortPosition()` |
+| `child_out` | rectangle tab | right edge, vertically centered | `nodeGeometry.childOutPortPosition()` |
+
+`inputPortPositions()` and `outputPortPositions()` **filter out `parent` type ports** — they only return circles. `parentInPortPosition()` and `childOutPortPosition()` return the tab positions only. Never include `parent` ports in circle lists or circle ports in tab logic.
+
+Parent wires use a **horizontal S-curve** bezier (control points extend left/right from the tabs). All other wires use a **vertical S-curve** bezier (control points extend up/down from the circles).
+
+`nodeGeometry.js` is the **single source of truth** for all port positions and constants (`NODE_WIDTH`, `NODE_HEIGHT`, `RECT_W`, `RECT_H`, `PORT_COLOR`). `nodeHitTest.js` is the single source for all hit testing.
 
 ---
 
@@ -793,7 +817,12 @@ procedia/
 │   │                                 # ONLY file that mutates nodeMap and wireMap.
 │   │                                 # Exposes rebuildTempGraph(), flushToPersistence().
 │   ├── nodes/
-│   │   ├── node.js                   # Node rendering — drawNode, hit-testing
+│   │   ├── nodeGeometry.js           # Port positions + constants — single source for NODE_WIDTH/HEIGHT, RECT_W/H,
+│   │   │                             #   PORT_COLOR, inputPortPositions, outputPortPositions,
+│   │   │                             #   parentInPortPosition, childOutPortPosition
+│   │   ├── nodeHitTest.js            # Hit testing — hitTest (body), hitTestOutputPort, hitTestInputPort,
+│   │   │                             #   hitTestParentInPort, hitTestChildOutPort
+│   │   ├── nodeRenderer.js           # Node drawing — drawNode (body, ports, label, state dot)
 │   │   ├── nodeRegistry.js           # Thin registry — register, lookup, category API
 │   │   └── categories/
 │   │       ├── core/
@@ -901,7 +930,11 @@ procedia/
 
 19. **Implement one ExtendScript command at a time. Test in AE. Then proceed.** Never chain multiple commands in one task without a verification checkpoint.
 
+20. **`parent_in` and `child_out` ports are always rectangle tabs, never circles.** `nodeGeometry.inputPortPositions()` and `outputPortPositions()` filter out `parent` type ports by design. Never pass a `parent` port through the circle path. Likewise, never call `parentInPortPosition` / `childOutPortPosition` for `layer` or `data` ports. The geometry and hit-test modules enforce this split — do not bypass it.
+
+21. **`nodeGeometry.js` and `nodeHitTest.js` are the only files that may compute port screen positions or hit radii.** Any code that needs a port's screen coordinate must call the appropriate function on `nodeGeometry` or `nodeHitTest`. Never inline port math in renderer, input, or wire files.
+
 ---
 
-*Procedia v3 — Architecture Specification — May 2026*
+*Procedia v3 — Architecture Specification — May 2026 (updated: parent/child native ports, nodeGeometry/nodeHitTest split)*
 *This document is the single source of truth for Claude Code. Any behavior not described here must be clarified with the developer before implementation.*

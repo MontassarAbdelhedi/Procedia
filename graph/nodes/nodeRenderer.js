@@ -47,6 +47,8 @@ var nodeRenderer = (function() {
     var NODE_WIDTH  = nodeGeometry.NODE_WIDTH;
     var NODE_HEIGHT = nodeGeometry.NODE_HEIGHT;
     var PORT_COLOR  = nodeGeometry.PORT_COLOR;
+    var RECT_W      = nodeGeometry.RECT_W * transform.scale;
+    var RECT_H      = nodeGeometry.RECT_H * transform.scale;
 
     var sx = nodeData.position.x * transform.scale + transform.offsetX;
     var sy = nodeData.position.y * transform.scale + transform.offsetY;
@@ -144,12 +146,36 @@ var nodeRenderer = (function() {
       ctx.fillText(previewText, sx + 10 * transform.scale, sy + 48 * transform.scale);
     }
 
-    // ── Output ports — bottom edge, distributed evenly ──────────
+    // ── Parent-in port — left rectangle tab ─────────────────────
+    var piPos = nodeGeometry.parentInPortPosition(nodeData, transform);
+    if (piPos) {
+      var piHover = (hoveredPort === piPos.port);
+      ctx.beginPath();
+      ctx.rect(piPos.x, piPos.y - RECT_H / 2, RECT_W, RECT_H);
+      ctx.fillStyle   = piHover ? PORT_COLOR['parent'] : '#1a1a1a';
+      ctx.fill();
+      ctx.strokeStyle = PORT_COLOR['parent'];
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    }
+
+    // ── Child-out port — right rectangle tab ─────────────────────
+    var coPos = nodeGeometry.childOutPortPosition(nodeData, transform);
+    if (coPos) {
+      ctx.beginPath();
+      ctx.rect(coPos.x - RECT_W, coPos.y - RECT_H / 2, RECT_W, RECT_H);
+      ctx.fillStyle   = '#1a1a1a';
+      ctx.fill();
+      ctx.strokeStyle = PORT_COLOR['parent'];
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    }
+
+    // ── Output ports — bottom edge circles, non-parent only ──────
     var outPorts = nodeGeometry.outputPortPositions(nodeData, transform);
     for (var op = 0; op < outPorts.length; op++) {
-      var outp   = outPorts[op];
-      var opR    = 4 * transform.scale;
-      // layer output uses the node category color; parent output uses PORT_COLOR['parent']
+      var outp    = outPorts[op];
+      var opR     = 4 * transform.scale;
       var opColor = outp.type === 'layer' ? strokeColor : (PORT_COLOR[outp.type] || strokeColor);
 
       ctx.beginPath();
@@ -161,7 +187,7 @@ var nodeRenderer = (function() {
       ctx.stroke();
     }
 
-    // ── Input ports — always visible, highlight on hover ─────────
+    // ── Input ports — top edge circles, non-parent only ──────────
     var inPorts = nodeGeometry.inputPortPositions(nodeData, transform);
     for (var p = 0; p < inPorts.length; p++) {
       var ip      = inPorts[p];

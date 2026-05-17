@@ -13,7 +13,7 @@ var nodeHitTest = (function() {
            screenY >= sy && screenY <= sy + sh;
   }
 
-  // Returns { x, y, port, type } for the first output port hit, or null.
+  // Bottom-edge circles (non-parent outputs only)
   function hitTestOutputPort(nodeData, transform, screenX, screenY) {
     var ports = nodeGeometry.outputPortPositions(nodeData, transform);
     var hitR  = 8 * transform.scale;
@@ -25,6 +25,7 @@ var nodeHitTest = (function() {
     return null;
   }
 
+  // Top-edge circles (non-parent inputs only)
   function hitTestInputPort(nodeData, transform, screenX, screenY) {
     var ports = nodeGeometry.inputPortPositions(nodeData, transform);
     var hitR  = 20 * transform.scale;
@@ -38,10 +39,44 @@ var nodeHitTest = (function() {
     return null;
   }
 
+  // Left rectangle tab (parent_in) — rectangular hit area with padding
+  function hitTestParentInPort(nodeData, transform, screenX, screenY) {
+    var pos = nodeGeometry.parentInPortPosition(nodeData, transform);
+    if (!pos) return null;
+    var rw  = nodeGeometry.RECT_W * transform.scale;
+    var rh  = nodeGeometry.RECT_H * transform.scale;
+    var pad = 4 * transform.scale;
+    if (screenX >= pos.x - pad          &&
+        screenX <= pos.x + rw + pad     &&
+        screenY >= pos.y - rh / 2 - pad &&
+        screenY <= pos.y + rh / 2 + pad) {
+      return pos;
+    }
+    return null;
+  }
+
+  // Right rectangle tab (child_out) — rectangular hit area with padding
+  function hitTestChildOutPort(nodeData, transform, screenX, screenY) {
+    var pos = nodeGeometry.childOutPortPosition(nodeData, transform);
+    if (!pos) return null;
+    var rw  = nodeGeometry.RECT_W * transform.scale;
+    var rh  = nodeGeometry.RECT_H * transform.scale;
+    var pad = 4 * transform.scale;
+    if (screenX >= pos.x - rw - pad     &&
+        screenX <= pos.x + pad          &&
+        screenY >= pos.y - rh / 2 - pad &&
+        screenY <= pos.y + rh / 2 + pad) {
+      return pos;
+    }
+    return null;
+  }
+
   return {
-    hitTest:           hitTest,
-    hitTestOutputPort: hitTestOutputPort,
-    hitTestInputPort:  hitTestInputPort
+    hitTest:              hitTest,
+    hitTestOutputPort:    hitTestOutputPort,
+    hitTestInputPort:     hitTestInputPort,
+    hitTestParentInPort:  hitTestParentInPort,
+    hitTestChildOutPort:  hitTestChildOutPort
   };
 
 }());

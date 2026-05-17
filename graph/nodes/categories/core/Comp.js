@@ -10,7 +10,10 @@ nodeRegistry.register('CompNode', {
     { port: 'layer_in',  name: 'layer_in',  type: 'layer',  multiplicity: 'unlimited' },
     { port: 'parent_in', name: 'parent_in', type: 'parent', multiplicity: 'unlimited' }
   ],
-  outputs: [],
+  outputs: [
+    { port: 'output',    name: 'output',    type: 'layer'                           },
+    { port: 'child_out', name: 'child_out', type: 'parent', multiplicity: 'single'  }
+  ],
   defaultProps: {
     name:      'New Comp',
     width:     1920,

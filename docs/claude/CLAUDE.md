@@ -30,6 +30,7 @@ Procedia is a **node-based procedural motion design plugin for Adobe After Effec
 | 10 | Task Execution Protocol | Plan → implement one task → verify in AE → then next task | Chain multiple tasks without verification checkpoints |
 | 11 | Plain-Script File Splitting | Declare dependencies in header, update `index.html` in same task | Split mid-task, leave dead files, skip the load-order check |
 | 12 | Grounded Decision Protocol | Decide once, lock it, escalate when stuck, gate on ambiguity | Revisit decisions mid-task or resolve ambiguity by trying both approaches |
+| 13 | Parent Port Geometry | `parent_in` = left rectangle tab; `child_out` = right tab; layer/data = top/bottom circles | Mix parent ports into circle lists or inline port math outside `nodeGeometry.js` |
 
 ---
 
@@ -574,6 +575,39 @@ function drawWire(ctx, wire) {
 
 ---
 
+### SKILL 13 — Parent Port Geometry
+
+Every affected node has exactly two parent ports: `parent_in` (left rectangle tab) and `child_out` (right rectangle tab). All other ports are circles on the top or bottom edge. These are strictly separate visual systems — never mix them.
+
+**Rules:**
+- `nodeGeometry.inputPortPositions()` and `outputPortPositions()` filter out `parent` type ports — they only return circle ports
+- `nodeGeometry.parentInPortPosition()` and `childOutPortPosition()` return rectangle tab positions only
+- Never include a `parent` port in `inputPortPositions` / `outputPortPositions` iteration
+- Never compute port screen coordinates inline — always call `nodeGeometry.*`
+- Parent wires use horizontal S-curve bezier; layer/data wires use vertical S-curve bezier
+- `nodeGeometry.js` owns all constants: `NODE_WIDTH`, `NODE_HEIGHT`, `RECT_W`, `RECT_H`, `PORT_COLOR`
+- `nodeHitTest.js` owns all hit testing; never write hit-radius math in renderer or input files
+
+**Module load order dependency:**
+```
+nodeRegistry.js → nodeGeometry.js → nodeHitTest.js → nodeRenderer.js
+```
+
+**✅ Correct — reading a parent port position:**
+```javascript
+var tabPos = nodeGeometry.parentInPortPosition(nodeData, transform);
+if (tabPos) { /* draw or hit-test at tabPos.x, tabPos.y */ }
+```
+
+**❌ Wrong — mixing parent into circle loop:**
+```javascript
+// nodeGeometry.inputPortPositions() already filters parent — don't add parent back
+var ports = nodeGeometry.inputPortPositions(nodeData, transform);
+ports.push({ port: 'parent_in', type: 'parent', x: ..., y: ... }); // never do this
+```
+
+---
+
 ### SKILL 12 — Grounded Decision Protocol
 
 Claude Code must never oscillate between approaches, rewrite working code speculatively, or attempt to resolve ambiguity by trying multiple paths at once. Every decision is made once and locked.
@@ -643,4 +677,4 @@ QUESTION: Should a connection store { fromId, toId } or { fromId, fromPort, toId
 
 ---
 
-*Last updated: May 2026 — Procedia v2 (CEP, AE 2025+, Windows)*
+*Last updated: May 2026 — Procedia v3 (CEP, AE 2025+, Windows) — parent/child native ports, nodeGeometry/nodeHitTest modules*

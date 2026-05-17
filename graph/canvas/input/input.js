@@ -114,11 +114,14 @@ var canvasInput = (function() {
       var screenY   = e.clientY - rect.top;
       var transform = canvasViewport.getTransform();
 
-      // Priority 1: output port → wire drag
+      // Priority 1: output port → wire drag (bottom circles + right rectangle)
       var allNodes = graphState.getAllNodes();
       var nodeKeys = Object.keys(allNodes);
       for (var k = nodeKeys.length - 1; k >= 0; k--) {
         var _portHit = nodeHitTest.hitTestOutputPort(allNodes[nodeKeys[k]], transform, screenX, screenY);
+        if (!_portHit) {
+          _portHit = nodeHitTest.hitTestChildOutPort(allNodes[nodeKeys[k]], transform, screenX, screenY);
+        }
         if (_portHit) {
           var _srcNode = allNodes[nodeKeys[k]];
           wire.startDrag(_srcNode.id, screenX, screenY, _portHit.type, _portHit.port);
@@ -296,6 +299,9 @@ var canvasInput = (function() {
       for (var k = 0; k < wdKeys.length; k++) {
         var n       = wdNodes[wdKeys[k]];
         var portHit = nodeHitTest.hitTestInputPort(n, transform, screenX, screenY);
+        if (!portHit) {
+          portHit = nodeHitTest.hitTestParentInPort(n, transform, screenX, screenY);
+        }
         if (portHit) {
           hoverNodeId = n.id;
           hoveredPort = portHit.port;
