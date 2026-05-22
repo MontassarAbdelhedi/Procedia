@@ -1,234 +1,355 @@
-// graph/Wire/wire.js
-// DEPENDS ON: graph/graphState/lifecycle.js, graph/nodes/nodeRegistry.js, graph/Wire/nodeState.js, data/uuidGenerator.js
-// MUST LOAD BEFORE: graph/Wire/wireRenderer.js, graph/canvas/input/labelEditor.js
+// graph/wire/wire.js
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/wireValidator.js,
+//             graph/cycleChecker.js, graph/cascadeAlgorithm.js, graph/portManager.js,
+//             graph/canvas/viewport.js, graph/canvas/renderer.js,
+//             graph/wire/wireRenderer.js, graph/engine.js
+// MUST LOAD BEFORE: index.js
 
-var wire = (function() {
+var wireInteraction = (function() {
 
-  // ─── Drag state ───────────────────────────────────────────────
-
-  var drag = {
-    active:     false,
-    fromNodeId: null,
-    fromPort:   null,   // which output port the drag originated from ('output' or 'child_out')
-    portType:   null,
-    cursorX:    0,
-    cursorY:    0
+  var _dragState = {
+    active:       false,
+    fromNodeId:   null,
+    fromPortId:   null,
+    fromPortType: null,   // wire type: 'layer' | 'data' | 'parent'
+    fromPos:      null    // canvas-space { x, y }
   };
 
-  function isDragging()  { return drag.active; }
-  function getDragState() { return drag; }
+  var _selectedWireId = null;
 
-  function startDrag(fromNodeId, screenX, screenY, portType, fromPort) {
-    drag.active     = true;
-    drag.fromNodeId = fromNodeId;
-    drag.fromPort   = fromPort || 'output';
-    drag.portType   = portType || null;
-    drag.cursorX    = screenX;
-    drag.cursorY    = screenY;
-  }
+  // ── Helpers ────────────────────────────────────────────────
 
-  function moveDrag(screenX, screenY) {
-    drag.cursorX = screenX;
-    drag.cursorY = screenY;
-  }
-
-  function cancelDrag() {
-    drag.active     = false;
-    drag.fromNodeId = null;
-    drag.fromPort   = null;
-    drag.portType   = null;
-  }
-
-  // Fired when mouse is released on empty canvas — keeps drag alive for nodePicker.
-  function onCanvasMiss(clientX, clientY) {
-    if (!drag.active) return;
-    document.dispatchEvent(new CustomEvent('wireReleasedOnCanvas', {
-      detail: {
-        sourceNodeId: drag.fromNodeId,
-        portType:     drag.portType,
-        dropX:        clientX,
-        dropY:        clientY
+  // Strip trailing _N index: 'layer_in_0' → 'layer_in', 'output' → 'output'
+  function _getBasePortId(portId) {
+    var lastUnder = portId.lastIndexOf('_');
+    if (lastUnder === -1) return portId;
+    var suffix = portId.substring(lastUnder + 1);
+    if (suffix.length > 0) {
+      var isNum = true;
+      var i, code;
+      for (i = 0; i < suffix.length; i++) {
+        code = suffix.charCodeAt(i);
+        if (code < 48 || code > 57) { isNum = false; break; }
       }
-    }));
-  }
-
-  // ─── Cycle detection — DFS downstream from startId ───────────
-
-  function hasDownstreamPath(startId, targetId) {
-    var visited = {};
-    function dfs(id) {
-      if (id === targetId) return true;
-      if (visited[id]) return false;
-      visited[id] = true;
-      var wires = graphState.getAllWires();
-      for (var wid in wires) {
-        if (wires.hasOwnProperty(wid) && wires[wid].fromNode === id) {
-          if (dfs(wires[wid].toNode)) return true;
-        }
-      }
-      return false;
+      if (isNum) return portId.substring(0, lastUnder);
     }
-    return dfs(startId);
+    return portId;
   }
 
-  function wouldCycle(fromId, toId) {
-    return hasDownstreamPath(toId, fromId);
+  // Same DOM lookup as wireRenderer._getPortPosition — private copy to avoid circular dep
+  function _getPortPosition(nodeId, portId) {
+    var el = document.querySelector(
+      '#canvas-viewport .port[data-node-id="' + nodeId + '"][data-port-id="' + portId + '"]'
+    );
+    if (!el) return null;
+    var wrap     = document.getElementById('canvas-wrap');
+    var wrapRect = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
+    var rect     = el.getBoundingClientRect();
+    var center   = {
+      x: rect.left - wrapRect.left + rect.width  / 2,
+      y: rect.top  - wrapRect.top  + rect.height / 2
+    };
+    return viewport.screenToCanvas(center.x, center.y);
   }
 
-  // Cycle check restricted to parent wires only.
-  // fromId = the child node (has child_out), toId = the parent node (has parent_in).
-  // Traverses parent wires upstream from toId — if fromId is found, it's a cycle.
-  function wouldParentCycle(fromId, toId) {
-    var visited = {};
-    function dfs(id) {
-      if (id === fromId) return true;
-      if (visited[id]) return false;
-      visited[id] = true;
-      var wires = graphState.getAllWires();
-      for (var wid in wires) {
-        if (!wires.hasOwnProperty(wid)) continue;
-        var w = wires[wid];
-        if (w.toNode === id && (w.type === 'parent' || w.toPort === 'parent_in')) {
-          if (dfs(w.fromNode)) return true;
-        }
-      }
-      return false;
-    }
-    return dfs(toId);
-  }
-
-  // ─── Commit wire on mouseup over a valid input port ───────────
-  // Returns true if a wire was confirmed, false if rejected.
-
-  function tryCommit(toNodeId, toPortName) {
-    if (!drag.active || !drag.fromNodeId) return false;
-    if (drag.fromNodeId === toNodeId) { cancelDrag(); return false; }
-
-    var toPortType = nodeState.getPortType(toNodeId, toPortName);
-    if (!toPortType) { cancelDrag(); return false; }
-
-    // Resolve output port type from the actual port being dragged (Rule A)
-    var fromPortName = drag.fromPort || 'output';
-    var fromNode     = graphState.getNode(drag.fromNodeId);
-    var fromDef      = fromNode ? nodeRegistry.getByType(fromNode.type) : null;
-    var fromPortType = null;
-    if (fromDef && fromDef.outputs) {
-      for (var oi = 0; oi < fromDef.outputs.length; oi++) {
-        if (fromDef.outputs[oi].port === fromPortName) {
-          fromPortType = fromDef.outputs[oi].type;
-          break;
-        }
+  function _findPortDef(def, portId) {
+    var baseId = _getBasePortId(portId);
+    var i;
+    for (i = 0; i < def.ports.length; i++) {
+      if (def.ports[i].id === portId || def.ports[i].id === baseId) {
+        return def.ports[i];
       }
     }
-    // Type mismatch — port does not highlight and no connection is made
-    if (fromPortType && fromPortType !== toPortType) { cancelDrag(); return false; }
+    return null;
+  }
 
-    // Rule C — parent wire: use parent-chain cycle check only (not layer-wire cycle check)
-    if (toPortType === 'parent') {
-      if (wouldParentCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
+  function _clearDropTargets() {
+    var dots = document.querySelectorAll('.port.drop-target');
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].classList.remove('drop-target');
+    }
+  }
+
+  function _resetDragState() {
+    _dragState.active       = false;
+    _dragState.fromNodeId   = null;
+    _dragState.fromPortId   = null;
+    _dragState.fromPortType = null;
+    _dragState.fromPos      = null;
+  }
+
+  // ── Wire drag lifecycle ────────────────────────────────────
+
+  function onPortMouseDown(nodeId, portId, e) {
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) return;
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def) return;
+
+    var portDef = _findPortDef(def, portId);
+    if (!portDef) return;
+
+    var isForwardDrag = (portDef.category === 'output') ||
+                        (portDef.category === 'parent' && portDef.role === 'child');
+
+    if (isForwardDrag) {
+      var fromPos = _getPortPosition(nodeId, portId);
+      if (!fromPos) return;
+
+      _dragState.active       = true;
+      _dragState.fromNodeId   = nodeId;
+      _dragState.fromPortId   = portId;
+      _dragState.fromPortType = portDef.type;
+      _dragState.fromPos      = fromPos;
+
     } else {
-      if (wouldCycle(drag.fromNodeId, toNodeId)) { cancelDrag(); return false; }
-    }
-
-    var allWires      = graphState.getAllWires();
-    var toNodeData    = graphState.getNode(toNodeId);
-    var toRegistryDef = toNodeData ? nodeRegistry.getByType(toNodeData.type) : null;
-    var toPortDef     = null;
-    if (toRegistryDef && toRegistryDef.inputs) {
-      for (var pi = 0; pi < toRegistryDef.inputs.length; pi++) {
-        var inp = toRegistryDef.inputs[pi];
-        if (inp.port === toPortName || inp.name === toPortName) { toPortDef = inp; break; }
-      }
-    }
-    var isUnlimited = toPortDef && toPortDef.multiplicity === 'unlimited';
-
-    // Rule B — child_out single-wire enforcement: replace any existing wire from child_out
-    if (fromPortName === 'child_out') {
-      for (var widB in allWires) {
-        if (allWires.hasOwnProperty(widB) &&
-            allWires[widB].fromNode === drag.fromNodeId &&
-            allWires[widB].fromPort === 'child_out') {
-          graphState.removeWire(widB); // triggers onWireRemoved → clearLayerParent via hooks
+      // Input or parent_of — check for an existing wire to reroute
+      var wires = graphState.getAllWires();
+      var existingWire = null;
+      var wireId;
+      for (wireId in wires) {
+        var w = wires[wireId];
+        if (w.toNode === nodeId && w.toPort === portId) {
+          existingWire = w;
           break;
         }
       }
+      if (!existingWire) return; // empty input — nothing to do
+
+      // Reroute: disconnect existing wire, start drag from the original source
+      var sourceNodeId = existingWire.fromNode;
+      var sourcePortId = existingWire.fromPort;
+      engine.disconnectWire(existingWire.id);
+      renderer.render();
+      wireRenderer.render();
+
+      var sourcePos = _getPortPosition(sourceNodeId, sourcePortId);
+      if (!sourcePos) return;
+
+      var sourceNode = graphState.getNode(sourceNodeId);
+      if (!sourceNode) return;
+      var sourceDef = nodeRegistry.getDefinition(sourceNode.type);
+      if (!sourceDef) return;
+      var sourcePortDef = _findPortDef(sourceDef, sourcePortId);
+      if (!sourcePortDef) return;
+
+      _dragState.active       = true;
+      _dragState.fromNodeId   = sourceNodeId;
+      _dragState.fromPortId   = sourcePortId;
+      _dragState.fromPortType = sourcePortDef.type;
+      _dragState.fromPos      = sourcePos;
     }
 
-    if (isUnlimited) {
-      // Unlimited-multiplicity port — only block exact duplicates
-      for (var wid in allWires) {
-        if (allWires.hasOwnProperty(wid) &&
-            allWires[wid].fromNode === drag.fromNodeId &&
-            allWires[wid].toNode  === toNodeId &&
-            allWires[wid].toPort  === toPortName) {
-          cancelDrag();
-          return false;
-        }
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  function onWireMouseMove(e) {
+    if (!_dragState.active) return;
+
+    var wrap       = document.getElementById('canvas-wrap');
+    var wrapRect   = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
+    var currentPos = viewport.screenToCanvas(
+      e.clientX - wrapRect.left,
+      e.clientY - wrapRect.top
+    );
+    wireRenderer.renderDragWire(_dragState.fromPos, currentPos, _dragState.fromPortType);
+
+    // Highlight valid drop targets
+    var dots = document.querySelectorAll('#canvas-viewport .port');
+    for (var i = 0; i < dots.length; i++) {
+      var dot          = dots[i];
+      var targetNodeId = dot.getAttribute('data-node-id');
+      var targetPortId = dot.getAttribute('data-port-id');
+      if (!targetNodeId || !targetPortId) {
+        dot.classList.remove('drop-target');
+        continue;
       }
-    } else {
-      // Single-multiplicity input port — replace existing wire on toPort
-      for (var wid in allWires) {
-        if (allWires.hasOwnProperty(wid) &&
-            allWires[wid].toNode === toNodeId &&
-            allWires[wid].toPort === toPortName) {
-          graphState.removeWire(wid);
-          break;
-        }
-      }
-    }
-
-    var wireId     = uuidGenerator.generateWireId();
-    var fromNodeId = drag.fromNodeId;
-
-    // Rule D — wire type stored in wireMap
-    graphState.addWire({
-      id:       wireId,
-      fromNode: fromNodeId,
-      fromPort: fromPortName,
-      toNode:   toNodeId,
-      toPort:   toPortName,
-      type:     toPortType
-    });
-
-    // Parent wires never change node state — cascade is blind to them
-    if (toPortType !== 'parent') {
-      var fromNewState = nodeState.evaluateNodeState(fromNodeId);
-      var toNewState   = nodeState.evaluateNodeState(toNodeId);
-
-      if (fromNewState === 'alive') {
-        graphState.onAlive(fromNodeId);
+      var result = wireValidator.validate(
+        _dragState.fromNodeId, _dragState.fromPortId,
+        targetNodeId, targetPortId,
+        _dragState.fromPortType
+      );
+      if (result.valid) {
+        dot.classList.add('drop-target');
       } else {
-        graphState.updateNode(fromNodeId, { state: fromNewState });
+        dot.classList.remove('drop-target');
       }
-      graphState.updateNode(toNodeId, { state: toNewState });
-    }
-
-    cancelDrag();
-    return true;
-  }
-
-  function deleteWire(wireId) {
-    var w = graphState.getWire(wireId);
-    if (!w) return;
-    graphState.removeWire(wireId);
-    // Parent wires never trigger ghost cascade — clearLayerParent fires via onWireRemoved hook.
-    // Fallback: check toPort in case type is missing (e.g. wires loaded from old persistence data).
-    if (w.type !== 'parent' && w.toPort !== 'parent_in') {
-      nodeState.cascadeGhost(w);
     }
   }
 
-  // ─── Public API ───────────────────────────────────────────────
+  function onWireMouseUp(e) {
+    wireRenderer.clearDragWire();
+    _clearDropTargets();
+
+    if (!_dragState.active) {
+      _resetDragState();
+      return;
+    }
+
+    // Find if mouse was released on a port dot
+    var el     = document.elementFromPoint(e.clientX, e.clientY);
+    var portEl = null;
+    var target = el;
+    while (target && target !== document.body) {
+      if (target.classList && target.classList.contains('port')) {
+        portEl = target;
+        break;
+      }
+      target = target.parentElement;
+    }
+
+    if (portEl) {
+      var targetNodeId = portEl.getAttribute('data-node-id');
+      var targetPortId = portEl.getAttribute('data-port-id');
+
+      if (targetNodeId && targetPortId) {
+        var validation = wireValidator.validate(
+          _dragState.fromNodeId, _dragState.fromPortId,
+          targetNodeId, targetPortId,
+          _dragState.fromPortType
+        );
+
+        if (validation.valid) {
+          var basePortId = _getBasePortId(targetPortId);
+          var isNewbornSlot = (basePortId !== targetPortId) &&
+                              (portManager.getOpenSlot(targetNodeId, basePortId) === targetPortId);
+          var isDataWire    = (_dragState.fromPortType === 'data');
+
+          if (isNewbornSlot && isDataWire) {
+            showPicker(
+              _dragState.fromNodeId, _dragState.fromPortId,
+              targetNodeId, targetPortId, e
+            );
+          } else {
+            engine.connectWire(
+              _dragState.fromNodeId, _dragState.fromPortId,
+              targetNodeId, targetPortId, null
+            );
+            renderer.render();
+            wireRenderer.render();
+          }
+        } else {
+          console.log('[wireInteraction] Drop rejected: ' + validation.reason);
+        }
+      }
+    }
+
+    _resetDragState();
+  }
+
+  // ── Picker UI ──────────────────────────────────────────────
+
+  function showPicker(fromNodeId, fromPortId, targetNodeId, targetPortId, e) {
+    var params = wireValidator.getPickerParams(targetNodeId, _dragState.fromPortType);
+    if (!params || params.length === 0) return;
+
+    var picker = document.createElement('div');
+    picker.className  = 'wire-picker';
+    picker.style.left = e.clientX + 'px';
+    picker.style.top  = e.clientY + 'px';
+
+    var header = document.createElement('div');
+    header.className   = 'wire-picker-header';
+    header.textContent = 'Bind to param';
+    picker.appendChild(header);
+
+    var i;
+    for (i = 0; i < params.length; i++) {
+      (function(param) {
+        var item = document.createElement('div');
+        item.className = 'wire-picker-item';
+
+        var dot = document.createElement('span');
+        dot.className = 'wire-picker-dot';
+        item.appendChild(dot);
+
+        var name = document.createElement('span');
+        name.className   = 'wire-picker-name';
+        name.textContent = param.label;
+        item.appendChild(name);
+
+        var type = document.createElement('span');
+        type.className   = 'wire-picker-type';
+        type.textContent = param.type;
+        item.appendChild(type);
+
+        item.addEventListener('click', function() {
+          if (picker.parentNode) picker.parentNode.removeChild(picker);
+          engine.connectWire(fromNodeId, fromPortId, targetNodeId, targetPortId, param.key);
+          renderer.render();
+          wireRenderer.render();
+        });
+
+        picker.appendChild(item);
+      })(params[i]);
+    }
+
+    document.body.appendChild(picker);
+
+    // Dismiss on outside mousedown
+    setTimeout(function() {
+      function onOutsideClick(ev) {
+        if (!picker.contains(ev.target)) {
+          if (picker.parentNode) picker.parentNode.removeChild(picker);
+          document.removeEventListener('mousedown', onOutsideClick);
+        }
+      }
+      document.addEventListener('mousedown', onOutsideClick);
+    }, 0);
+  }
+
+  // ── Wire select / delete ───────────────────────────────────
+
+  function _onWireLayerClick(e) {
+    var target = e.target;
+    if (target && target.hasAttribute && target.hasAttribute('data-wire-id')) {
+      var wireId = target.getAttribute('data-wire-id');
+      if (_selectedWireId === wireId) {
+        _selectedWireId = null;
+      } else {
+        _selectedWireId = wireId;
+      }
+      wireRenderer.render();
+      e.stopPropagation();
+    } else {
+      _selectedWireId = null;
+      wireRenderer.render();
+    }
+  }
+
+  function _onKeyDown(e) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && _selectedWireId) {
+      engine.disconnectWire(_selectedWireId);
+      _selectedWireId = null;
+      renderer.render();
+      wireRenderer.render();
+      e.preventDefault();
+    }
+  }
+
+  function getSelectedWire() {
+    return _selectedWireId;
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+
+  function init() {
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) { console.error('[wireInteraction] canvas-wrap not found'); return; }
+    wrap.addEventListener('mousemove', onWireMouseMove);
+    wrap.addEventListener('mouseup',   onWireMouseUp);
+
+    var wireLayer = document.getElementById('wire-layer');
+    if (wireLayer) wireLayer.addEventListener('click', _onWireLayerClick);
+
+    document.addEventListener('keydown', _onKeyDown);
+  }
 
   return {
-    isDragging:    isDragging,
-    getDragState:  getDragState,
-    startDrag:     startDrag,
-    moveDrag:      moveDrag,
-    cancelDrag:    cancelDrag,
-    onCanvasMiss:  onCanvasMiss,
-    tryCommit:     tryCommit,
-    deleteWire:    deleteWire
+    onPortMouseDown: onPortMouseDown,
+    getSelectedWire: getSelectedWire,
+    init:            init
   };
 
-}());
+})();

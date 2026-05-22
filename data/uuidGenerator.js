@@ -1,21 +1,26 @@
 // data/uuidGenerator.js
-// DEPENDS ON: (none)
-// MUST LOAD BEFORE: graph/graphState/store.js
+// DEPENDS ON: none
+// MUST LOAD BEFORE: everything
+
 var uuidGenerator = (function() {
 
-  function generateNodeId() {
-    var rand = Math.random().toString(36).substr(2, 4);
-    return 'PROC-' + Date.now() + '-' + rand;
+  function rand4() {
+    var s = Math.random().toString(36).substr(2, 4);
+    while (s.length < 4) s = s + '0';
+    return s;
   }
 
-  function generateWireId() {
-    var rand = Math.random().toString(36).substr(2, 4);
-    return 'WIRE-' + Date.now() + '-' + rand;
+  function node() {
+    return 'PROC-' + Date.now() + '-' + rand4();
+  }
+
+  function wire() {
+    return 'WIRE-' + Date.now() + '-' + rand4();
   }
 
   return {
-    generateNodeId: generateNodeId,
-    generateWireId: generateWireId
+    node: node,
+    wire: wire
   };
 
-}());
+})();

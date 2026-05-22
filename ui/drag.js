@@ -1,73 +1,50 @@
 // ui/drag.js
-// DEPENDS ON: graph/graphState/lifecycle.js, graph/nodes/nodeRegistry.js, graph/canvas/viewport.js,
-//             graph/nodes/nodeGeometry.js, data/uuidGenerator.js
+// DEPENDS ON: graph/nodeRegistry.js, graph/engine.js, graph/canvas/viewport.js,
+//             graph/canvas/renderer.js, graph/wire/wireRenderer.js
 // MUST LOAD BEFORE: index.js
 
-function initDrag() {
-  var preview      = document.getElementById('drag-preview');
-  var canvasColumn = document.getElementById('canvas-column');
-  if (!preview || !canvasColumn) return;
+var drag = (function() {
 
-  var activeDef  = null; // nodeRegistry definition while dragging
-
-  // ─── Mousedown on a node-item in the list ────────────────────
-
-  document.getElementById('node-categories').addEventListener('mousedown', function(e) {
-    var item = e.target;
-    while (item && !item.classList.contains('node-item')) {
-      item = item.parentElement;
+  function init() {
+    var items = document.querySelectorAll('.palette-item');
+    var i;
+    for (i = 0; i < items.length; i++) {
+      items[i].addEventListener('dragstart', function(e) {
+        var nodeType = e.currentTarget.getAttribute('data-node-type');
+        if (!nodeType) return;
+        e.dataTransfer.setData('text/plain', nodeType);
+        e.dataTransfer.effectAllowed = 'copy';
+      });
     }
-    if (!item) return;
 
-    var nodeType = item.dataset.type;
-    if (!nodeType) return;
+    var canvasWrap = document.getElementById('canvas-wrap');
+    if (!canvasWrap) return;
 
-    var def = nodeRegistry.getByType(nodeType);
-    if (!def) return;
+    canvasWrap.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
 
-    activeDef = def;
+    canvasWrap.addEventListener('drop', function(e) {
+      e.preventDefault();
+      var nodeType = e.dataTransfer.getData('text/plain');
+      if (!nodeType) return;
+      if (!nodeRegistry.getDefinition(nodeType)) {
+        console.error('[drag] Unknown node type: ' + nodeType);
+        return;
+      }
+      var wrap     = document.getElementById('canvas-wrap');
+      var wrapRect = wrap.getBoundingClientRect();
+      var canvasPos = viewport.screenToCanvas(
+        e.clientX - wrapRect.left,
+        e.clientY - wrapRect.top
+      );
+      engine.dropNode(nodeType, canvasPos.x, canvasPos.y);
+      renderer.render();
+      wireRenderer.render();
+    });
+  }
 
-    preview.textContent        = def.label || nodeType;
-    preview.style.borderColor  = nodeRegistry.getCategoryColor(def.category);
-    preview.style.display      = 'block';
-    preview.style.left         = (e.clientX + 10) + 'px';
-    preview.style.top          = (e.clientY - 14) + 'px';
+  return { init: init };
 
-    e.preventDefault();
-  });
-
-  // ─── Move preview ghost ───────────────────────────────────────
-
-  document.addEventListener('mousemove', function(e) {
-    if (!activeDef) return;
-    preview.style.left = (e.clientX + 10) + 'px';
-    preview.style.top  = (e.clientY - 14) + 'px';
-  });
-
-  // ─── Drop ─────────────────────────────────────────────────────
-
-  document.addEventListener('mouseup', function(e) {
-    if (!activeDef) return;
-
-    var def   = activeDef;
-    activeDef = null;
-    preview.style.display = 'none';
-
-    var rect = canvasColumn.getBoundingClientRect();
-    var insideCanvas = (
-      e.clientX >= rect.left && e.clientX <= rect.right &&
-      e.clientY >= rect.top  && e.clientY <= rect.bottom
-    );
-    if (!insideCanvas) return;
-
-    var screenX  = e.clientX - rect.left;
-    var screenY  = e.clientY - rect.top;
-    var worldPos = canvas.screenToWorld(screenX, screenY);
-
-    // Centre node on cursor
-    var wx = worldPos.x - nodeGeometry.NODE_WIDTH  / 2;
-    var wy = worldPos.y - nodeGeometry.NODE_HEIGHT / 2;
-
-    graphState.onDrop(def.type, wx, wy);
-  });
-}
+})();

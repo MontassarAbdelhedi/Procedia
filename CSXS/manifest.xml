@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<ExtensionManifest
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  ExtensionBundleId="com.procedia.panel"
-  ExtensionBundleVersion="2.0.0"
-  Version="11.0">
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.uppercut.procedia"
+  ExtensionBundleVersion="4.0.0" ExtensionBundleName="Procedia"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
   <ExtensionList>
-    <Extension Id="com.procedia.panel" Version="2.0.0"/>
+    <Extension Id="com.uppercut.procedia" Version="4.0.0"/>
   </ExtensionList>
 
   <ExecutionEnvironment>
@@ -22,11 +20,11 @@
   </ExecutionEnvironment>
 
   <DispatchInfoList>
-    <Extension Id="com.procedia.panel">
+    <Extension Id="com.uppercut.procedia">
       <DispatchInfo>
         <Resources>
           <MainPath>./index.html</MainPath>
-          <ScriptPath>./jsx/procedia.jsx</ScriptPath>
+          <ScriptPath>./jsx/dispatcher/dispatcher.jsx</ScriptPath>
           <CEFCommandLine/>
         </Resources>
         <Lifecycle>
@@ -37,14 +35,15 @@
           <Menu>Procedia</Menu>
           <Geometry>
             <Size>
-              <Height>800</Height>
-              <Width>1200</Width>
+              <Height>600</Height>
+              <Width>800</Width>
             </Size>
             <MinSize>
-              <Height>800</Height>
-              <Width>1200</Width>
+              <Height>400</Height>
+              <Width>600</Width>
             </MinSize>
           </Geometry>
+          <Icons/>
         </UI>
       </DispatchInfo>
     </Extension>

@@ -1,28 +1,42 @@
 // ui/keyboard.js
-// DEPENDS ON: graph/graphState/lifecycle.js, graph/Wire/wire.js, graph/canvas/index.js
+// DEPENDS ON: graph/graphState.js, graph/engine.js, graph/canvas/renderer.js,
+//             graph/wire/wireRenderer.js, graph/wire/wire.js, ui/inspector.js
 // MUST LOAD BEFORE: index.js
 
-function initKeyboard() {
-  document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+var keyboard = (function() {
 
-    // Wire selected — delete wire and cascade
-    var selWire = canvas.getSelectedWire();
-    if (selWire) {
-      wire.deleteWire(selWire);
-      canvas.clearWireSelection();
-      return;
-    }
+  function _handleDelete(e) {
+    // If a wire is selected, wire.js handles the deletion — do nothing here
+    if (wireInteraction.getSelectedWire() !== null) return;
 
-    // Node(s) selected — full node delete (AE teardown added in T5.4)
-    if (graphState.selectedNodeIds.size > 0) {
-      var idsToDelete = [];
-      graphState.selectedNodeIds.forEach(function(id) { idsToDelete.push(id); });
-      graphState.clearSelection();
-      for (var i = 0; i < idsToDelete.length; i++) {
-        graphState.onDelete(idsToDelete[i]);
-      }
-    }
-  });
-}
+    var selectedId = graphState.getSelection();
+    if (!selectedId) return;
+
+    var active   = document.activeElement;
+    var isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+    if (isTyping) return;
+
+    engine.deleteNode(selectedId);
+    renderer.render();
+    wireRenderer.render();
+    inspector.updateInspector();
+  }
+
+  function _handleEscape() {
+    graphState.setSelection(null);
+    renderer.render();
+    inspector.updateInspector();
+  }
+
+  function _onKeyDown(e) {
+    if (e.key === 'Delete' || e.key === 'Backspace') { _handleDelete(e); }
+    if (e.key === 'Escape')                           { _handleEscape(); }
+  }
+
+  function init() {
+    document.addEventListener('keydown', _onKeyDown);
+  }
+
+  return { init: init };
+
+})();

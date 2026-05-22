@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtensionList>
-  <Extension Id="com.procedia.panel">
+  <Extension Id="com.uppercut.procedia">
     <HostList>
-      <Host Name="AEFT" Port="8099"/>
+      <Host Name="AEFT" Port="8088"/>
     </HostList>
   </Extension>
 </ExtensionList>

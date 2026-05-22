@@ -2,88 +2,288 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Procedia</title>
-  <link rel="stylesheet" href="styles/main.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Procedia v4</title>
+  <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <div id="app">
 
-    <!-- Notification bar — hidden by default, shown via notificationBar.show() -->
-    <div id="notification-bar">
-      <span id="notification-message"></span>
-      <button id="notification-dismiss">×</button>
+<div id="app">
+
+  <!-- ── Topbar ──────────────────────────────────────── -->
+  <div id="topbar">
+    <div id="topbar-left">
+      <span class="topbar-logo-dot"></span>
+      <span class="topbar-wordmark">PROCEDIA</span>
+      <span class="topbar-divider"></span>
+      <span class="topbar-version">v4</span>
     </div>
-
-    <!-- Dev buttons -->
-    <button id="reset-btn" onclick="devTools.resetGraph()" title="Reset graph & AE project">✕</button>
-    <button id="reload-btn" onclick="window.location.reload()" title="Reload panel">⟳</button>
-
-    <!-- Drag preview -->
-    <div id="drag-preview"></div>
-
-    <!-- Three-column layout -->
-    <div id="columns">
-
-      <!-- Left: Node list -->
-      <div id="node-list">
-        <div id="node-search-wrap">
-          <input id="node-search" type="text" placeholder="Search nodes…" autocomplete="off" spellcheck="false">
-          <button id="node-search-clear" title="Clear search">×</button>
-        </div>
-        <div id="node-categories"></div>
-      </div>
-
-      <!-- Center: Canvas -->
-      <div id="canvas-column">
-        <canvas id="main-canvas"></canvas>
-        <canvas id="minimap-canvas"></canvas>
-        <div id="node-picker" class="node-picker hidden">
-          <input type="text" id="node-picker-search" placeholder="Search nodes..." autocomplete="off" spellcheck="false" />
-          <div id="node-picker-list"></div>
-        </div>
-      </div>
-
-      <!-- Right: Inspector -->
-      <div id="inspector"></div>
-
+    <div id="topbar-right">
+      <span class="ae-status-dot"></span>
+      <span class="ae-status-text">AE Connected</span>
+      <span class="topbar-divider"></span>
+      <button class="topbar-reload-btn" onclick="window.location.reload()" title="Reload panel">&#x21BA;</button>
     </div>
   </div>
 
-  <script src="CSInterface.js"></script>
-  <script src="bridge/evalBridge.js"></script>
-  <script src="graph/graphState/store.js"></script>
-  <script src="graph/graphState/lifecycle.js"></script>
-  <script src="graph/nodes/nodeRegistry.js"></script>
-  <script src="graph/nodes/categories/core/Comp.js"></script>
-  <script src="graph/nodes/categories/layers/Text.js"></script>
-  <script src="graph/nodes/categories/layers/Null.js"></script>
-  <script src="data/uuidGenerator.js"></script>
-  <script src="graph/nodes/nodeGeometry.js"></script>
-  <script src="graph/nodes/nodeRenderer.js"></script>
-  <script src="graph/nodes/nodeHitTest.js"></script>
-  <script src="graph/Wire/nodeState.js"></script>
-  <script src="graph/Wire/wire.js"></script>
-  <script src="graph/Wire/wireRenderer.js"></script>
-  <script src="graph/canvas/viewport.js"></script>
-  <script src="graph/canvas/renderer.js"></script>
-  <script src="graph/canvas/input/labelEditor.js"></script>
-  <script src="graph/canvas/input/input.js"></script>
-  <script src="graph/canvas/index.js"></script>
-  <script src="graph/canvas/minimap.js"></script>
-  <script src="notifications/notificationBar.js"></script>
-  <script src="polling/poller.js"></script>
-  <script src="inspector/layerOrderList.js"></script>
-  <script src="inspector/inspector.js"></script>
-  <!-- ─── index.js split ──────────────────────────────────────────── -->
-  <script src="ae/nodeOps.js"></script>
-  <script src="ae/graphHooks.js"></script>
-  <script src="flush/dirtyFlusher.js"></script>
-  <script src="ui/nodeList.js"></script>
-  <script src="ui/drag.js"></script>
-  <script src="ui/nodePicker.js"></script>
-  <script src="ui/keyboard.js"></script>
-  <script src="ui/devTools.js"></script>
-  <script src="index.js"></script>
+    <!-- ── Palette ─────────────────────────────────── -->
+    <div id="palette">
+      <div id="palette-search">
+        <div class="palette-search-wrap">
+          <input type="text" placeholder="Search nodes…">
+          <button class="palette-search-clear" tabindex="-1">&#x2715;</button>
+        </div>
+      </div>
+      <div id="palette-list">
+
+        <!-- Core -->
+        <div class="palette-category" id="cat-core">
+          <div class="palette-category-header">
+            <div class="palette-cat-bar" style="background:var(--cat-core)"></div>
+            <span class="palette-cat-name">Core</span>
+            <span class="palette-cat-caret">▾</span>
+          </div>
+          <div class="palette-items">
+            <div class="palette-item" draggable="true" data-node-type="core/comp">Comp</div>
+          </div>
+        </div>
+
+        <!-- Layers -->
+        <div class="palette-category" id="cat-layers">
+          <div class="palette-category-header">
+            <div class="palette-cat-bar" style="background:var(--cat-layers)"></div>
+            <span class="palette-cat-name">Layers</span>
+            <span class="palette-cat-caret">▾</span>
+          </div>
+          <div class="palette-items">
+            <div class="palette-item" draggable="true" data-node-type="layers/text">Text</div>
+            <div class="palette-item" draggable="true" data-node-type="layers/null">Null</div>
+            <div class="palette-item" draggable="true" data-node-type="layers/shape">Shape</div>
+            <div class="palette-item" draggable="true" data-node-type="layers/adjustment">Adjustment</div>
+          </div>
+        </div>
+
+        <!-- Effects -->
+        <div class="palette-category" id="cat-effects">
+          <div class="palette-category-header">
+            <div class="palette-cat-bar" style="background:var(--cat-effects)"></div>
+            <span class="palette-cat-name">Effects</span>
+            <span class="palette-cat-caret">▾</span>
+          </div>
+          <div class="palette-items">
+            <div class="palette-item" draggable="true" data-node-type="effects/fill">Fill</div>
+            <div class="palette-item" draggable="true" data-node-type="effects/gaussian-blur">Gaussian Blur</div>
+            <div class="palette-item" draggable="true" data-node-type="effects/drop-shadow">Drop Shadow</div>
+          </div>
+        </div>
+
+        <!-- Data -->
+        <div class="palette-category" id="cat-data">
+          <div class="palette-category-header">
+            <div class="palette-cat-bar" style="background:var(--cat-data)"></div>
+            <span class="palette-cat-name">Data</span>
+            <span class="palette-cat-caret">▾</span>
+          </div>
+          <div class="palette-items">
+            <div class="palette-item" draggable="true" data-node-type="data/color">Color</div>
+            <div class="palette-item" draggable="true" data-node-type="data/number">Number</div>
+          </div>
+        </div>
+
+        <!-- Utility -->
+        <div class="palette-category" id="cat-utility">
+          <div class="palette-category-header">
+            <div class="palette-cat-bar" style="background:var(--cat-utility)"></div>
+            <span class="palette-cat-name">Utility</span>
+            <span class="palette-cat-caret">▾</span>
+          </div>
+          <div class="palette-items">
+            <div class="palette-item" draggable="true" data-node-type="utility/expression">Expression</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Canvas ───────────────────────────────────── -->
+    <main id="canvas-wrap">
+
+      <!-- ── Notification bar ──────────────────────── -->
+      <div id="notification-bar">
+        <div class="notification-card">
+          <span class="notification-icon">⚠</span>
+          <span class="notification-text">TextNode_01 was deleted outside Procedia.</span>
+          <div class="notification-actions">
+            <button class="notification-btn">Re-create in AE</button>
+            <button class="notification-btn">Remove from Graph</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="canvas-viewport">
+
+        <!-- SVG wire layer — paths injected by wireRenderer.js (TASK-10) -->
+        <svg id="wire-layer" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <style>
+              .wire-layer  { stroke: var(--wire-layer);  fill: none; stroke-width: 1.5; stroke-linecap: round; opacity: 0.8; }
+              .wire-data   { stroke: var(--wire-data);   fill: none; stroke-width: 1.5; stroke-linecap: round; opacity: 0.8; }
+              .wire-parent { stroke: var(--wire-parent); fill: none; stroke-width: 1.5; stroke-linecap: round; opacity: 0.8; stroke-dasharray: 5 3; }
+            </style>
+          </defs>
+        </svg>
+
+        <!-- Node cards injected by renderer.js -->
+
+      </div><!-- #canvas-viewport -->
+    </main><!-- #canvas-wrap -->
+
+    <!-- ── Inspector ─────────────────────────────────── -->
+    <div id="inspector">
+      <div id="inspector-header">
+        <span class="inspector-title">Inspector</span>
+        <span class="inspector-badge">
+          <span class="inspector-badge-dot"></span>
+          Core / Comp
+        </span>
+      </div>
+      <div id="inspector-body">
+
+        <div class="inspector-section">
+          <div class="inspector-section-title">Identity</div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">label</span>
+            <input class="inspector-field-input" type="text" value="Main Comp">
+          </div>
+        </div>
+
+        <div class="inspector-section">
+          <div class="inspector-section-title">Composition</div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">width</span>
+            <input class="inspector-field-input" type="number" value="1920">
+          </div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">height</span>
+            <input class="inspector-field-input" type="number" value="1080">
+          </div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">fps</span>
+            <input class="inspector-field-input" type="number" value="24">
+          </div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">duration</span>
+            <input class="inspector-field-input" type="text" value="10s">
+          </div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">bg color</span>
+            <div class="inspector-color-field">
+              <span class="inspector-color-swatch" style="background:#000000"></span>
+              <input class="inspector-field-input" type="text" value="#000000">
+            </div>
+          </div>
+        </div>
+
+        <div class="inspector-section">
+          <div class="inspector-section-title">State</div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">state</span>
+            <input class="inspector-field-input readonly state-alive" type="text" value="alive" readonly>
+          </div>
+          <div class="inspector-field">
+            <span class="inspector-field-label">uuid</span>
+            <input class="inspector-field-input readonly uuid-field" type="text" value="PROC-1716…a3f2" readonly>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- #inspector -->
+
+  <!-- ── Status bar ──────────────────────────────────── -->
+  <div id="statusbar">
+    <div class="statusbar-item">
+      <span class="statusbar-label">nodes</span>
+      <span class="statusbar-value">5</span>
+    </div>
+    <div class="statusbar-item">
+      <span class="statusbar-label">wires</span>
+      <span class="statusbar-value">4</span>
+    </div>
+    <div class="statusbar-item">
+      <span class="statusbar-label">alive</span>
+      <span class="statusbar-value">4</span>
+    </div>
+    <div class="statusbar-item">
+      <span class="statusbar-label">ghost</span>
+      <span class="statusbar-value">1</span>
+    </div>
+    <div class="statusbar-item statusbar-right">
+      <span class="statusbar-label">zoom</span>
+      <span class="statusbar-value">100%</span>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ── Scripts — load order source of truth ──────────── -->
+
+<!-- CEP interface -->
+<script src="lib/CSInterface.js"></script>
+
+<!-- Infrastructure -->
+<script src="data/uuidGenerator.js"></script>
+<script src="bridge/evalBridge.js"></script>
+<script src="graph/graphState.js"></script>
+<script src="graph/nodeRegistry.js"></script>
+
+<!-- Node definitions -->
+<script src="graph/nodes/categories/core/Comp.js"></script>
+<script src="graph/nodes/categories/layers/Text.js"></script>
+<script src="graph/nodes/categories/layers/Null.js"></script>
+<script src="graph/nodes/categories/layers/Shape.js"></script>
+<script src="graph/nodes/categories/layers/Adjustment.js"></script>
+<script src="graph/nodes/categories/data/Color.js"></script>
+<script src="graph/nodes/categories/data/Number.js"></script>
+
+<!-- Graph engine -->
+<script src="graph/cycleChecker.js"></script>
+<script src="graph/portManager.js"></script>
+<script src="graph/wireValidator.js"></script>
+<script src="graph/cascadeAlgorithm.js"></script>
+<script src="graph/engine.js"></script>
+
+<!-- Canvas -->
+<script src="graph/canvas/viewport.js"></script>
+<script src="graph/canvas/renderer.js"></script>
+<script src="graph/canvas/input.js"></script>
+<script src="graph/canvas/minimap.js"></script>
+<script src="graph/wire/wireRenderer.js"></script>
+<script src="graph/wire/wire.js"></script>
+
+<!-- UI -->
+<script src="ui/nodeList.js"></script>
+<script src="ui/drag.js"></script>
+<script src="ui/inspector.js"></script>
+<script src="ui/layerOrderList.js"></script>
+<script src="ui/keyboard.js"></script>
+
+<!-- Services -->
+<script src="flush/dirtyFlusher.js"></script>
+<script src="polling/poller.js"></script>
+<script src="notifications/notificationBar.js"></script>
+
+<!-- Entry point -->
+<script src="index.js"></script>
+
+<!-- Palette collapse behavior — no logic, just UI toggle -->
+<script>
+  document.querySelectorAll('.palette-category-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      header.parentElement.classList.toggle('collapsed');
+    });
+  });
+</script>
+
+
 </body>
 </html>

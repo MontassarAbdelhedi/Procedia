@@ -1,38 +1,81 @@
 // graph/nodes/categories/layers/Null.js
-// DEPENDS ON: graph/nodes/nodeRegistry.js
+// DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 
-// TODO v1.1.0 — add 3D toggle param and z-position/rotation props
+var NullNode = {
 
-nodeRegistry.register('NullNode', {
+  type:     'layers/null',
+  label:    'Null',
+  category: 'Layers',
+  version:  '1.0.0',
+
   nodeKind:  'affected',
-  category:  'layers',
-  label:     'Null',
-  inputs: [
-    { port: 'parent_in', name: 'parent_in', type: 'parent', multiplicity: 'unlimited' }
+  dedicated: true,
+
+  ports: [
+    { id: 'output',    category: 'output', type: 'layer', extendable: false },
+    { id: 'child_of',  category: 'parent', role: 'child',  type: 'parent'  },
+    { id: 'parent_of', category: 'parent', role: 'parent', type: 'parent'  }
   ],
-  outputs: [
-    { port: 'output',    name: 'output',    type: 'layer'  },
-    { port: 'child_out', name: 'child_out', type: 'parent', multiplicity: 'single' }
-  ],
-  defaultProps: {
-    label:    'Null',
-    position: null,      // null = not yet set; AE places addNull() at comp center on first alive
-    scale:    [100, 100],
-    rotation: 0,
-    opacity:  100
-  },
-  propMatchNames: {
-    position: 'ADBE Transform Group/ADBE Position',
-    scale:    'ADBE Transform Group/ADBE Scale',
-    rotation: 'ADBE Transform Group/ADBE Rotate Z',
-    opacity:  'ADBE Transform Group/ADBE Opacity'
-  },
+
   params: [
-    { key: 'label',    label: 'Label',    type: 'string',  rename: true },
-    { key: 'position', label: 'Position', type: 'vector2' },
-    { key: 'scale',    label: 'Scale',    type: 'vector2' },
-    { key: 'rotation', label: 'Rotation', type: 'number'  },
-    { key: 'opacity',  label: 'Opacity',  type: 'number', min: 0, max: 100 }
-  ]
-});
+    { key: 'label',    type: 'string',  default: 'Null',       label: 'Label'                       },
+    { key: 'position', type: 'vector2', default: [0, 0],       label: 'Position'                    },
+    { key: 'rotation', type: 'number',  default: 0,            label: 'Rotation'                    },
+    { key: 'opacity',  type: 'number',  default: 100,          label: 'Opacity',   min: 0, max: 100 },
+    { key: 'scale',    type: 'vector2', default: [100, 100],   label: 'Scale'                       }
+  ],
+
+  onDrop: function(nodeData) {
+    return null;
+  },
+
+  onAlive: function(nodeData, hostingCompUUID) {
+    return {
+      action: 'createNullLayer',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        position:        nodeData.props.position,
+        rotation:        nodeData.props.rotation,
+        opacity:         nodeData.props.opacity,
+        scale:           nodeData.props.scale,
+        label:           nodeData.props.label
+      }
+    };
+  },
+
+  onGhost: function(nodeData, hostingCompUUID) {
+    return {
+      action: 'parkLayer',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID
+      }
+    };
+  },
+
+  onDelete: function(nodeData) {
+    return {
+      action: 'deleteParkedLayer',
+      params: {
+        nodeUUID: nodeData.id
+      }
+    };
+  },
+
+  onPropertyChange: function(key, value, nodeData, hostingCompUUID) {
+    return {
+      action: 'setLayerProperty',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        key:             key,
+        value:           value
+      }
+    };
+  }
+
+};
+
+nodeRegistry.register(NullNode);

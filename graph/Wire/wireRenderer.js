@@ -1,237 +1,131 @@
-// graph/Wire/wireRenderer.js
-// DEPENDS ON: graph/graphState/store.js, graph/nodes/nodeGeometry.js, graph/Wire/nodeState.js, graph/Wire/wire.js
-// MUST LOAD BEFORE: graph/canvas/renderer.js
+// graph/wire/wireRenderer.js
+// DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js
+// MUST LOAD BEFORE: graph/wire/wire.js
 
 var wireRenderer = (function() {
 
-  var WIRE_DASH_LENGTH = 8;
-  var WIRE_GAP_LENGTH  = 6;
-  var WIRE_DASH_SPEED  = 0.4;
-  var WIRE_DASH_CYCLE  = WIRE_DASH_LENGTH + WIRE_GAP_LENGTH; // 14
+  var _dragWireEl = null;
+  var MIN_CP_OFFSET = 60;
 
-  // Vertical cpOffset: proportional to vertical distance, clamped 12–80px screen.
-  function calcCpOffset(y1, y2, scale) {
-    var dy = Math.abs(y2 - y1);
-    return Math.max(12 * scale, Math.min(80 * scale, dy * 0.45));
+  function _getPortPosition(nodeId, portId) {
+    var el = document.querySelector(
+      '#canvas-viewport .port[data-node-id="' + nodeId + '"][data-port-id="' + portId + '"]'
+    );
+    if (!el) return null;
+    var wrap     = document.getElementById('canvas-wrap');
+    var wrapRect = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
+    var rect     = el.getBoundingClientRect();
+    var center   = {
+      x: rect.left - wrapRect.left + rect.width  / 2,
+      y: rect.top  - wrapRect.top  + rect.height / 2
+    };
+    return viewport.screenToCanvas(center.x, center.y);
   }
 
-  // Horizontal cpOffset for parent/child wires, clamped 20–100px screen.
-  function calcHorizCpOffset(x1, x2, scale) {
-    var dx = Math.abs(x2 - x1);
-    return Math.max(20 * scale, Math.min(100 * scale, dx * 0.45));
+  function _isParentWire(wireType) {
+    return wireType === 'parent';
   }
 
-  function getWireColor(wire) {
-    if (wire.error)             return '#e05555';
-    if (wire.selected)          return '#ffffff';
-    if (wire.type === 'parent') return '#c8922a';
-    return '#888888';
-  }
+  function _makePath(fromPos, toPos, wireType) {
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    var d;
 
-  // ─── Bezier draw ──────────────────────────────────────────────
-  // horizontal=true  → S-curve left/right  (parent wires)
-  // horizontal=false → S-curve up/down     (layer/data wires)
-
-  function drawBezier(ctx, x1, y1, x2, y2, cpOffset, color, lineWidth, dashOffset, horizontal) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    if (horizontal) {
-      ctx.bezierCurveTo(x1 + cpOffset, y1, x2 - cpOffset, y2, x2, y2);
+    if (_isParentWire(wireType)) {
+      // Vertical flow — child_of (top) to parent_of (bottom)
+      var dy = Math.abs(toPos.y - fromPos.y) * 0.5;
+      if (dy < MIN_CP_OFFSET) dy = MIN_CP_OFFSET;
+      d = 'M '  + fromPos.x + ' ' + fromPos.y +
+          ' C ' + fromPos.x + ' ' + (fromPos.y - dy) +
+          ', '  + toPos.x   + ' ' + (toPos.y   + dy) +
+          ', '  + toPos.x   + ' ' + toPos.y;
     } else {
-      ctx.bezierCurveTo(x1, y1 + cpOffset, x2, y2 - cpOffset, x2, y2);
+      // Horizontal flow — layer and data wires (left to right)
+      var dx = Math.abs(toPos.x - fromPos.x) * 0.5;
+      if (dx < MIN_CP_OFFSET) dx = MIN_CP_OFFSET;
+      d = 'M '  + fromPos.x           + ' ' + fromPos.y +
+          ' C ' + (fromPos.x + dx)    + ' ' + fromPos.y +
+          ', '  + (toPos.x   - dx)    + ' ' + toPos.y   +
+          ', '  + toPos.x             + ' ' + toPos.y;
     }
-    ctx.strokeStyle    = color;
-    ctx.lineWidth      = lineWidth;
-    ctx.setLineDash([WIRE_DASH_LENGTH, WIRE_GAP_LENGTH]);
-    ctx.lineDashOffset = dashOffset;
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
+
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('pointer-events', 'stroke');
+
+    if (wireType === 'layer') {
+      path.setAttribute('stroke', 'var(--wire-layer)');
+      path.setAttribute('stroke-width', '1.5');
+      path.style.opacity = '0.8';
+    } else if (wireType === 'data') {
+      path.setAttribute('stroke', 'var(--wire-data)');
+      path.setAttribute('stroke-width', '1.5');
+      path.style.opacity = '0.8';
+    } else if (wireType === 'parent') {
+      path.setAttribute('stroke', 'var(--wire-parent)');
+      path.setAttribute('stroke-width', '1.5');
+      path.setAttribute('stroke-dasharray', '5 3');
+      path.style.opacity = '0.8';
+    }
+
+    return path;
   }
 
-  // ─── Wire hit test ────────────────────────────────────────────
-  // Samples bezier at 20 steps. Returns wireId if within 6px, else null.
+  function render() {
+    var layer = document.getElementById('wire-layer');
+    if (!layer) return;
 
-  function hitTestNearest(screenX, screenY, transform) {
-    var HIT_R_SQ = 6 * 6;
-    var STEPS    = 20;
-    var allWires = graphState.getAllWires();
-    var allNodes = graphState.getAllNodes();
+    // Remove all existing wire paths (not the drag wire)
+    var existing = layer.querySelectorAll('.wire-path:not(.drag-wire)');
+    for (var i = 0; i < existing.length; i++) {
+      layer.removeChild(existing[i]);
+    }
 
-    for (var wid in allWires) {
-      if (!allWires.hasOwnProperty(wid)) continue;
-      var w        = allWires[wid];
-      var fromNode = allNodes[w.fromNode];
-      var toNode   = allNodes[w.toNode];
-      if (!fromNode || !toNode) continue;
-
-      var isParentWire = (w.type === 'parent' || w.fromPort === 'child_out');
-      var fromPos = null;
-      var toPos   = null;
-
-      if (isParentWire) {
-        fromPos = nodeGeometry.childOutPortPosition(fromNode, transform);
-        toPos   = nodeGeometry.parentInPortPosition(toNode, transform);
-      } else {
-        var htOutPorts = nodeGeometry.outputPortPositions(fromNode, transform);
-        for (var hfp = 0; hfp < htOutPorts.length; hfp++) {
-          if (htOutPorts[hfp].port === (w.fromPort || 'output')) { fromPos = htOutPorts[hfp]; break; }
-        }
-        if (!fromPos && htOutPorts.length > 0) fromPos = htOutPorts[0];
-
-        var inPorts = nodeGeometry.inputPortPositions(toNode, transform);
-        for (var hi = 0; hi < inPorts.length; hi++) {
-          if (inPorts[hi].port === w.toPort) { toPos = inPorts[hi]; break; }
-        }
-      }
+    var wires = graphState.getAllWires();
+    for (var wireId in wires) {
+      var wire    = wires[wireId];
+      var fromPos = _getPortPosition(wire.fromNode, wire.fromPort);
+      var toPos   = _getPortPosition(wire.toNode,   wire.toPort);
       if (!fromPos || !toPos) continue;
 
-      var x0, y0, x1, y1, x2, y2, x3, y3;
-      x0 = fromPos.x; y0 = fromPos.y;
-      x3 = toPos.x;   y3 = toPos.y;
+      var path = _makePath(fromPos, toPos, wire.type);
+      path.setAttribute('data-wire-id', wireId);
+      path.classList.add('wire-path', wire.type);
 
-      if (isParentWire) {
-        var hcp = calcHorizCpOffset(x0, x3, transform.scale);
-        x1 = x0 + hcp; y1 = y0;
-        x2 = x3 - hcp; y2 = y3;
-      } else {
-        var vcp = calcCpOffset(y0, y3, transform.scale);
-        x1 = x0; y1 = y0 + vcp;
-        x2 = x3; y2 = y3 - vcp;
+      // Apply selected state
+      if (typeof wireInteraction !== 'undefined' &&
+          wireInteraction.getSelectedWire() === wireId) {
+        path.setAttribute('stroke-width', '3');
+        path.style.opacity = '1';
       }
 
-      for (var s = 0; s <= STEPS; s++) {
-        var t  = s / STEPS;
-        var mt = 1 - t;
-        var bx = mt*mt*mt*x0 + 3*mt*mt*t*x1 + 3*mt*t*t*x2 + t*t*t*x3;
-        var by = mt*mt*mt*y0 + 3*mt*mt*t*y1 + 3*mt*t*t*y2 + t*t*t*y3;
-        var dx = screenX - bx;
-        var dy = screenY - by;
-        if (dx*dx + dy*dy <= HIT_R_SQ) return wid;
-      }
-    }
-    return null;
-  }
-
-  // ─── Draw all confirmed wires + in-progress drag preview ──────
-
-  function drawAll(ctx, transform, selectedWireId) {
-    var allWires = graphState.getAllWires();
-    var allNodes = graphState.getAllNodes();
-
-    // Confirmed wires
-    for (var wid in allWires) {
-      if (!allWires.hasOwnProperty(wid)) continue;
-      var w        = allWires[wid];
-      var fromNode = allNodes[w.fromNode];
-      var toNode   = allNodes[w.toNode];
-      if (!fromNode || !toNode) continue;
-
-      var isParentWire = (w.type === 'parent' || w.fromPort === 'child_out');
-      var fromPos = null;
-      var toPos   = null;
-
-      if (isParentWire) {
-        fromPos = nodeGeometry.childOutPortPosition(fromNode, transform);
-        toPos   = nodeGeometry.parentInPortPosition(toNode, transform);
-      } else {
-        var outPorts = nodeGeometry.outputPortPositions(fromNode, transform);
-        for (var fp = 0; fp < outPorts.length; fp++) {
-          if (outPorts[fp].port === (w.fromPort || 'output')) { fromPos = outPorts[fp]; break; }
-        }
-        if (!fromPos && outPorts.length > 0) fromPos = outPorts[0];
-
-        var inPorts = nodeGeometry.inputPortPositions(toNode, transform);
-        for (var i = 0; i < inPorts.length; i++) {
-          if (inPorts[i].port === w.toPort) { toPos = inPorts[i]; break; }
-        }
-      }
-      if (!fromPos || !toPos) continue;
-
-      w.error    = (fromNode.state === 'error' || toNode.state === 'error');
-      w.selected = (wid === selectedWireId);
-
-      var color     = getWireColor(w);
-      var lineWidth = w.selected ? 2.5 : 1.5;
-
-      if (isParentWire) {
-        var cpOffset = calcHorizCpOffset(fromPos.x, toPos.x, transform.scale);
-        if (w.selected) {
-          ctx.save();
-          ctx.shadowColor = 'rgba(255,255,255,0.5)';
-          ctx.shadowBlur  = 6;
-          drawBezier(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, cpOffset, color, lineWidth, w.dashOffset || 0, true);
-          ctx.restore();
-        } else {
-          drawBezier(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, cpOffset, color, lineWidth, w.dashOffset || 0, true);
-        }
-      } else {
-        var cpOffset = calcCpOffset(fromPos.y, toPos.y, transform.scale);
-        if (w.selected) {
-          ctx.save();
-          ctx.shadowColor = 'rgba(255,255,255,0.5)';
-          ctx.shadowBlur  = 6;
-          drawBezier(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, cpOffset, color, lineWidth, w.dashOffset || 0, false);
-          ctx.restore();
-        } else {
-          drawBezier(ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, cpOffset, color, lineWidth, w.dashOffset || 0, false);
-        }
-      }
-    }
-
-    // In-progress drag preview — static dashes, no animation
-    var d = wire.getDragState();
-    if (d.active && d.fromNodeId) {
-      var dragNode = allNodes[d.fromNodeId];
-      if (dragNode) {
-        var isParentDrag = (d.fromPort === 'child_out' || d.portType === 'parent');
-        var dragFrom     = null;
-        if (isParentDrag) {
-          dragFrom = nodeGeometry.childOutPortPosition(dragNode, transform);
-        } else {
-          var dragPorts = nodeGeometry.outputPortPositions(dragNode, transform);
-          for (var dp = 0; dp < dragPorts.length; dp++) {
-            if (dragPorts[dp].port === (d.fromPort || 'output')) { dragFrom = dragPorts[dp]; break; }
-          }
-          if (!dragFrom && dragPorts.length > 0) dragFrom = dragPorts[0];
-        }
-        if (dragFrom) {
-          var previewColor = isParentDrag ? '#c8922a' : '#666666';
-          if (isParentDrag) {
-            var cpOffset = calcHorizCpOffset(dragFrom.x, d.cursorX, transform.scale);
-            drawBezier(ctx, dragFrom.x, dragFrom.y, d.cursorX, d.cursorY, cpOffset, previewColor, 1.5, 0, true);
-          } else {
-            var cpOffset = calcCpOffset(dragFrom.y, d.cursorY, transform.scale);
-            drawBezier(ctx, dragFrom.x, dragFrom.y, d.cursorX, d.cursorY, cpOffset, previewColor, 1.5, 0, false);
-          }
-        }
-      }
+      layer.appendChild(path);
     }
   }
 
-  // ─── Public: draw a single wire between two screen-space points ──
-
-  function drawWire(ctx, fromX, fromY, toX, toY, wireType, isPreview) {
-    var color     = isPreview ? '#666666' : '#888888';
-    var horizontal = (wireType === 'parent');
-    if (horizontal) {
-      var cpOffset = calcHorizCpOffset(fromX, toX, 1);
-      drawBezier(ctx, fromX, fromY, toX, toY, cpOffset, color, 1.5, 0, true);
-    } else {
-      var cpOffset = calcCpOffset(fromY, toY, 1);
-      drawBezier(ctx, fromX, fromY, toX, toY, cpOffset, color, 1.5, 0, false);
-    }
+  function renderDragWire(fromPos, toPos, wireType) {
+    var layer = document.getElementById('wire-layer');
+    if (!layer) return;
+    clearDragWire();
+    var path = _makePath(fromPos, toPos, wireType || 'layer');
+    path.classList.add('wire-path', wireType || 'layer', 'drag-wire');
+    path.style.opacity = '0.5';
+    path.style.strokeDasharray = '6 3';
+    _dragWireEl = path;
+    layer.appendChild(path);
   }
 
-  // ─── Public API ───────────────────────────────────────────────
+  function clearDragWire() {
+    if (_dragWireEl && _dragWireEl.parentNode) {
+      _dragWireEl.parentNode.removeChild(_dragWireEl);
+    }
+    _dragWireEl = null;
+  }
 
   return {
-    drawWire:        drawWire,
-    drawAll:         drawAll,
-    hitTestNearest:  hitTestNearest,
-    WIRE_DASH_SPEED: WIRE_DASH_SPEED,
-    WIRE_DASH_CYCLE: WIRE_DASH_CYCLE
+    render:         render,
+    renderDragWire: renderDragWire,
+    clearDragWire:  clearDragWire
   };
 
-}());
+})();

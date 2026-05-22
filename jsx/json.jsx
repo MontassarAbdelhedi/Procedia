@@ -1,65 +1,108 @@
 // jsx/json.jsx
-// JSON polyfill for ExtendScript — native JSON is unavailable in AE 2025
-// MUST be first in the evalBridge preamble — all other JSX depends on this
+// JSON polyfill for ExtendScript (ES3)
+// MUST be the first file evaluated in any evalBridge preamble.
+// DEPENDS ON: none
 
-var JSON = (function() {
+if (typeof JSON === 'undefined') {
+    JSON = {};
+}
 
-  function escapeStr(s) {
-    var out = '"';
-    for (var i = 0; i < s.length; i++) {
-      var c    = s.charAt(i);
-      var code = s.charCodeAt(i);
-      if      (c === '"')  { out += '\\"'; }
-      else if (c === '\\') { out += '\\\\'; }
-      else if (c === '\n') { out += '\\n'; }
-      else if (c === '\r') { out += '\\r'; }
-      else if (c === '\t') { out += '\\t'; }
-      else if (code < 32) {
-        var hex = code.toString(16);
-        out += '\\u00' + (hex.length < 2 ? '0' + hex : hex);
-      } else {
-        out += c;
-      }
-    }
-    return out + '"';
-  }
+(function () {
 
-  function stringify(val) {
-    if (val === null)      return 'null';
-    if (val === undefined) return undefined;
-    var t = typeof val;
-    if (t === 'boolean')   return val ? 'true' : 'false';
-    if (t === 'number')    return isFinite(val) ? String(val) : 'null';
-    if (t === 'string')    return escapeStr(val);
-    if (t === 'function')  return undefined;
+    // Characters that require escaping inside JSON string values.
+    var escapable = /[\\"\x00-\x1f\x7f-\x9f]/g;
 
-    var i, item, parts;
+    var meta = {
+        '\b': '\\b',
+        '\t': '\\t',
+        '\n': '\\n',
+        '\f': '\\f',
+        '\r': '\\r',
+        '"':  '\\"',
+        '\\': '\\\\'
+    };
 
-    if (val instanceof Array) {
-      parts = [];
-      for (i = 0; i < val.length; i++) {
-        item = stringify(val[i]);
-        parts.push(item === undefined ? 'null' : item);
-      }
-      return '[' + parts.join(',') + ']';
-    }
-
-    parts = [];
-    for (var k in val) {
-      if (val.hasOwnProperty(k)) {
-        var v = stringify(val[k]);
-        if (v !== undefined) {
-          parts.push(escapeStr(k) + ':' + v);
+    function quote(string) {
+        escapable.lastIndex = 0;
+        if (escapable.test(string)) {
+            return '"' + string.replace(escapable, function (a) {
+                var c = meta[a];
+                return typeof c === 'string'
+                    ? c
+                    : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+            }) + '"';
         }
-      }
+        return '"' + string + '"';
     }
-    return '{' + parts.join(',') + '}';
-  }
 
-  function parse(text) {
-    return eval('(' + text + ')');
-  }
+    function str(key, holder, seen) {
+        var value = holder[key];
+        var i, k, v, length, partial, type;
 
-  return { stringify: stringify, parse: parse };
+        if (value === null) return 'null';
 
-}());
+        type = typeof value;
+
+        if (type === 'boolean') return String(value);
+        if (type === 'number')  return isFinite(value) ? String(value) : 'null';
+        if (type === 'string')  return quote(value);
+
+        if (type === 'object') {
+            for (i = 0; i < seen.length; i++) {
+                if (seen[i] === value) {
+                    throw new TypeError('Converting circular structure to JSON');
+                }
+            }
+            seen.push(value);
+            partial = [];
+
+            if (Object.prototype.toString.call(value) === '[object Array]') {
+                length = value.length;
+                for (i = 0; i < length; i++) {
+                    v = str(i, value, seen);
+                    partial[i] = (v !== undefined) ? v : 'null';
+                }
+                v = '[' + partial.join(',') + ']';
+            } else {
+                for (k in value) {
+                    if (Object.prototype.hasOwnProperty.call(value, k)) {
+                        v = str(k, value, seen);
+                        if (v !== undefined) {
+                            partial.push(quote(k) + ':' + v);
+                        }
+                    }
+                }
+                v = '{' + partial.join(',') + '}';
+            }
+
+            seen.pop();
+            return v;
+        }
+
+        return undefined;
+    }
+
+    if (typeof JSON.stringify !== 'function') {
+        JSON.stringify = function (value) {
+            var holder = {};
+            holder[''] = value;
+            return str('', holder, []);
+        };
+    }
+
+    if (typeof JSON.parse !== 'function') {
+        JSON.parse = function (text) {
+            var s = String(text);
+
+            if (/^[\],:{}\s]*$/.test(
+                    s.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
+                     .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+                     .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+                return eval('(' + s + ')');
+            }
+
+            throw new SyntaxError('JSON.parse: invalid JSON');
+        };
+    }
+
+})();

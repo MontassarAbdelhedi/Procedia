@@ -1,43 +1,126 @@
 // bridge/evalBridge.js
-// DEPENDS ON: CSInterface.js
-// MUST LOAD BEFORE: ae/nodeOps.js
+// DEPENDS ON: lib/CSInterface.js
+// MUST LOAD BEFORE: graph/graphState.js, graph/engine.js, flush/dirtyFlusher.js, polling/poller.js
+
+var csInterface = null;
+if (typeof CSInterface !== 'undefined' && typeof window.__adobe_cep__ !== 'undefined') {
+  try {
+    csInterface = new CSInterface();
+  } catch (e) {
+    csInterface = null;
+  }
+}
+
 var evalBridge = (function() {
 
-  var _preamble = '';
-
-  // Called once at startup with the concatenated JSX source.
-  // Every subsequent evalScript call will prepend this so the JSX functions
-  // are always defined in the same scope as the invocation — required in
-  // AE 2025 where evalScript calls do not share a persistent global scope.
-  function setPreamble(src) {
-    _preamble = src || '';
+  function _isBridgeAvailable() {
+    return csInterface != null && typeof csInterface.evalScript === 'function';
   }
 
-  function evalScript(fnCall) {
-    // Wrap in IIFE so AE surfaces the return value of fnCall regardless of
-    // how many statements the preamble contains.
-    var script = _preamble
-      ? '(function(){\n' + _preamble + '\nreturn (' + fnCall + ');\n}())'
-      : fnCall;
+  function _getDispatcherPath() {
+    if (
+      csInterface == null ||
+      typeof csInterface.getSystemPath !== 'function' ||
+      typeof SystemPath === 'undefined'
+    ) {
+      return null;
+    }
+
+    var root = csInterface.getSystemPath(SystemPath.EXTENSION);
+    if (!root) return null;
+
+    root = String(root).replace(/\\/g, '/').replace(/\/$/, '');
+    return root + '/jsx/dispatcher/dispatcher.jsx';
+  }
+
+  function _withDispatcherLoaded(call) {
+    var dispatcherPath = _getDispatcherPath();
+    if (!dispatcherPath) return call;
+
+    return '$.evalFile(new File(' + JSON.stringify(dispatcherPath) + ')); ' + call;
+  }
+
+  function dispatch(commandObj) {
     return new Promise(function(resolve, reject) {
-      if (!csInterface) {
-        reject(new Error('[evalBridge] csInterface not available — running outside AE'));
+
+      if (!_isBridgeAvailable()) {
+        reject(new Error('[evalBridge] csInterface not available — panel is running outside After Effects'));
         return;
       }
-      csInterface.evalScript(script, function(result) {
-        try {
-          var parsed = JSON.parse(result);
-          resolve(parsed);
-        } catch (e) {
-          reject(new Error('[evalBridge] Parse error for call: ' + fnCall + ' — raw result: ' + result));
-        }
-      });
+
+      console.log('[evalBridge] dispatch: ' + commandObj.action);
+
+      var json = JSON.stringify(commandObj);
+      var call = _withDispatcherLoaded('dispatch(' + JSON.stringify(json) + ')');
+
+      try {
+        csInterface.evalScript(call, function(result) {
+          var res;
+          try {
+            res = JSON.parse(result);
+          } catch (e) {
+            console.log('[evalBridge] parse error — raw result: ' + result);
+            reject(new Error('[evalBridge] parse error — raw result: ' + result));
+            return;
+          }
+
+          if (res.ok) {
+            console.log('[evalBridge] ok: ' + commandObj.action);
+          } else {
+            console.log('[evalBridge] error: ' + commandObj.action + ' — ' + res.error);
+          }
+
+          resolve(res);
+        });
+      } catch (e) {
+        reject(new Error('[evalBridge] evalScript threw: ' + e.message));
+      }
+
+    });
+  }
+
+  function dispatchBatch(commandArray) {
+    return new Promise(function(resolve, reject) {
+
+      if (!_isBridgeAvailable()) {
+        reject(new Error('[evalBridge] csInterface not available — panel is running outside After Effects'));
+        return;
+      }
+
+      console.log('[evalBridge] dispatchBatch: ' + commandArray.length + ' commands');
+
+      var json = JSON.stringify(commandArray);
+      var call = _withDispatcherLoaded('dispatchBatch(' + JSON.stringify(json) + ')');
+
+      try {
+        csInterface.evalScript(call, function(result) {
+          var res;
+          try {
+            res = JSON.parse(result);
+          } catch (e) {
+            console.log('[evalBridge] parse error — raw result: ' + result);
+            reject(new Error('[evalBridge] parse error — raw result: ' + result));
+            return;
+          }
+
+          if (res.ok) {
+            console.log('[evalBridge] ok: dispatchBatch');
+          } else {
+            console.log('[evalBridge] error: dispatchBatch — ' + res.error);
+          }
+
+          resolve(res);
+        });
+      } catch (e) {
+        reject(new Error('[evalBridge] evalScript threw: ' + e.message));
+      }
+
     });
   }
 
   return {
-    evalScript: evalScript,
-    setPreamble: setPreamble
+    dispatch:      dispatch,
+    dispatchBatch: dispatchBatch
   };
 
-}());
+})();

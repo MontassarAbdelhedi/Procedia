@@ -1,108 +1,52 @@
 // graph/canvas/viewport.js
 // DEPENDS ON: (none — reads DOM only)
-// MUST LOAD BEFORE: graph/canvas/renderer.js, graph/canvas/input/labelEditor.js
+// MUST LOAD BEFORE: graph/canvas/renderer.js, graph/canvas/input.js
 
-var canvasViewport = (function() {
+var viewport = (function() {
 
-  var el = null;
-  var ctx = null;
+  var _pan  = { x: 0, y: 0 };
+  var _zoom = 1.0;
+  var MIN_ZOOM = 0.1;
+  var MAX_ZOOM = 4.0;
 
-  var width  = 0;
-  var height = 0;
-
-  var offsetX = 0;   // screen X of world origin — initialised to canvas centre on first resize
-  var offsetY = 0;
-  var scale   = 1.0;
-  var MIN_SCALE = 0.2;
-  var MAX_SCALE = 4.0;
-
-  var centred = false;   // true after first resize centres the origin
-
-  // ─── Coordinate conversion ────────────────────────────────────────────────
-
-  function screenToWorld(sx, sy) {
-    return {
-      x: (sx - offsetX) / scale,
-      y: (sy - offsetY) / scale
-    };
+  function _clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
   }
 
-  function worldToScreen(wx, wy) {
-    return {
-      x: wx * scale + offsetX,
-      y: wy * scale + offsetY
-    };
+  function applyTransform() {
+    var el = document.getElementById('canvas-viewport');
+    if (!el) return;
+    el.style.transform = 'translate(' + _pan.x + 'px, ' + _pan.y + 'px) scale(' + _zoom + ')';
   }
 
-  // ─── Canvas context transform ─────────────────────────────────────────────
+  function getTransform() { return { pan: { x: _pan.x, y: _pan.y }, zoom: _zoom }; }
+  function setPan(x, y)   { _pan.x = x; _pan.y = y; applyTransform(); }
+  function reset()        { _pan = { x: 0, y: 0 }; _zoom = 1.0; applyTransform(); }
 
-  function applyViewport(context) {
-    context.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+  function screenToCanvas(screenX, screenY) {
+    return { x: (screenX - _pan.x) / _zoom, y: (screenY - _pan.y) / _zoom };
   }
 
-  // ─── Zoom ─────────────────────────────────────────────────────────────────
-
-  function zoomAt(screenX, screenY, direction) {
-    var factor   = direction > 0 ? 0.9 : 1.1;
-    var newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * factor));
-    if (newScale === scale) return false;
-    var ratio = newScale / scale;
-    offsetX   = screenX - ratio * (screenX - offsetX);
-    offsetY   = screenY - ratio * (screenY - offsetY);
-    scale     = newScale;
-    return true;
+  function canvasToScreen(canvasX, canvasY) {
+    return { x: canvasX * _zoom + _pan.x, y: canvasY * _zoom + _pan.y };
   }
 
-  // ─── Resize ───────────────────────────────────────────────────────────────
-
-  function setupResize(onResize) {
-    var column   = document.getElementById('canvas-column');
-    var observer = new ResizeObserver(function(entries) {
-      var rect = entries[0].contentRect;
-      var newW = rect.width;
-      var newH = rect.height;
-
-      if (!centred) {
-        // First resize: put world origin at canvas centre so worldToScreen(0,0) = centre
-        offsetX = newW / 2;
-        offsetY = newH / 2;
-        centred = true;
-      } else {
-        // Keep world origin visually stationary when panel is resized
-        offsetX += (newW - width) / 2;
-        offsetY += (newH - height) / 2;
-      }
-
-      width      = newW;
-      height     = newH;
-      el.width   = width;
-      el.height  = height;
-      onResize();
-    });
-    observer.observe(column);
+  function setZoom(newZoom, originX, originY) {
+    var canvasOrigin = screenToCanvas(originX, originY);
+    _zoom  = _clamp(newZoom, MIN_ZOOM, MAX_ZOOM);
+    _pan.x = originX - canvasOrigin.x * _zoom;
+    _pan.y = originY - canvasOrigin.y * _zoom;
+    applyTransform();
   }
-
-  // ─── Init ─────────────────────────────────────────────────────────────────
-
-  function init(onResize) {
-    el  = document.getElementById('main-canvas');
-    ctx = el.getContext('2d');
-    setupResize(onResize);
-  }
-
-  // ─── Public API ───────────────────────────────────────────────────────────
 
   return {
-    init:          init,
-    getEl:         function() { return el; },
-    getCtx:        function() { return ctx; },
-    getTransform:  function() { return { offsetX: offsetX, offsetY: offsetY, scale: scale }; },
-    getDimensions: function() { return { width: width, height: height }; },
-    setTransformOffset: function(x, y) { offsetX = x; offsetY = y; },
-    screenToWorld: screenToWorld,
-    worldToScreen: worldToScreen,
-    applyViewport: applyViewport,
-    zoomAt:        zoomAt
+    getTransform:   getTransform,
+    setPan:         setPan,
+    setZoom:        setZoom,
+    screenToCanvas: screenToCanvas,
+    canvasToScreen: canvasToScreen,
+    applyTransform: applyTransform,
+    reset:          reset
   };
 
-}());
+})();
