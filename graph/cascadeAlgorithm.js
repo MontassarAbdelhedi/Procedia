@@ -181,16 +181,18 @@ var cascadeAlgorithm = (function() {
       }
 
       nodeUpdates.push({
-        id:           nodeData.id,
-        state:        nodeRemainingComps.length === 0 ? 'ghost' : 'alive',
-        hostingComps: nodeRemainingComps
+        id:             nodeData.id,
+        state:          nodeRemainingComps.length === 0 ? 'ghost' : 'alive',
+        hostingComps:   nodeRemainingComps,
+        hasParkedLayer: nodeRemainingComps.length === 0
       });
     }
 
     for (u = 0; u < nodeUpdates.length; u++) {
       graphState.updateNode(nodeUpdates[u].id, {
-        state:        nodeUpdates[u].state,
-        hostingComps: nodeUpdates[u].hostingComps
+        state:          nodeUpdates[u].state,
+        hostingComps:   nodeUpdates[u].hostingComps,
+        hasParkedLayer: nodeUpdates[u].hasParkedLayer
       });
     }
 

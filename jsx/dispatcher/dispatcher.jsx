@@ -5,6 +5,8 @@
 
 #include "../json.jsx"
 #include "../utils.jsx"
+#include "../persistence.jsx"
+#include "../polling.jsx"
 
 // ---------------------------------------------------------------------------
 // Entry points — called by evalBridge
@@ -44,6 +46,8 @@ function _route(action, params) {
     if (action === 'createComp')        return actionCreateComp(params);
     if (action === 'createTextLayer')   return actionCreateTextLayer(params);
     if (action === 'createNullLayer')   return actionCreateNullLayer(params);
+    if (action === 'createShapeLayer') return actionCreateShapeLayer(params);
+    if (action === 'createAdjustmentLayer') return actionCreateAdjustmentLayer(params);
     if (action === 'addCompAsLayer')    return actionAddCompAsLayer(params);
     if (action === 'parkLayer')         return actionParkLayer(params);
     if (action === 'unparkLayer')       return actionUnparkLayer(params);
@@ -56,6 +60,7 @@ function _route(action, params) {
     if (action === 'setLayerOrder')     return actionSetLayerOrder(params);
     if (action === 'renameNode')        return actionRenameNode(params);
     if (action === 'focusComp')         return actionFocusComp(params);
+    if (action === 'pollAliveNodes')    return _routePollAliveNodes(params);
     return { ok: false, data: null, error: 'Unknown action: ' + action };
 }
 
@@ -138,6 +143,56 @@ function actionCreateNullLayer(params) {
 
         result.ok   = true;
         result.data = { layerName: nullLayer.name };
+    } catch (e) {
+        result.error = e.toString();
+    }
+    return result;
+}
+
+function actionCreateShapeLayer(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.hostingCompUUID);
+        if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
+
+        var layer = comp.layers.addShape();
+        layer.comment = params.nodeUUID;
+        layer.name    = params.label;
+
+        var xform = layer.property('ADBE Transform Group');
+        xform.property('ADBE Position').setValue(params.position);
+        xform.property('ADBE Rotate Z').setValue(params.rotation);
+        xform.property('ADBE Opacity').setValue(params.opacity);
+        xform.property('ADBE Scale').setValue(params.scale);
+
+        result.ok   = true;
+        result.data = { layerName: layer.name };
+    } catch (e) {
+        result.error = e.toString();
+    }
+    return result;
+}
+
+function actionCreateAdjustmentLayer(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.hostingCompUUID);
+        if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
+
+        var layer = comp.layers.addSolid([0.5, 0.5, 0.5], params.label,
+                                          comp.width, comp.height, 1.0);
+        layer.adjustmentLayer = true;
+        layer.comment = params.nodeUUID;
+        layer.name    = params.label;
+
+        var xform = layer.property('ADBE Transform Group');
+        xform.property('ADBE Position').setValue(params.position);
+        xform.property('ADBE Rotate Z').setValue(params.rotation);
+        xform.property('ADBE Opacity').setValue(params.opacity);
+        xform.property('ADBE Scale').setValue(params.scale);
+
+        result.ok   = true;
+        result.data = { layerName: layer.name };
     } catch (e) {
         result.error = e.toString();
     }
@@ -416,6 +471,20 @@ function actionFocusComp(params) {
         result.data = { focused: params.nodeUUID };
     } catch (e) {
         result.error = e.toString();
+    }
+    return result;
+}
+
+function _routePollAliveNodes(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var listJSON = JSON.stringify(params.uuidList);
+        var parsed   = JSON.parse(pollAliveNodes(listJSON));
+        result.ok    = parsed.ok;
+        result.data  = parsed.data;
+        result.error = parsed.error;
+    } catch (e) {
+        result.error = 'pollAliveNodes route error: ' + e.toString();
     }
     return result;
 }

@@ -90,6 +90,7 @@ var wireRenderer = (function() {
 
       var path = _makePath(fromPos, toPos, wire.type);
       path.setAttribute('data-wire-id', wireId);
+      path.setAttribute('pointer-events', 'none');
       path.classList.add('wire-path', wire.type);
 
       // Apply selected state
@@ -100,6 +101,18 @@ var wireRenderer = (function() {
       }
 
       layer.appendChild(path);
+
+      // Invisible wider hit path — makes wires easy to click without changing their appearance
+      var hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hitPath.setAttribute('d',              path.getAttribute('d'));
+      hitPath.setAttribute('fill',           'none');
+      hitPath.setAttribute('stroke',         'transparent');
+      hitPath.setAttribute('stroke-width',   '14');
+      hitPath.setAttribute('stroke-linecap', 'round');
+      hitPath.setAttribute('pointer-events', 'stroke');
+      hitPath.setAttribute('data-wire-id',   wireId);
+      hitPath.classList.add('wire-path', 'wire-hit');
+      layer.appendChild(hitPath);
     }
   }
 

@@ -547,9 +547,15 @@ Never chain multiple tasks without verifying each one works first.
 - [ ] Edge cases handled (not found, AE busy, null input)
 - [ ] No regressions in adjacent behavior
 
+**AE has no script editor — verification methods:**
+- AE does **not** have a built-in script editor available. Never write verification steps that require ESTK or `alert(...)`.
+- **Option A — direct panel interaction:** describe the panel action and the expected AE-observable outcome (e.g., "drop a Comp node → comp appears in AE project panel with correct UUID in `.comment`").
+- **Option B — CEP DevTools console:** call `evalBridge.dispatch(...)` or run test scripts pasted into the panel's browser DevTools console (accessible via `http://localhost:8088` or the panel's browser dev tools), and check the logged result.
+- Never ask the user to run a `.jsx` file in a standalone script editor.
+
 **Hard stops:**
 - After every task — do not proceed to the next without explicit confirmation
-- After every `.jsx` change — test the raw ExtendScript in browser console before wiring UI
+- After every `.jsx` change — test via panel interaction or DevTools console, not a standalone script runner
 - Before creating a new file — always check if it already exists
 - Before any git operation — confirm current branch and status
 

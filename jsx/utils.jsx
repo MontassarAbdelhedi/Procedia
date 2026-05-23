@@ -53,7 +53,7 @@ function findOrCreateReservedComp() {
     }
     if (!folder) folder = proj.items.addFolder(folderName);
 
-    var comp = proj.items.addComp(folderName, 1, 1, 1.0, 1, 24);
+    var comp = proj.items.addComp(folderName, 4, 4, 1.0, 1, 24);
     comp.parentFolder = folder;
     return comp;
 }
@@ -70,7 +70,7 @@ function findLayerInReserved(uuid) {
 function moveLayerToComp(layer, targetComp) {
     var uuid = layer.comment;
     layer.copyToComp(targetComp);
-    var newLayer = targetComp.layer(targetComp.numLayers);
+    var newLayer = targetComp.layer(1); // copyToComp prepends — new layer is always at index 1
     newLayer.comment = uuid;
     layer.remove();
     return newLayer;

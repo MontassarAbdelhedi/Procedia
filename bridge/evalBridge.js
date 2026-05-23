@@ -13,6 +13,8 @@ if (typeof CSInterface !== 'undefined' && typeof window.__adobe_cep__ !== 'undef
 
 var evalBridge = (function() {
 
+  var _isWriting = false;
+
   function _isBridgeAvailable() {
     return csInterface != null && typeof csInterface.evalScript === 'function';
   }
@@ -40,6 +42,10 @@ var evalBridge = (function() {
     return '$.evalFile(new File(' + JSON.stringify(dispatcherPath) + ')); ' + call;
   }
 
+  function isWriting() {
+    return _isWriting;
+  }
+
   function dispatch(commandObj) {
     return new Promise(function(resolve, reject) {
 
@@ -53,8 +59,11 @@ var evalBridge = (function() {
       var json = JSON.stringify(commandObj);
       var call = _withDispatcherLoaded('dispatch(' + JSON.stringify(json) + ')');
 
+      _isWriting = true;
+
       try {
         csInterface.evalScript(call, function(result) {
+          _isWriting = false;
           var res;
           try {
             res = JSON.parse(result);
@@ -73,6 +82,7 @@ var evalBridge = (function() {
           resolve(res);
         });
       } catch (e) {
+        _isWriting = false;
         reject(new Error('[evalBridge] evalScript threw: ' + e.message));
       }
 
@@ -92,8 +102,11 @@ var evalBridge = (function() {
       var json = JSON.stringify(commandArray);
       var call = _withDispatcherLoaded('dispatchBatch(' + JSON.stringify(json) + ')');
 
+      _isWriting = true;
+
       try {
         csInterface.evalScript(call, function(result) {
+          _isWriting = false;
           var res;
           try {
             res = JSON.parse(result);
@@ -112,15 +125,62 @@ var evalBridge = (function() {
           resolve(res);
         });
       } catch (e) {
+        _isWriting = false;
         reject(new Error('[evalBridge] evalScript threw: ' + e.message));
       }
 
     });
   }
 
+  function writeGraph(graphData) {
+    return new Promise(function(resolve, reject) {
+      if (!_isBridgeAvailable()) {
+        reject(new Error('[evalBridge] csInterface not available'));
+        return;
+      }
+      var json = JSON.stringify(graphData);
+      var call = _withDispatcherLoaded('writeGraph(' + JSON.stringify(json) + ')');
+      _isWriting = true;
+      try {
+        csInterface.evalScript(call, function(result) {
+          _isWriting = false;
+          try { resolve(JSON.parse(result)); }
+          catch(e) { reject(new Error('[evalBridge] writeGraph parse error')); }
+        });
+      } catch (e) {
+        _isWriting = false;
+        reject(new Error('[evalBridge] writeGraph evalScript threw: ' + e.message));
+      }
+    });
+  }
+
+  function readGraph() {
+    return new Promise(function(resolve, reject) {
+      if (!_isBridgeAvailable()) {
+        reject(new Error('[evalBridge] csInterface not available'));
+        return;
+      }
+      var call = _withDispatcherLoaded('readGraph()');
+      _isWriting = true;
+      try {
+        csInterface.evalScript(call, function(result) {
+          _isWriting = false;
+          try { resolve(JSON.parse(result)); }
+          catch(e) { reject(new Error('[evalBridge] readGraph parse error')); }
+        });
+      } catch (e) {
+        _isWriting = false;
+        reject(new Error('[evalBridge] readGraph evalScript threw: ' + e.message));
+      }
+    });
+  }
+
   return {
     dispatch:      dispatch,
-    dispatchBatch: dispatchBatch
+    dispatchBatch: dispatchBatch,
+    isWriting:     isWriting,
+    writeGraph:    writeGraph,
+    readGraph:     readGraph
   };
 
 })();

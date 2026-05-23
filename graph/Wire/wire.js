@@ -301,20 +301,17 @@ var wireInteraction = (function() {
 
   // ── Wire select / delete ───────────────────────────────────
 
-  function _onWireLayerClick(e) {
+  function _onWireLayerMouseDown(e) {
     var target = e.target;
     if (target && target.hasAttribute && target.hasAttribute('data-wire-id')) {
       var wireId = target.getAttribute('data-wire-id');
-      if (_selectedWireId === wireId) {
-        _selectedWireId = null;
-      } else {
-        _selectedWireId = wireId;
-      }
+      _selectedWireId = (_selectedWireId === wireId) ? null : wireId;
       wireRenderer.render();
-      e.stopPropagation();
+      e.stopPropagation(); // prevent canvas background-click from deselecting the node
     } else {
       _selectedWireId = null;
       wireRenderer.render();
+      // no stopPropagation — let canvasInput handle background click normally
     }
   }
 
@@ -341,7 +338,7 @@ var wireInteraction = (function() {
     wrap.addEventListener('mouseup',   onWireMouseUp);
 
     var wireLayer = document.getElementById('wire-layer');
-    if (wireLayer) wireLayer.addEventListener('click', _onWireLayerClick);
+    if (wireLayer) wireLayer.addEventListener('mousedown', _onWireLayerMouseDown);
 
     document.addEventListener('keydown', _onKeyDown);
   }

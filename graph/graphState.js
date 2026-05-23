@@ -186,6 +186,10 @@ var graphState = (function() {
     selection = null;
   }
 
+  function getTempGraph() {
+    return tempGraph;
+  }
+
   return {
     addNode:          addNode,
     removeNode:       removeNode,
@@ -207,7 +211,8 @@ var graphState = (function() {
 
     rebuildTempGraph: rebuildTempGraph,
     loadGraph:        loadGraph,
-    clearGraph:       clearGraph
+    clearGraph:       clearGraph,
+    getTempGraph:     getTempGraph
   };
 
 })();

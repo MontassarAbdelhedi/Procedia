@@ -65,7 +65,12 @@ var engine = (function() {
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def) return;
 
-    var command = def.onAlive(nodeData, hostingCompUUID);
+    var command;
+    if (nodeData.state === 'ghost' && nodeData.hasParkedLayer) {
+      command = { action: 'unparkLayer', params: { nodeUUID: nodeData.id, hostingCompUUID: hostingCompUUID } };
+    } else {
+      command = def.onAlive(nodeData, hostingCompUUID);
+    }
 
     // Build updated hostingComps array before dispatching
     var updatedHostingComps = [];
@@ -75,7 +80,7 @@ var engine = (function() {
     updatedHostingComps.push(hostingCompUUID);
 
     // State update is synchronous — callers can read alive state immediately
-    graphState.updateNode(nodeId, { state: 'alive', hostingComps: updatedHostingComps });
+    graphState.updateNode(nodeId, { state: 'alive', hostingComps: updatedHostingComps, hasParkedLayer: false });
 
     if (command !== null) {
       (function(capturedNodeId) {
@@ -125,9 +130,10 @@ var engine = (function() {
       dirty:        false,
       x:            x,
       y:            y,
-      props:        _buildInitialProps(def.params),
-      hostingComps: [],
-      portSlots:    _buildInitialPortSlots(def.ports)
+      props:          _buildInitialProps(def.params),
+      hostingComps:   [],
+      hasParkedLayer: false,
+      portSlots:      _buildInitialPortSlots(def.ports)
     };
 
     graphState.addNode(nodeData);
