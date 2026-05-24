@@ -78,6 +78,30 @@ var dirtyFlusher = (function() {
     return result;
   }
 
+  // Resolves a param value for a node: if a data wire is bound to this param,
+  // returns the source data node's output value instead of the node's own prop.
+  function _resolveParamValue(nodeData, paramKey) {
+    var allWires = graphState.getAllWires();
+    var wId, w, sourceNode, def, p;
+    for (wId in allWires) {
+      w = allWires[wId];
+      if (w.toNode === nodeData.id && w.type === 'data' && w.boundParam === paramKey) {
+        sourceNode = graphState.getNode(w.fromNode);
+        if (sourceNode) {
+          def = nodeRegistry.getDefinition(sourceNode.type);
+          if (def && def.params.length > 0) {
+            for (p = 0; p < def.params.length; p++) {
+              if (def.params[p].key !== 'label') {
+                return sourceNode.props[def.params[p].key];
+              }
+            }
+          }
+        }
+      }
+    }
+    return nodeData.props[paramKey];
+  }
+
   function flush() {
     var nodes = graphState.getAllNodes();
     var batch = [];
@@ -92,10 +116,16 @@ var dirtyFlusher = (function() {
       def = nodeRegistry.getDefinition(nodeData.type);
       if (!def) continue;
 
+      // Data nodes never dispatch — their value is sourced by downstream nodes via _resolveParamValue
+      if (nodeData.nodeKind === 'data') {
+        flushedIds.push(nodeId);
+        continue;
+      }
+
       // CompNodes: property changes go directly to the comp item by node UUID
       if (nodeData.nodeKind === 'affected' && nodeData.type === 'core/comp') {
         for (key in nodeData.props) {
-          cmd = def.onPropertyChange(key, nodeData.props[key], nodeData, nodeData.id);
+          cmd = def.onPropertyChange(key, _resolveParamValue(nodeData, key), nodeData, nodeData.id);
           if (cmd !== null) batch.push(cmd);
         }
         flushedIds.push(nodeId);
@@ -109,7 +139,7 @@ var dirtyFlusher = (function() {
         for (i = 0; i < terminalWires.length; i++) {
           tw = terminalWires[i];
           for (key in nodeData.props) {
-            cmd = def.onPropertyChange(key, nodeData.props[key], nodeData, tw.toNode);
+            cmd = def.onPropertyChange(key, _resolveParamValue(nodeData, key), nodeData, tw.toNode);
             if (cmd !== null) {
               if (!cmd.params) cmd.params = {};
               cmd.params.layerUUID = tw._pathLayerUUID;
@@ -128,7 +158,7 @@ var dirtyFlusher = (function() {
         for (i = 0; i < terminalWires.length; i++) {
           tw = terminalWires[i];
           for (key in nodeData.props) {
-            cmd = def.onPropertyChange(key, nodeData.props[key], nodeData, tw.toNode, tw._pathLayerUUID);
+            cmd = def.onPropertyChange(key, _resolveParamValue(nodeData, key), nodeData, tw.toNode, tw._pathLayerUUID);
             if (cmd !== null) batch.push(cmd);
           }
         }

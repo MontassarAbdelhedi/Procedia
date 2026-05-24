@@ -87,7 +87,7 @@ var renderer = (function() {
   function _buildInputPortDots(nodeId, def, nodeData) {
     var dots = [];
     var slotIndex = 0;
-    var i, s, portDef, dot, slotCount;
+    var i, s, portDef, dot, slotCount, slotPortId, allWires, wireId, w, boundParam, labelEl;
     var ports = def.ports;
 
     for (i = 0; i < ports.length; i++) {
@@ -99,13 +99,38 @@ var renderer = (function() {
           ? nodeData.portSlots[portDef.id] : 1;
 
         for (s = 0; s < slotCount; s++) {
+          slotPortId = portDef.id + '_' + s;
           dot = document.createElement('div');
-          dot.className = (s < slotCount - 1)
-            ? 'port ' + portDef.type + ' input'
-            : 'port empty input';
           dot.setAttribute('data-node-id', nodeId);
-          dot.setAttribute('data-port-id', portDef.id + '_' + s);
+          dot.setAttribute('data-port-id', slotPortId);
           dot.style.top = (9 + slotIndex * 18) + 'px';
+
+          if (s < slotCount - 1) {
+            // Occupied slot — check for a bound data wire to label it
+            boundParam = null;
+            allWires = graphState.getAllWires();
+            for (wireId in allWires) {
+              w = allWires[wireId];
+              if (w.toNode === nodeId && w.toPort === slotPortId &&
+                  w.type === 'data' && w.boundParam) {
+                boundParam = w.boundParam;
+                break;
+              }
+            }
+            if (boundParam !== null) {
+              dot.className = 'port data bound input';
+              dot.setAttribute('data-bound-param', boundParam);
+              labelEl = document.createElement('span');
+              labelEl.className = 'port-label';
+              labelEl.textContent = boundParam;
+              dot.appendChild(labelEl);
+            } else {
+              dot.className = 'port ' + portDef.type + ' input';
+            }
+          } else {
+            dot.className = 'port empty input';
+          }
+
           dots.push(dot);
           slotIndex++;
         }

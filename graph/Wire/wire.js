@@ -241,7 +241,23 @@ var wireInteraction = (function() {
   // ── Picker UI ──────────────────────────────────────────────
 
   function showPicker(fromNodeId, fromPortId, targetNodeId, targetPortId, e) {
-    var params = wireValidator.getPickerParams(targetNodeId, _dragState.fromPortType);
+    // For data wires, resolve the content type from the source node's first non-label param.
+    // _dragState.fromPortType is 'data' (the wire category); getPickerParams needs 'color' or 'number'.
+    var contentType = _dragState.fromPortType;
+    var sourceNode = graphState.getNode(fromNodeId);
+    if (sourceNode) {
+      var sourceDef = nodeRegistry.getDefinition(sourceNode.type);
+      if (sourceDef) {
+        var p;
+        for (p = 0; p < sourceDef.params.length; p++) {
+          if (sourceDef.params[p].key !== 'label') {
+            contentType = sourceDef.params[p].type;
+            break;
+          }
+        }
+      }
+    }
+    var params = wireValidator.getPickerParams(targetNodeId, contentType);
     if (!params || params.length === 0) return;
 
     var picker = document.createElement('div');

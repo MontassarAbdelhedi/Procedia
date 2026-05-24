@@ -230,6 +230,12 @@ var engine = (function() {
     };
 
     graphState.addNode(nodeData);
+
+    // Data nodes are always alive — they have no AE dependency
+    if (def.nodeKind === 'data') {
+      graphState.updateNode(nodeData.id, { state: 'alive' });
+    }
+
     renderer.render();
 
     var command = def.onDrop(nodeData);
@@ -302,8 +308,20 @@ var engine = (function() {
     var toBasePort = _getBasePortId(toPort);
     portManager.afterConnect(toNodeId, toBasePort);
 
-    // Step 5: parent and data wires do not affect alive/ghost state
-    if (wireType === 'parent' || wireType === 'data') {
+    // Step 5: parent wires do not affect alive/ghost state
+    if (wireType === 'parent') {
+      return true;
+    }
+
+    // Step 5b: data wires — mark target node dirty so dirtyFlusher applies the sourced value
+    if (wireType === 'data') {
+      if (boundParam !== null) {
+        var toNodeCheck = graphState.getNode(toNodeId);
+        if (toNodeCheck && toNodeCheck.state === 'alive') {
+          graphState.updateNode(toNodeId, { dirty: true });
+          dirtyFlusher.schedule();
+        }
+      }
       return true;
     }
 
@@ -327,6 +345,14 @@ var engine = (function() {
     }
 
     var def = nodeRegistry.getDefinition(nodeData.type);
+
+    // Data nodes have no AE presence — skip ghost/delete, remove directly
+    if (nodeData.nodeKind === 'data') {
+      graphState.removeNode(nodeId);
+      renderer.render();
+      if (graphState.getSelection() === nodeId) graphState.setSelection(null);
+      return;
+    }
 
     // Resolve the actual AE layer UUID for effector nodes before ghost/delete hooks
     var upstreamForDelete = null;
@@ -447,6 +473,22 @@ var engine = (function() {
       return;
     }
     graphState.updateProp(nodeId, key, value);
+
+    // Data nodes propagate dirty to all downstream nodes connected via data wires
+    if (nodeData.nodeKind === 'data') {
+      var allWires = graphState.getAllWires();
+      var wId, w, downstreamData;
+      for (wId in allWires) {
+        w = allWires[wId];
+        if (w.fromNode === nodeId && w.type === 'data') {
+          downstreamData = graphState.getNode(w.toNode);
+          if (downstreamData && downstreamData.state === 'alive') {
+            graphState.updateNode(w.toNode, { dirty: true });
+          }
+        }
+      }
+    }
+
     dirtyFlusher.schedule();
   }
 
