@@ -65,6 +65,7 @@ function _route(action, params) {
     if (action === 'applyEffect')       return actionApplyEffect(params);
     if (action === 'removeEffect')      return actionRemoveEffect(params);
     if (action === 'setEffectProperty') return actionSetEffectProperty(params);
+    if (action === 'restampLayer')      return actionRestampLayer(params);
     return { ok: false, data: null, error: 'Unknown action: ' + action };
 }
 
@@ -570,7 +571,7 @@ function actionApplyEffect(params) {
 
         if (params.matchName === 'ADBE Fill') {
             if (props.color)                     effect.property('ADBE Fill-0002').setValue([props.color[0], props.color[1], props.color[2]]);
-            if (props.opacity !== undefined)     effect.property('ADBE Fill-0006').setValue(props.opacity);
+            if (props.opacity !== undefined)     effect.property('ADBE Fill-0006').setValue(props.opacity / 100);
         }
 
         if (params.matchName === 'ADBE Gaussian Blur 2') {
@@ -644,7 +645,7 @@ function actionSetEffectProperty(params) {
 
         if (params.matchName === 'ADBE Fill') {
             if (key === 'color')   effect.property('ADBE Fill-0002').setValue([value[0], value[1], value[2]]);
-            if (key === 'opacity') effect.property('ADBE Fill-0006').setValue(value);
+            if (key === 'opacity') effect.property('ADBE Fill-0006').setValue(value / 100);
         }
 
         if (params.matchName === 'ADBE Gaussian Blur 2') {
@@ -663,6 +664,25 @@ function actionSetEffectProperty(params) {
 
         result.ok   = true;
         result.data = { key: key };
+    } catch (e) {
+        result.error = e.toString();
+    }
+    return result;
+}
+
+function actionRestampLayer(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.hostingCompUUID);
+        if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
+
+        var layer = findLayerByUUID(comp, params.oldLayerUUID);
+        if (!layer) { result.error = 'Layer not found: ' + params.oldLayerUUID; return result; }
+
+        layer.comment = params.newLayerUUID;
+
+        result.ok   = true;
+        result.data = { restamped: params.oldLayerUUID };
     } catch (e) {
         result.error = e.toString();
     }

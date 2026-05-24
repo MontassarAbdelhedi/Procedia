@@ -220,7 +220,11 @@ procedia-v4/
 │   ├── drag.js                       ← HTML5 dragstart/drop from palette to canvas.
 │   ├── inspector.js                  ← Param fields for selected node. Wired params locked.
 │   ├── layerOrderList.js             ← Drag-to-reorder layer stacking. Shown for CompNode.
-│   └── keyboard.js                   ← Delete/Backspace (node delete), Escape (deselect).
+│   ├── keyboard.js                   ← Delete/Backspace (node delete), Escape (deselect).
+│   ├── settings.js                   ← Persistent settings store. localStorage key 'procedia_settings'.
+│   │                                   get(key), set(key, value), getAll(). No dependencies.
+│   └── settingsModal.js              ← Gear-button modal (⚙ top-right of canvas). open/close,
+│                                       minimap toggle, wire style select. Depends on settings.js.
 │
 ├── flush/
 │   └── dirtyFlusher.js               ← 300ms debounce. Flushes dirty nodes to AE.
@@ -278,7 +282,7 @@ procedia-v4/
 
 ---
 
-## Build Order — 21 Briefs
+## Build Order — 24 Briefs
 
 Each brief is a complete task instruction for Claude Code. Briefs are sequential — each depends on all previous briefs being complete and verified. Every brief ends with a hard stop and verification checklist before the next brief begins.
 
@@ -965,5 +969,83 @@ Each brief is a complete task instruction for Claude Code. Briefs are sequential
 
 ---
 
+### BRIEF-22 — FIX: Dirty Flush After Path Creation
+
+**Delivers:** Surgical single-function fix in `graph/engine.js`. Resolves a silent failure where data wires connected to an effector before the upstream layer wire existed would never flush to AE — leaving the effector permanently dirty until the next manual inspector change.
+
+**Root cause:** `_firePathCreation` stamps `_pathLayerUUID` on the terminal wire but never triggers `dirtyFlusher.flush()`. The flush that ran when the data wire connected found `_pathLayerUUID === null` and skipped.
+
+**Fix:** After stamping `_pathLayerUUID` in `_firePathCreation`, check if any node in the new path is dirty and call `dirtyFlusher.flush()` immediately.
+
+**Files touched:** `graph/engine.js` only.
+
+**Verification:**
+- [ ] Drop: Comp, Fill, Color, Text
+- [ ] Wire: Fill → Comp (terminal, no source yet — `_pathLayerUUID` stays null)
+- [ ] Wire: Color → Fill.color (data wire — marks Fill dirty, flush finds no active path)
+- [ ] Wire: Text → Fill (triggers `_activateDormantTerminalWiresDownstream` → `_firePathCreation`)
+- [ ] After step 4: `_pathLayerUUID` stamped AND `dirtyFlusher.flush()` called
+- [ ] `graphState.getNode(fillId).dirty` is `false` after wiring completes
+- [ ] A `setEffectProperty` command with `key: 'color'` appears in dispatch log
+- [ ] Wiring in the "correct" order (Text→Fill first, then Fill→Comp) still works — no regression
+
+---
+
+### BRIEF-23 — Settings Modal (UI Shell + Persistence)
+
+**Delivers:** `ui/settings.js` (persistent key/value store) and `ui/settingsModal.js` (gear-button modal). Gear icon (⚙) appears top-right of the canvas. After this brief, `settings.get('wireStyle')` and `settings.get('minimap')` exist and return correct persisted values — but nothing reads them yet.
+
+**New files:** `ui/settings.js`, `ui/settingsModal.js`
+**Edited files:** `index.html` (gear button, two `<script>` tags), `panel.css` (gear + modal styles), `index.js` (`settingsModal.init()`)
+
+**Settings data model:**
+```javascript
+// localStorage key: 'procedia_settings'
+{ minimap: true, wireStyle: 'bezier' }
+```
+
+**Verification:**
+- [ ] Panel loads without console errors
+- [ ] Gear icon visible top-right of canvas area
+- [ ] Clicking gear opens modal over dark overlay
+- [ ] Modal shows Canvas section (Minimap toggle) and Wires section (Style select)
+- [ ] Minimap toggle default: ON. Wire style default: Bezier
+- [ ] Toggling Minimap calls `settings.set('minimap', ...)` — confirm via `settings.getAll()` in DevTools
+- [ ] Changing wire style calls `settings.set('wireStyle', ...)` — confirm via DevTools
+- [ ] Values persist across panel reload
+- [ ] Overlay click, ✕ button, and Escape all close the modal
+- [ ] `wireRenderer.js` and `minimap.js` untouched — no regressions
+
+---
+
+### BRIEF-24 — Wire Style Setting Integration
+
+**Delivers:** `wireRenderer.js` reads `settings.get('wireStyle')` on every draw call. Three wire geometries implemented: Bezier (current S-curve), Direct (straight diagonal), Stepped (Manhattan routing). Drag preview and `drawWire()` also switch style. No new files. One file edited.
+
+**Wire styles:**
+
+| Value | Geometry |
+|---|---|
+| `'bezier'` | Existing S-curve — unchanged |
+| `'direct'` | Single `lineTo()` — diagonal |
+| `'stepped'` | `moveTo → lineTo(x1,midY) → lineTo(x2,midY) → lineTo(x2,y2)` |
+
+**Files touched:** `graph/Wire/wireRenderer.js` only.
+
+**Verification:**
+- [ ] Panel loads without console errors
+- [ ] Default (Bezier): all wires render exactly as before
+- [ ] Settings → Direct: wires immediately switch to straight diagonal lines
+- [ ] Settings → Stepped: wires immediately switch to 90° Manhattan routing
+- [ ] Switch back to Bezier: S-curve restored exactly
+- [ ] Drag preview respects current style in all three modes
+- [ ] Dash animation continues in all three modes
+- [ ] Selected wire glow renders correctly in all three modes
+- [ ] Parent and error wires also switch style
+- [ ] Setting persists across reload — set Stepped, reload, wires still stepped
+- [ ] No changes to `renderer.js`, `minimap.js`, `wire.js`, or any node file
+
+---
+
 *Procedia v4 — Overview — May 2026*
-*21 briefs. 11 node types. 3 wire types. 1 file per node.*
+*24 briefs. 11 node types. 3 wire types. 1 file per node.*

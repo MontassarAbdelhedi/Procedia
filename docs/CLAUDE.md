@@ -33,7 +33,7 @@ A node returns a plain command object. The engine passes it to `evalBridge`. `ev
 | 5 | AE Layer & Property API | Always navigate by match name string, never by index |
 | 6 | AE Effects API | Access effects by match name only. Never hardcode index numbers |
 | 7 | AE Project Folder API | Always find-or-create the Procedia folder before any write |
-| 8 | UUID as Identifier | UUID is the only identifier. Stored in `.comment` field. Never use display names |
+| 8 | UUID as Identifier | UUID is the only identifier. Stored in `.comment` field. Never use display names. **AE layer `.comment` = terminal wire UUID, not node UUID.** |
 | 9 | Dispatcher Pattern | Nodes return command objects. Only `dispatcher.jsx` writes AE calls |
 | 10 | Node Definition Contract | One file per node. All hooks, ports, and params declared in that file |
 | 11 | File Structure & Load Order | Dependency headers on every file. `index.html` is load-order truth |
@@ -202,7 +202,7 @@ Layers contain properties organized in a hierarchy. Always navigate by **match n
 - Match names are stable across AE versions and language settings
 - Layer types: `AVLayer`, `TextLayer`, `ShapeLayer`, `NullLayer`
 - Always check layer type before accessing type-specific properties
-- Find layers by UUID stored in `layer.comment`
+- Find layers by UUID stored in `layer.comment` — **layer.comment stores the terminal wire UUID, not the node UUID**
 
 **Common match names:**
 ```
@@ -233,6 +233,7 @@ Effects are accessed by match name only. Display names change with language. Ind
 - Find effects: iterate `layer.Effects`, check `effect.matchName === targetMatchName`
 - Remove effects: find by match name first, then call `.remove()`
 - Never hardcode an effect index. Never access `layer.Effects.property(1)`
+- Effect property values that Procedia stores as 0–100 must be divided by 100 before being set on AE properties that expect a 0–1 range (e.g. `ADBE Fill-0006` opacity)
 
 **✅ Correct:**
 ```jsx
@@ -276,11 +277,15 @@ function findOrCreateProcediaFolder() {
 
 UUID is the only identifier that links panel graph nodes to AE objects. Every other identifier (label, layer name, comp name) can be changed by the user at any time.
 
+**Path-driven layer model — critical rule:**
+AE layer `.comment` stores the **terminal wire UUID** — not the node UUID. One affected node can have multiple downstream paths into a comp; each path produces one AE layer, identified by the wire UUID of that path's terminal wire (the wire whose `toNode` is a CompNode).
+
 **Rules:**
-- UUID format: `PROC-{timestamp}-{rand4}` e.g. `PROC-1716000000000-a3f2`
+- Node UUID format: `PROC-{timestamp}-{rand4}` e.g. `PROC-1716000000000-a3f2`
 - Wire UUID format: `WIRE-{timestamp}-{rand4}`
 - UUIDs are generated in panel JS via `uuidGenerator.js`, never in ExtendScript
-- UUIDs are stored in `layer.comment` and `comp.comment` in AE
+- Node UUIDs are stored in `comp.comment` in AE (CompNode only)
+- **Layer `.comment` = terminal wire UUID** (not node UUID). This is how the dispatcher finds the correct layer for a given path.
 - UUID is never shown in the UI except in the inspector's read-only state field
 - Never use `layer.name`, `comp.name`, or node label as a lookup key
 
@@ -296,10 +301,38 @@ This is the most important architectural rule in v4. **Nodes never write ExtendS
 3. `evalBridge` serializes it and calls `csInterface.evalScript('dispatch(...)')`
 4. `dispatcher.jsx` receives the serialized command, routes to the named action handler, returns `JSON.stringify({ ok, data, error })`
 
-**Adding a new action to the dispatcher:**
+**Current dispatcher actions (complete list):**
+
+| Action | What it does in AE |
+|---|---|
+| `createComp` | Creates a new `CompItem` in the Procedia folder |
+| `createTextLayer` | `comp.layers.addText(...)` |
+| `createNullLayer` | `comp.layers.addNull(...)` |
+| `createShapeLayer` | `comp.layers.addShape(...)` |
+| `createAdjustmentLayer` | `comp.layers.addShape(...)` with adjustment flag |
+| `addCompAsLayer` | Adds an existing `CompItem` as a pre-comp layer |
+| `parkLayer` | Moves the layer from hosting comp to Reserved Comp |
+| `unparkLayer` | Moves the layer from Reserved Comp to hosting comp |
+| `deleteParkedLayer` | Removes a layer permanently from Reserved Comp |
+| `deletePathLayer` | Removes a layer from hosting comp by path UUID |
+| `deleteComp` | Deletes the `CompItem` from the project panel |
+| `setLayerProperty` | Navigates property hierarchy by match name and sets value |
+| `setCompProperty` | Sets comp-level properties (dimensions, fps, duration, bg color) |
+| `setLayerParent` | `childLayer.parent = parentLayer` |
+| `clearLayerParent` | `childLayer.parent = null` |
+| `setLayerOrder` | Reorders layers in comp using `moveToBeginning()` |
+| `renameNode` | Sets `layer.name` to match the node's label param |
+| `focusComp` | `app.project.activeItem = comp` — brings comp into view |
+| `applyEffect` | `layer.Effects.addProperty(matchName)` then sets initial props |
+| `removeEffect` | Finds effect by match name and removes it |
+| `setEffectProperty` | Sets a named property on an existing effect by match name |
+| `restampLayer` | Re-stamps `layer.comment` with a new UUID (used for wire transplant) |
+| `pollAliveNodes` | Checks all alive node UUIDs in one bridge crossing |
+
+**Adding a new action:**
 - Open `jsx/dispatcher/dispatcher.jsx`
-- Add one named function: `function actionCreateTextLayer(params) { ... }`
-- Register it in the dispatch routing table at the bottom of the file
+- Add one named function: `function actionMyNewThing(params) { ... }`
+- Register it in `_route()` at the top of the file
 - This is the **only** acceptable reason to edit `dispatcher.jsx` when adding a new node
 
 **Rules:**
@@ -308,77 +341,96 @@ This is the most important architectural rule in v4. **Nodes never write ExtendS
 - Node definition hooks return command objects or `null` — they never call `evalBridge` directly
 - `engine.js` contains zero node-type conditionals — it calls hooks by name, passes results to `evalBridge`
 
-**✅ Correct — node lifecycle hook:**
+---
+
+### SKILL 10 — Node Definition Contract
+
+Every node is a plain JS object registered with `nodeRegistry.register()`. One file, one node.
+
+**`nodeKind` reference — the engine's only signal for lifecycle handling:**
+
+| `nodeKind` | AE Presence | Always Alive | Lifecycle Hooks |
+|---|---|---|---|
+| `affected` | AE layer (alive) or parked in Reserved Comp (ghost) | No | All 5 hooks active |
+| `effector` | AE effect on upstream layer (alive) or removed (ghost) | No | All 5 hooks active; takes `upstreamNodeUUID` as 3rd arg |
+| `data` | None | **Yes** | All hooks present but return `null` |
+
+**`data` nodes** (`nodeKind: 'data'`): Set to `alive` state immediately on drop. No AE presence. All lifecycle hooks return `null`. They drive extendable param slots on downstream effectors via data wires.
+
+**`dedicated` reference — memorize this:**
+
+| Node | `dedicated` | AE Project Object |
+|---|---|---|
+| `CompNode` | `true` | `CompItem` |
+| `NullNode` | `true` | `FootageItem` (solid) |
+| `TextNode` | `false` | — |
+| `ShapeNode` | `false` | — |
+| `AdjustmentNode` | `false` | — |
+| `FillEffectNode` | `false` | — |
+| `GaussianBlurNode` | `false` | — |
+| `DropShadowNode` | `false` | — |
+| `ColorNode` | `false` | — |
+| `NumberNode` | `false` | — |
+
+**Effector hook signature — non-negotiable:**
+Effector nodes (`nodeKind: 'effector'`) receive a **3rd argument `upstreamNodeUUID`** in `onAlive`, `onGhost`, and `onPropertyChange`. This argument is the **terminal wire UUID** — i.e. the `.comment` value on the AE layer to find for effect application. The engine passes this automatically when calling effector hooks.
+
 ```javascript
-onAlive: function(nodeData, hostingCompUUID) {
+onAlive: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
   return {
-    action: 'createTextLayer',
+    action: 'applyEffect',
     params: {
-      compUUID: hostingCompUUID,
-      nodeUUID: nodeData.id,
-      content:  nodeData.props.content,
-      fontSize: nodeData.props.fontSize
+      nodeUUID:        nodeData.id,
+      hostingCompUUID: hostingCompUUID,
+      layerNodeUUID:   upstreamNodeUUID,  // ← terminal wire UUID — used to find the AE layer
+      matchName:       'ADBE Fill',
+      props: { color: nodeData.props.color, opacity: nodeData.props.opacity }
+    }
+  };
+},
+
+onGhost: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
+  return {
+    action: 'removeEffect',
+    params: {
+      nodeUUID:        nodeData.id,
+      hostingCompUUID: hostingCompUUID,
+      layerNodeUUID:   upstreamNodeUUID
+    }
+  };
+},
+
+onPropertyChange: function(key, value, nodeData, hostingCompUUID, upstreamNodeUUID) {
+  return {
+    action: 'setEffectProperty',
+    params: {
+      nodeUUID:        nodeData.id,
+      hostingCompUUID: hostingCompUUID,
+      layerNodeUUID:   upstreamNodeUUID,
+      matchName:       'ADBE Fill',
+      key:             key,
+      value:           value
     }
   };
 }
 ```
 
-**✅ Correct — dispatcher handler:**
-```jsx
-function actionCreateTextLayer(params) {
-  var result = { ok: false, data: null, error: null };
-  try {
-    var comp = findCompByUUID(params.compUUID);
-    if (!comp) { result.error = 'Comp not found: ' + params.compUUID; return result; }
-    var layer = comp.layers.addText(params.content);
-    layer.comment = params.nodeUUID;
-    layer.name    = params.nodeUUID;
-    result.ok   = true;
-    result.data = { layerName: layer.name };
-  } catch (e) {
-    result.error = e.toString();
-  }
-  return result;
-}
-```
-
-**❌ Wrong — node writing ExtendScript:**
-```javascript
-onAlive: function(nodeData, hostingCompUUID) {
-  // NEVER do this — nodes must not call evalBridge or write AE strings
-  evalBridge.dispatch({ action: 'createTextLayer', ... });
-}
-```
-
----
-
-### SKILL 10 — Node Definition Contract
-
-Every node is a plain JS object with these required fields. One file, one node.
-
+**Affected node lifecycle (for reference):**
 ```javascript
 var TextNode = {
-  // Identity
-  type:      'layers/text',   // category/node-name, kebab-case, unique
-  label:     'Text',          // human-readable display name
-  category:  'Layers',        // must match the folder name under categories/
+  type:      'layers/text',
+  label:     'Text',
+  category:  'Layers',
   version:   '1.0.0',
+  nodeKind:  'affected',
+  dedicated: false,
 
-  // Classification — type-level constants, never overridden per instance
-  nodeKind:  'affected',      // 'affected' | 'effector' | 'data'
-  dedicated: false,           // true if node needs an AE project panel object
-
-  // Ports — declared once; engine manages extendable slot instances
   ports: [
-    // input ports live on the left edge of the node
-    // output ports live on the right edge
-    // parent ports live on the top (child_of) and bottom (parent_of) edges
     { id: 'output',    category: 'output', type: 'layer',  extendable: false },
     { id: 'child_of',  category: 'parent', role: 'child',  type: 'parent'   },
     { id: 'parent_of', category: 'parent', role: 'parent', type: 'parent'   }
   ],
 
-  // Params — inspector fields AND valid types for extendable port binding
   params: [
     { key: 'label',    type: 'string', default: 'Text',     label: 'Label'    },
     { key: 'content',  type: 'string', default: 'New Text', label: 'Content'  },
@@ -389,15 +441,13 @@ var TextNode = {
     { key: 'opacity',  type: 'number', default: 100,        label: 'Opacity',  min: 0, max: 100 }
   ],
 
-  // Lifecycle hooks — return a command object or null. Never call evalBridge here.
-  onDrop: function(nodeData) {
-    return null; // CompNode overrides this to return an onAlive command immediately
-  },
+  onDrop: function(nodeData) { return null; },
 
   onAlive: function(nodeData, hostingCompUUID) {
     return {
       action: 'createTextLayer',
       params: { compUUID: hostingCompUUID, nodeUUID: nodeData.id, content: nodeData.props.content }
+      // Note: engine adds params.layerUUID = terminalWireId before dispatching
     };
   },
 
@@ -433,31 +483,14 @@ nodeRegistry.register(TextNode);
 - The file ends with `nodeRegistry.register(NodeName)` — no other registration step needed
 - No `import`/`export` statements anywhere
 
-**`dedicated` reference — memorize this:**
-
-| Node | `dedicated` | AE Project Object |
-|---|---|---|
-| CompNode | `true` | `CompItem` |
-| NullNode | `true` | `FootageItem` (solid) |
-| SolidNode | `true` | `FootageItem` (solid) |
-| FootageNode | `true` | `FootageItem` |
-| TextNode | `false` | — |
-| ShapeNode | `false` | — |
-| AdjustmentNode | `false` | — |
-
 **Effector port rule — non-negotiable:**
 Every effector node has exactly this port structure. No variations, no exceptions:
 
 ```javascript
 ports: [
-  // Main input: type is ALWAYS 'layer', required: true.
-  // Extendable newborn slots accept data wires only — bound to effect params via picker.
   { id: 'layer_in', category: 'input',  type: 'layer', extendable: true, required: true },
-
-  // Output: type is ALWAYS 'layer'. Same layer reference passed through — not a new layer.
   { id: 'output',   category: 'output', type: 'layer', extendable: false }
-
-  // NO parent ports on effectors — they have no standalone AE layer.
+  // NO parent ports — effectors have no standalone AE layer
 ]
 ```
 
@@ -471,7 +504,8 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 ```javascript
 // graph/engine.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/cascadeAlgorithm.js,
-//             graph/portManager.js, graph/wireValidator.js, bridge/evalBridge.js
+//             graph/portManager.js, graph/wireValidator.js, bridge/evalBridge.js,
+//             data/uuidGenerator.js, flush/dirtyFlusher.js
 // MUST LOAD BEFORE: index.js
 ```
 
@@ -484,25 +518,35 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 
 **Load order in `index.html`:**
 ```html
-<!-- 1. Infrastructure — no dependencies -->
+<!-- 1. CEP interface -->
+<script src="lib/CSInterface.js"></script>
+
+<!-- 2. Infrastructure — no dependencies -->
 <script src="data/uuidGenerator.js"></script>
 <script src="bridge/evalBridge.js"></script>
 <script src="graph/graphState.js"></script>
 <script src="graph/nodeRegistry.js"></script>
 
-<!-- 2. Node definitions — depend on nodeRegistry -->
+<!-- 3. Node definitions — depend on nodeRegistry -->
 <script src="graph/nodes/categories/core/Comp.js"></script>
 <script src="graph/nodes/categories/layers/Text.js"></script>
-<!-- ... all other node files ... -->
+<script src="graph/nodes/categories/layers/Null.js"></script>
+<script src="graph/nodes/categories/layers/Shape.js"></script>
+<script src="graph/nodes/categories/layers/Adjustment.js"></script>
+<script src="graph/nodes/categories/effects/FillEffect.js"></script>
+<script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
+<script src="graph/nodes/categories/effects/DropShadow.js"></script>
+<script src="graph/nodes/categories/data/Color.js"></script>
+<script src="graph/nodes/categories/data/Number.js"></script>
 
-<!-- 3. Graph engine — depends on graphState, nodeRegistry, all nodes -->
+<!-- 4. Graph engine — depends on graphState, nodeRegistry, all nodes -->
 <script src="graph/cycleChecker.js"></script>
 <script src="graph/portManager.js"></script>
 <script src="graph/wireValidator.js"></script>
 <script src="graph/cascadeAlgorithm.js"></script>
 <script src="graph/engine.js"></script>
 
-<!-- 4. Canvas — depends on engine -->
+<!-- 5. Canvas — depends on engine -->
 <script src="graph/canvas/viewport.js"></script>
 <script src="graph/canvas/renderer.js"></script>
 <script src="graph/canvas/input.js"></script>
@@ -510,19 +554,22 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/wire/wireRenderer.js"></script>
 <script src="graph/wire/wire.js"></script>
 
-<!-- 5. UI — depends on graphState, nodeRegistry -->
+<!-- 6. UI — depends on graphState, nodeRegistry, engine -->
 <script src="ui/nodeList.js"></script>
 <script src="ui/drag.js"></script>
 <script src="ui/inspector.js"></script>
 <script src="ui/layerOrderList.js"></script>
+<script src="ui/statusBar.js"></script>
 <script src="ui/keyboard.js"></script>
+<script src="ui/settings.js"></script>
+<script src="ui/settingsModal.js"></script>
 
-<!-- 6. Infrastructure services -->
+<!-- 7. Infrastructure services -->
 <script src="flush/dirtyFlusher.js"></script>
 <script src="polling/poller.js"></script>
 <script src="notifications/notificationBar.js"></script>
 
-<!-- 7. Entry point — depends on everything -->
+<!-- 8. Entry point — depends on everything -->
 <script src="index.js"></script>
 ```
 
@@ -597,17 +644,28 @@ QUESTION:  [the one thing needed to proceed]
 
 The cascade algorithm governs when nodes transition from `alive` to `ghost`. Getting this wrong corrupts AE state silently.
 
+**Path-driven layer model — the foundation:**
+- Each **path** from an affected source node through zero or more effectors into a CompNode produces exactly one AE layer
+- A path is identified by its **terminal wire UUID** — the UUID of the wire whose `toNode` is a CompNode
+- The terminal wire has a `_pathLayerUUID` field in `wireMap`. When the path is live, `_pathLayerUUID === wireId`. When the path is dormant (no AE layer), `_pathLayerUUID === null`
+- Cascade only affects nodes whose terminal wire has an active `_pathLayerUUID`
+
 **Hard rules — never violate:**
 - Only `layer` wire deletions trigger cascade. Data wire and parent wire deletions never trigger cascade.
 - The cascade traversal in `cascadeAlgorithm.js` must skip any wire whose `type` is `'parent'` or `'data'`
+- Only terminal wires with a non-null `_pathLayerUUID` are considered live paths in `hasCompDownstream()`
 - Effectors ghost before the affected node they modify. An affected node is never parked before all its effectors are stripped from its layer.
 - A node stays alive if it has any remaining comp path downstream — even if the deleted wire was one of several
 - CompNode is never ghosted. It is never added to the cascade set.
 - The entire cascade is batched into a single `evalBridge.dispatchBatch()` call — one bridge crossing per cascade, regardless of depth
+- Data nodes (`nodeKind: 'data'`) are never ghosted and never included in any cascade set
+
+**Dormant terminal wires:**
+When a non-terminal wire is deleted and the path becomes incomplete (no source node), the terminal wire's `_pathLayerUUID` is set to `null` — making it dormant. The AE layer still exists in the hosting comp. When the path is later reconnected, `_activateDormantTerminalWiresDownstream` detects the dormant wire and calls `_firePathCreation`, which re-activates the path without creating a new layer (it uses `unparkLayer` or `restampLayer`).
 
 **Cascade order:**
 ```
-1. Collect all nodes in cascade set (effectors + affected, never comps)
+1. Collect all nodes in cascade set (effectors + affected, never comps, never data nodes)
 2. Order: effectors outermost-first, affected nodes last
 3. Call onGhost() on each → collect command objects
 4. dispatchBatch(allCommands) → one bridge crossing
@@ -628,7 +686,7 @@ procedia-v4/
 │   ├── graphState.js                       ← nodeMap, wireMap, tempGraph. ONLY mutator.
 │   ├── nodeRegistry.js                     ← register(), getDefinition(), getAll(), getByCategory()
 │   ├── engine.js                           ← Dumb executor. Zero node-type conditionals.
-│   ├── cascadeAlgorithm.js                 ← cascadeGhost(), hasCompDownstream()
+│   ├── cascadeAlgorithm.js                 ← cascadeGhost(), hasCompDownstream(), collectPathUpstream()
 │   ├── cycleChecker.js                     ← hasCycle() — pure graph traversal
 │   ├── portManager.js                      ← Extendable port slot lifecycle
 │   ├── wireValidator.js                    ← Wire type compatibility. Filters picker list.
@@ -636,7 +694,7 @@ procedia-v4/
 │   │   └── categories/
 │   │       ├── core/        Comp.js
 │   │       ├── layers/      Text.js, Null.js, Shape.js, Adjustment.js
-│   │       ├── effects/     FillEffect.js, GaussianBlur.js, ...
+│   │       ├── effects/     FillEffect.js, GaussianBlur.js, DropShadow.js
 │   │       ├── data/        Color.js, Number.js
 │   │       └── utility/
 │   ├── canvas/
@@ -645,7 +703,15 @@ procedia-v4/
 │       ├── wire.js, wireRenderer.js
 │
 ├── ui/
-│   ├── nodeList.js, drag.js, inspector.js, layerOrderList.js, keyboard.js
+│   ├── nodeList.js      ← Node palette — category collapse, search, drag-to-canvas
+│   ├── drag.js          ← onDrop handler + wire-insertion (drop on wire to insert mid-path)
+│   ├── inspector.js     ← Inspector panel — renders params for selected node
+│   ├── layerOrderList.js← Drag-to-reorder for CompNode layer stacking
+│   ├── statusBar.js     ← Status bar: node/wire counts, alive/ghost counts, zoom level
+│   ├── keyboard.js
+│   ├── settings.js      ← Persistent settings store — localStorage key 'procedia_settings'
+│   │                      get(key), set(key, value), getAll(). Keys: minimap, wireStyle.
+│   └── settingsModal.js ← Gear-button modal — open/close, minimap toggle, wire style select
 │
 ├── flush/         dirtyFlusher.js
 ├── polling/       poller.js
@@ -656,6 +722,9 @@ procedia-v4/
 │
 ├── data/
 │   └── uuidGenerator.js
+│
+├── lib/
+│   └── CSInterface.js
 │
 └── jsx/
     ├── json.jsx                            ← JSON polyfill. MUST be first in evalBridge preamble.
@@ -690,7 +759,7 @@ These apply to every task, every file, without exception.
 
 9. **Ghost cascade never traverses `parent` or `data` wires.** These wire types are explicitly skipped.
 
-10. **UUID is the only identifier in AE.** Stored in `.comment`. Never use display names.
+10. **AE layer `.comment` = terminal wire UUID (not node UUID).** The dispatcher finds AE layers by the `_pathLayerUUID` passed as `layerNodeUUID`. Never look up a layer by node UUID for path-driven operations.
 
 11. **Cascade order is non-negotiable.** Effectors first. Affected last. Never park before stripping.
 
@@ -702,7 +771,9 @@ These apply to every task, every file, without exception.
 
 15. **CompNode is always alive.** No ghost state. No park step. Never add CompNode to a cascade set.
 
-16. **One task, one verification, one stop.** Never chain tasks without explicit developer confirmation.
+16. **Data nodes (`nodeKind: 'data'`) are always alive.** Set to `alive` immediately on drop. No AE presence. All lifecycle hooks return `null`. Never ghost, never park.
+
+17. **One task, one verification, one stop.** Never chain tasks without explicit developer confirmation.
 
 ---
 

@@ -54,9 +54,18 @@ var drag = (function() {
     var wx = canvasPos.x - 70;
     var wy = canvasPos.y - 40;
 
-    // 1. Remove original wire without cascade (we are replacing it, not deleting)
-    graphState.removeWire(wireId);
-    portManager.afterDisconnect(wire.toNode, _basePortId(wire.toPort));
+    // 1. For an active path: graph-only removal that keeps the source node alive in AE.
+    //    _transplantLayerUUID lets _firePathCreation re-stamp the existing layer instead of
+    //    doing a park/unpark round-trip, which avoids a race between the two async batches.
+    //    For a dormant path (no active AE layer): fall through to full engine.disconnectWire.
+    var oldPathLayerUUID = wire._pathLayerUUID;
+    if (oldPathLayerUUID) {
+      graphState.removeWire(wireId);
+      portManager.afterDisconnect(wire.toNode, _basePortId(wire.toPort));
+      graphState.updateNode(wire.fromNode, { _transplantLayerUUID: oldPathLayerUUID });
+    } else {
+      engine.disconnectWire(wireId);
+    }
 
     // 2. Create the effector node
     var newNodeData = engine.dropNode(nodeType, wx, wy);

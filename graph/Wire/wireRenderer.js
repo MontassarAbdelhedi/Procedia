@@ -1,5 +1,5 @@
 // graph/wire/wireRenderer.js
-// DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js
+// DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js, ui/settings.js
 // MUST LOAD BEFORE: graph/wire/wire.js
 
 var wireRenderer = (function() {
@@ -32,22 +32,35 @@ var wireRenderer = (function() {
 
   function _makePath(fromPos, toPos, wireType) {
     var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    var style = settings.get('wireStyle') || 'bezier';
     var d;
 
-    if (_isParentWire(wireType)) {
-      var dy = Math.abs(toPos.y - fromPos.y) * 0.5;
-      if (dy < MIN_CP_OFFSET) dy = MIN_CP_OFFSET;
-      d = 'M '  + fromPos.x + ' ' + fromPos.y +
-          ' C ' + fromPos.x + ' ' + (fromPos.y - dy) +
-          ', '  + toPos.x   + ' ' + (toPos.y   + dy) +
-          ', '  + toPos.x   + ' ' + toPos.y;
+    if (style === 'direct') {
+      d = 'M ' + fromPos.x + ' ' + fromPos.y +
+          ' L ' + toPos.x  + ' ' + toPos.y;
+    } else if (style === 'stepped') {
+      var midX = fromPos.x + (toPos.x - fromPos.x) / 2;
+      d = 'M ' + fromPos.x + ' ' + fromPos.y +
+          ' L ' + midX      + ' ' + fromPos.y +
+          ' L ' + midX      + ' ' + toPos.y   +
+          ' L ' + toPos.x   + ' ' + toPos.y;
     } else {
-      var dx = Math.abs(toPos.x - fromPos.x) * 0.5;
-      if (dx < MIN_CP_OFFSET) dx = MIN_CP_OFFSET;
-      d = 'M '  + fromPos.x           + ' ' + fromPos.y +
-          ' C ' + (fromPos.x + dx)    + ' ' + fromPos.y +
-          ', '  + (toPos.x   - dx)    + ' ' + toPos.y   +
-          ', '  + toPos.x             + ' ' + toPos.y;
+      // bezier — default
+      if (_isParentWire(wireType)) {
+        var dy = Math.abs(toPos.y - fromPos.y) * 0.5;
+        if (dy < MIN_CP_OFFSET) dy = MIN_CP_OFFSET;
+        d = 'M '  + fromPos.x + ' ' + fromPos.y +
+            ' C ' + fromPos.x + ' ' + (fromPos.y - dy) +
+            ', '  + toPos.x   + ' ' + (toPos.y   + dy) +
+            ', '  + toPos.x   + ' ' + toPos.y;
+      } else {
+        var dx = Math.abs(toPos.x - fromPos.x) * 0.5;
+        if (dx < MIN_CP_OFFSET) dx = MIN_CP_OFFSET;
+        d = 'M '  + fromPos.x           + ' ' + fromPos.y +
+            ' C ' + (fromPos.x + dx)    + ' ' + fromPos.y +
+            ', '  + (toPos.x   - dx)    + ' ' + toPos.y   +
+            ', '  + toPos.x             + ' ' + toPos.y;
+      }
     }
 
     path.setAttribute('d', d);
@@ -55,14 +68,24 @@ var wireRenderer = (function() {
     path.setAttribute('stroke-linecap', 'round');
     path.setAttribute('pointer-events', 'stroke');
 
+    var animated = !!settings.get('animatedWires');
+
     if (wireType === 'layer') {
       path.setAttribute('stroke', 'var(--wire-layer)');
       path.setAttribute('stroke-width', '1.5');
       path.style.opacity = '0.8';
+      if (animated) {
+        path.setAttribute('stroke-dasharray', '8 5');
+        path.classList.add('wire-animated');
+      }
     } else if (wireType === 'data') {
       path.setAttribute('stroke', 'var(--wire-data)');
       path.setAttribute('stroke-width', '1.5');
       path.style.opacity = '0.8';
+      if (animated) {
+        path.setAttribute('stroke-dasharray', '8 5');
+        path.classList.add('wire-animated');
+      }
     } else if (wireType === 'parent') {
       path.setAttribute('stroke', 'var(--wire-parent)');
       path.setAttribute('stroke-width', '1.5');

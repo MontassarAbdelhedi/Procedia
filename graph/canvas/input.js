@@ -97,8 +97,9 @@ var canvasInput = (function() {
       el.style.top  = newY + 'px';
     }
 
-    // Redraw wires so they follow the moving node
+    // Redraw wires and minimap so they follow the moving node
     if (typeof wireRenderer !== 'undefined') wireRenderer.render();
+    if (typeof minimap !== 'undefined') minimap.render();
   }
 
   function _onMouseUp(e) {

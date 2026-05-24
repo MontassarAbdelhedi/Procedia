@@ -129,10 +129,18 @@ var engine = (function() {
 
     // Build create/unpark command for source node
     var createCmd;
+    var oldTransplantUUID;
     if (sourceNode.state === 'ghost' && sourceNode.hasParkedLayer) {
       createCmd = {
         action: 'unparkLayer',
         params: { nodeUUID: sourceNode.id, hostingCompUUID: hostingCompUUID, newLayerUUID: wireId }
+      };
+    } else if (sourceNode.state === 'alive' && sourceNode._transplantLayerUUID) {
+      oldTransplantUUID = sourceNode._transplantLayerUUID;
+      graphState.updateNode(sourceNode.id, { _transplantLayerUUID: null });
+      createCmd = {
+        action: 'restampLayer',
+        params: { oldLayerUUID: oldTransplantUUID, hostingCompUUID: hostingCompUUID, newLayerUUID: wireId }
       };
     } else {
       createCmd = sourceDef.onAlive(sourceNode, hostingCompUUID);
@@ -156,6 +164,28 @@ var engine = (function() {
 
     // Stamp _pathLayerUUID before dispatch so wireMap is consistent if a poll fires
     graphState.updateWire(wireId, { _pathLayerUUID: wireId });
+
+    // After stamping _pathLayerUUID, flush any dirty nodes in this path.
+    // This handles the case where a data wire was connected to an effector before
+    // the upstream layer wire existed — the effector was marked dirty but
+    // _terminalWiresForEffector returned empty because _pathLayerUUID was null.
+    // Now that the path is complete and stamped, those pending dirty states resolve.
+    var _hasDirtyInPath = false;
+    if (path.sourceNode && path.sourceNode.dirty) {
+      _hasDirtyInPath = true;
+    }
+    if (!_hasDirtyInPath) {
+      var _di;
+      for (_di = 0; _di < path.effectors.length; _di++) {
+        if (path.effectors[_di].dirty) {
+          _hasDirtyInPath = true;
+          break;
+        }
+      }
+    }
+    if (_hasDirtyInPath) {
+      dirtyFlusher.flush();
+    }
 
     // Update source node hostingComps
     var updatedHostingComps = [];
@@ -237,6 +267,7 @@ var engine = (function() {
     }
 
     renderer.render();
+    minimap.render();
 
     var command = def.onDrop(nodeData);
     if (command === null) {
@@ -303,6 +334,7 @@ var engine = (function() {
     };
     graphState.addWire(wireData);
     renderer.render();
+    minimap.render();
 
     // Step 4: notify portManager of new connection on destination slot
     var toBasePort = _getBasePortId(toPort);
@@ -350,6 +382,7 @@ var engine = (function() {
     if (nodeData.nodeKind === 'data') {
       graphState.removeNode(nodeId);
       renderer.render();
+      minimap.render();
       if (graphState.getSelection() === nodeId) graphState.setSelection(null);
       return;
     }
@@ -389,6 +422,7 @@ var engine = (function() {
     // Step 5: remove from graph (graphState also removes all connected wires)
     graphState.removeNode(nodeId);
     renderer.render();
+    minimap.render();
 
     // Step 6: clear selection if this node was selected
     if (graphState.getSelection() === nodeId) {
@@ -410,18 +444,21 @@ var engine = (function() {
       });
       graphState.removeWire(wireId);
       renderer.render();
+      minimap.render();
       return;
     }
 
     if (wire.type === 'data') {
       graphState.removeWire(wireId);
       renderer.render();
+      minimap.render();
       return;
     }
 
     // Layer wire — cascade owns removal; graph state is updated synchronously
     cascadeAlgorithm.cascadeGhost(wireId);
     renderer.render();
+    minimap.render();
   }
 
   function recreateNode(nodeId) {

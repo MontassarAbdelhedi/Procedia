@@ -13,17 +13,20 @@
   // 2. Canvas and wire interaction
   canvasInput.init();
   wireInteraction.init();
+  minimap.init();
 
   // 3. UI
   nodeList.init();
   drag.init();
   keyboard.init();
+  settingsModal.init();
 
   // 4. Consolidated selection callback
   graphState.onSelectionChange(function(uuid) {
     renderer.render();
     wireRenderer.render();
     inspector.renderInspector(uuid);
+    minimap.render();
   });
 
   // 5. Activity tracking for poller idle detection
@@ -81,6 +84,7 @@ function _finishInit(graphWasLoaded) {
   notificationBar.dismissAll();
   renderer.render();
   wireRenderer.render();
+  minimap.render();
   poller.start();
   console.log('[Procedia] Init complete. Poller started.');
 }

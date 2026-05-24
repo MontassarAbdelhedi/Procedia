@@ -17,6 +17,7 @@ var viewport = (function() {
     var el = document.getElementById('canvas-viewport');
     if (!el) return;
     el.style.transform = 'translate(' + _pan.x + 'px, ' + _pan.y + 'px) scale(' + _zoom + ')';
+    if (typeof minimap !== 'undefined') minimap.render();
   }
 
   function getTransform() { return { pan: { x: _pan.x, y: _pan.y }, zoom: _zoom }; }
