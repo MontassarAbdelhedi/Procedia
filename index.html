@@ -109,16 +109,7 @@
     <main id="canvas-wrap">
 
       <!-- ── Notification bar ──────────────────────── -->
-      <div id="notification-bar">
-        <div class="notification-card">
-          <span class="notification-icon">⚠</span>
-          <span class="notification-text">TextNode_01 was deleted outside Procedia.</span>
-          <div class="notification-actions">
-            <button class="notification-btn">Re-create in AE</button>
-            <button class="notification-btn">Remove from Graph</button>
-          </div>
-        </div>
-      </div>
+      <div id="notification-bar"></div>
 
       <div id="canvas-viewport">
 
@@ -203,23 +194,23 @@
   <div id="statusbar">
     <div class="statusbar-item">
       <span class="statusbar-label">nodes</span>
-      <span class="statusbar-value">5</span>
+      <span class="statusbar-value" id="stat-nodes">0</span>
     </div>
     <div class="statusbar-item">
       <span class="statusbar-label">wires</span>
-      <span class="statusbar-value">4</span>
+      <span class="statusbar-value" id="stat-wires">0</span>
     </div>
     <div class="statusbar-item">
       <span class="statusbar-label">alive</span>
-      <span class="statusbar-value">4</span>
+      <span class="statusbar-value" id="stat-alive">0</span>
     </div>
     <div class="statusbar-item">
       <span class="statusbar-label">ghost</span>
-      <span class="statusbar-value">1</span>
+      <span class="statusbar-value" id="stat-ghost">0</span>
     </div>
     <div class="statusbar-item statusbar-right">
       <span class="statusbar-label">zoom</span>
-      <span class="statusbar-value">100%</span>
+      <span class="statusbar-value" id="stat-zoom">100%</span>
     </div>
   </div>
 
@@ -242,6 +233,9 @@
 <script src="graph/nodes/categories/layers/Null.js"></script>
 <script src="graph/nodes/categories/layers/Shape.js"></script>
 <script src="graph/nodes/categories/layers/Adjustment.js"></script>
+<script src="graph/nodes/categories/effects/FillEffect.js"></script>
+<script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
+<script src="graph/nodes/categories/effects/DropShadow.js"></script>
 <script src="graph/nodes/categories/data/Color.js"></script>
 <script src="graph/nodes/categories/data/Number.js"></script>
 
@@ -266,6 +260,7 @@
 <script src="ui/inspector.js"></script>
 <script src="ui/layerOrderList.js"></script>
 <script src="ui/keyboard.js"></script>
+<script src="ui/statusBar.js"></script>
 
 <!-- Services -->
 <script src="flush/dirtyFlusher.js"></script>

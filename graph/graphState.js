@@ -97,7 +97,16 @@ var graphState = (function() {
     if (wireMap[wireData.id] !== undefined) {
       throw new Error('graphState.addWire: wire already exists: ' + wireData.id);
     }
+    if (wireData._pathLayerUUID === undefined) wireData._pathLayerUUID = null;
     wireMap[wireData.id] = wireData;
+    rebuildTempGraph();
+  }
+
+  function updateWire(wireId, fields) {
+    if (wireMap[wireId] === undefined) return;
+    for (var key in fields) {
+      wireMap[wireId][key] = fields[key];
+    }
     rebuildTempGraph();
   }
 
@@ -172,6 +181,7 @@ var graphState = (function() {
         for (var wkey in wsrc) {
           wire[wkey] = wsrc[wkey];
         }
+        if (wire._pathLayerUUID === undefined) wire._pathLayerUUID = null;
         wireMap[wireId] = wire;
       }
     }
@@ -198,6 +208,7 @@ var graphState = (function() {
     getAllNodes:       getAllNodes,
 
     addWire:          addWire,
+    updateWire:       updateWire,
     removeWire:       removeWire,
     getWire:          getWire,
     getAllWires:       getAllWires,

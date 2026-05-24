@@ -53,62 +53,155 @@ var engine = (function() {
     return null;
   }
 
-  function _propagateAlive(nodeId, hostingCompUUID) {
-    var nodeData = graphState.getNode(nodeId);
-    if (!nodeData) return;
-
-    // Guard: already alive in this hosting comp
-    for (var i = 0; i < nodeData.hostingComps.length; i++) {
-      if (nodeData.hostingComps[i] === hostingCompUUID) return;
-    }
-
-    var def = nodeRegistry.getDefinition(nodeData.type);
-    if (!def) return;
-
-    var command;
-    if (nodeData.state === 'ghost' && nodeData.hasParkedLayer) {
-      command = { action: 'unparkLayer', params: { nodeUUID: nodeData.id, hostingCompUUID: hostingCompUUID } };
-    } else {
-      command = def.onAlive(nodeData, hostingCompUUID);
-    }
-
-    // Build updated hostingComps array before dispatching
-    var updatedHostingComps = [];
-    for (var j = 0; j < nodeData.hostingComps.length; j++) {
-      updatedHostingComps.push(nodeData.hostingComps[j]);
-    }
-    updatedHostingComps.push(hostingCompUUID);
-
-    // State update is synchronous — callers can read alive state immediately
-    graphState.updateNode(nodeId, { state: 'alive', hostingComps: updatedHostingComps, hasParkedLayer: false });
-
-    if (command !== null) {
-      (function(capturedNodeId) {
-        evalBridge.dispatch(command).then(function(res) {
-          if (!res.ok) {
-            console.error('[engine] _propagateAlive dispatch error for ' + capturedNodeId + ': ' + res.error);
-            graphState.updateNode(capturedNodeId, { state: 'error' });
-            renderer.updateNode(capturedNodeId);
-          }
-        }).catch(function(err) {
-          console.error('[engine] _propagateAlive dispatch rejected for ' + capturedNodeId + ': ' + err.message);
-          graphState.updateNode(capturedNodeId, { state: 'error' });
-          renderer.updateNode(capturedNodeId);
-        });
-      }(nodeId));
-    }
-
-    // Traverse upstream: find all layer wires flowing INTO this node
+  // Walks upstream through effector chain to find the first non-effector (the actual AE layer node).
+  // Used by deleteNode to resolve the upstream layer UUID for effector ghost/delete commands.
+  function _resolveLayerNodeUUID(nodeId) {
     var wires = graphState.getAllWires();
-    var upstream = [];
-    for (var wireId in wires) {
-      var wire = wires[wireId];
-      if (wire.toNode === nodeId && wire.type === 'layer') {
-        upstream.push(wire.fromNode);
+    var wireId, wire, upstreamData;
+    for (wireId in wires) {
+      wire = wires[wireId];
+      if (wire.toNode !== nodeId || wire.type !== 'layer') continue;
+      upstreamData = graphState.getNode(wire.fromNode);
+      if (!upstreamData) continue;
+      if (upstreamData.nodeKind === 'effector') {
+        return _resolveLayerNodeUUID(upstreamData.id);
+      }
+      return upstreamData.id;
+    }
+    return null;
+  }
+
+  // EVENT 5 — non-terminal wire connected; re-activate any dormant terminal wires downstream
+  // whose path is now complete (i.e., _pathLayerUUID was cleared by a prior teardown).
+  function _activateDormantTerminalWiresDownstream(startNodeId) {
+    var wires = graphState.getAllWires();
+    var visited = {};
+    var stack = [startNodeId];
+    var current, wireId, wire, downNodeData, path;
+
+    while (stack.length > 0) {
+      current = stack.pop();
+      if (visited[current]) continue;
+      visited[current] = true;
+
+      for (wireId in wires) {
+        wire = wires[wireId];
+        if (wire.type !== 'layer') continue;
+        if (wire.fromNode !== current) continue;
+
+        downNodeData = graphState.getNode(wire.toNode);
+        if (!downNodeData) continue;
+
+        if (cascadeAlgorithm.isCompNode(downNodeData)) {
+          // Terminal wire — fire EVENT 1 if dormant and path is now complete
+          if (wire._pathLayerUUID === null || wire._pathLayerUUID === undefined) {
+            path = cascadeAlgorithm.collectPathUpstream(wireId);
+            if (path.sourceNode) {
+              _firePathCreation(wireId);
+            }
+          }
+        } else {
+          if (!visited[wire.toNode]) stack.push(wire.toNode);
+        }
       }
     }
-    for (var k = 0; k < upstream.length; k++) {
-      _propagateAlive(upstream[k], hostingCompUUID);
+  }
+
+  // EVENT 1 — terminal wire confirmed (toNode is a CompNode).
+  // Walks the path upstream, creates the AE layer, applies effectors, stamps _pathLayerUUID.
+  function _firePathCreation(wireId) {
+    var wire = graphState.getWire(wireId);
+    if (!wire) return;
+
+    var path = cascadeAlgorithm.collectPathUpstream(wireId);
+    if (!path.sourceNode) {
+      console.warn('[engine] _firePathCreation: no source node found for wire: ' + wireId);
+      return;
+    }
+
+    var hostingCompUUID = wire.toNode;
+    var sourceNode = path.sourceNode;
+    var sourceDef = nodeRegistry.getDefinition(sourceNode.type);
+    if (!sourceDef) return;
+
+    var batchCommands = [];
+    var i, j, k, effNode, effDef, effCmd;
+
+    // Build create/unpark command for source node
+    var createCmd;
+    if (sourceNode.state === 'ghost' && sourceNode.hasParkedLayer) {
+      createCmd = {
+        action: 'unparkLayer',
+        params: { nodeUUID: sourceNode.id, hostingCompUUID: hostingCompUUID, newLayerUUID: wireId }
+      };
+    } else {
+      createCmd = sourceDef.onAlive(sourceNode, hostingCompUUID);
+      if (createCmd !== null) {
+        if (!createCmd.params) createCmd.params = {};
+        createCmd.params.layerUUID = wireId;
+      }
+    }
+    if (createCmd !== null) batchCommands.push(createCmd);
+
+    // Apply effectors in order (closest-to-source first).
+    // wireId is passed as third arg so it becomes layerNodeUUID in applyEffect — matches layer.comment.
+    for (i = 0; i < path.effectors.length; i++) {
+      effNode = path.effectors[i];
+      effDef = nodeRegistry.getDefinition(effNode.type);
+      if (effDef) {
+        effCmd = effDef.onAlive(effNode, hostingCompUUID, wireId);
+        if (effCmd !== null) batchCommands.push(effCmd);
+      }
+    }
+
+    // Stamp _pathLayerUUID before dispatch so wireMap is consistent if a poll fires
+    graphState.updateWire(wireId, { _pathLayerUUID: wireId });
+
+    // Update source node hostingComps
+    var updatedHostingComps = [];
+    for (j = 0; j < sourceNode.hostingComps.length; j++) {
+      updatedHostingComps.push(sourceNode.hostingComps[j]);
+    }
+    var alreadyHosting = false;
+    for (j = 0; j < updatedHostingComps.length; j++) {
+      if (updatedHostingComps[j] === hostingCompUUID) { alreadyHosting = true; break; }
+    }
+    if (!alreadyHosting) updatedHostingComps.push(hostingCompUUID);
+    graphState.updateNode(sourceNode.id, {
+      state:          'alive',
+      hostingComps:   updatedHostingComps,
+      hasParkedLayer: false
+    });
+
+    // Update effector node states
+    for (i = 0; i < path.effectors.length; i++) {
+      effNode = path.effectors[i];
+      var effHostingComps = [];
+      for (k = 0; k < effNode.hostingComps.length; k++) {
+        effHostingComps.push(effNode.hostingComps[k]);
+      }
+      var effAlreadyHosting = false;
+      for (k = 0; k < effHostingComps.length; k++) {
+        if (effHostingComps[k] === hostingCompUUID) { effAlreadyHosting = true; break; }
+      }
+      if (!effAlreadyHosting) effHostingComps.push(hostingCompUUID);
+      graphState.updateNode(effNode.id, { state: 'alive', hostingComps: effHostingComps });
+    }
+
+    if (batchCommands.length > 0) {
+      (function(capturedSourceId) {
+        evalBridge.dispatchBatch(batchCommands).then(function(res) {
+          if (!res.ok) {
+            console.error('[engine] _firePathCreation error for ' + capturedSourceId + ': ' + res.error);
+            graphState.updateNode(capturedSourceId, { state: 'error' });
+            renderer.updateNode(capturedSourceId);
+          }
+        }).catch(function(err) {
+          console.error('[engine] _firePathCreation rejected for ' + capturedSourceId + ': ' + err.message);
+          graphState.updateNode(capturedSourceId, { state: 'error' });
+          renderer.updateNode(capturedSourceId);
+        });
+      }(sourceNode.id));
     }
   }
 
@@ -214,17 +307,13 @@ var engine = (function() {
       return true;
     }
 
-    // Step 6: layer wire — propagate alive if a comp path exists
-    // The one acceptable type string in the engine: identifying the terminal comp node.
+    // Step 6: layer wire — fire EVENT 1 if terminal, or re-activate dormant terminal
+    // wires downstream if non-terminal (path may have been broken then reconnected).
     var toNode = graphState.getNode(toNodeId);
-    var isCompNode = (toNode.nodeKind === 'affected' &&
-                      toNode.dedicated === true      &&
-                      toNode.type === 'core/comp');
-
-    if (isCompNode) {
-      _propagateAlive(fromNodeId, toNodeId);
-    } else if (toNode.hostingComps.length > 0) {
-      _propagateAlive(fromNodeId, toNode.hostingComps[0]);
+    if (cascadeAlgorithm.isCompNode(toNode)) {
+      _firePathCreation(wireData.id);
+    } else {
+      _activateDormantTerminalWiresDownstream(toNodeId);
     }
 
     return true;
@@ -239,11 +328,17 @@ var engine = (function() {
 
     var def = nodeRegistry.getDefinition(nodeData.type);
 
-    // Step 3: if alive, park the layer in every hosting comp before removal
+    // Resolve the actual AE layer UUID for effector nodes before ghost/delete hooks
+    var upstreamForDelete = null;
+    if (nodeData.nodeKind === 'effector') {
+      upstreamForDelete = _resolveLayerNodeUUID(nodeId);
+    }
+
+    // Step 3: if alive, ghost the node in every hosting comp before removal
     if (nodeData.state === 'alive') {
       var batchCommands = [];
       for (var i = 0; i < nodeData.hostingComps.length; i++) {
-        var ghostCmd = def.onGhost(nodeData, nodeData.hostingComps[i]);
+        var ghostCmd = def.onGhost(nodeData, nodeData.hostingComps[i], upstreamForDelete);
         if (ghostCmd !== null) {
           batchCommands.push(ghostCmd);
         }
@@ -258,6 +353,10 @@ var engine = (function() {
     // Step 4: fire delete command (fire and forget)
     var deleteCmd = def.onDelete(nodeData);
     if (deleteCmd !== null) {
+      // Fill in layerNodeUUID for effector onDelete commands (node leaves it null)
+      if (nodeData.nodeKind === 'effector' && deleteCmd.params && deleteCmd.params.layerNodeUUID === null) {
+        deleteCmd.params.layerNodeUUID = upstreamForDelete;
+      }
       evalBridge.dispatch(deleteCmd);
     }
 
@@ -299,6 +398,48 @@ var engine = (function() {
     renderer.render();
   }
 
+  function recreateNode(nodeId) {
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) return;
+
+    // Reset to ghost with no parked layer so _firePathCreation takes the create path
+    graphState.updateNode(nodeId, { state: 'ghost', hostingComps: [], hasParkedLayer: false });
+
+    var allWires = graphState.getAllWires();
+    var wireId, w, current, nd, foundUp, upWireId, upW, isSource, safetyCount;
+
+    for (wireId in allWires) {
+      w = allWires[wireId];
+      if (!w._pathLayerUUID) continue;
+
+      // Walk upstream from this terminal wire to check if nodeId is its source
+      current = w.fromNode;
+      isSource = false;
+      safetyCount = 0;
+      while (current && safetyCount < 100) {
+        safetyCount++;
+        nd = graphState.getNode(current);
+        if (!nd) break;
+        if (nd.id === nodeId) { isSource = true; break; }
+        if (nd.nodeKind !== 'effector') break;
+        foundUp = false;
+        for (upWireId in allWires) {
+          upW = allWires[upWireId];
+          if (upW.toNode === current && upW.type === 'layer') {
+            current = upW.fromNode;
+            foundUp = true;
+            break;
+          }
+        }
+        if (!foundUp) break;
+      }
+
+      if (isSource) {
+        _firePathCreation(wireId);
+      }
+    }
+  }
+
   function setNodeProperty(nodeId, key, value) {
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) {
@@ -314,7 +455,8 @@ var engine = (function() {
     connectWire:     connectWire,
     deleteNode:      deleteNode,
     disconnectWire:  disconnectWire,
-    setNodeProperty: setNodeProperty
+    setNodeProperty: setNodeProperty,
+    recreateNode:    recreateNode
   };
 
 })();

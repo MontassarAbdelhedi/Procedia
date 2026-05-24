@@ -279,6 +279,8 @@ var renderer = (function() {
         _nodeElements[nodeId] = el;
       }
     }
+
+    if (typeof statusBar !== 'undefined') statusBar.update();
   }
 
   function updateNode(nodeId) {

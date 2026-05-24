@@ -54,7 +54,8 @@ var evalBridge = (function() {
         return;
       }
 
-      console.log('[evalBridge] dispatch: ' + commandObj.action);
+      var _silent = (commandObj.action === 'pollAliveNodes');
+      if (!_silent) console.log('[evalBridge] dispatch: ' + commandObj.action);
 
       var json = JSON.stringify(commandObj);
       var call = _withDispatcherLoaded('dispatch(' + JSON.stringify(json) + ')');
@@ -73,10 +74,12 @@ var evalBridge = (function() {
             return;
           }
 
-          if (res.ok) {
-            console.log('[evalBridge] ok: ' + commandObj.action);
-          } else {
-            console.log('[evalBridge] error: ' + commandObj.action + ' — ' + res.error);
+          if (!_silent) {
+            if (res.ok) {
+              console.log('[evalBridge] ok: ' + commandObj.action);
+            } else {
+              console.log('[evalBridge] error: ' + commandObj.action + ' — ' + res.error);
+            }
           }
 
           resolve(res);

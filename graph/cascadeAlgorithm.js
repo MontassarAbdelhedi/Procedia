@@ -28,6 +28,7 @@ var cascadeAlgorithm = (function() {
            nodeData.type === 'core/comp';
   }
 
+  // Returns array of comp UUIDs reachable downstream from nodeId, excluding excludeWireId.
   function _hasCompDownstreamExcluding(nodeId, excludeWireId, visited) {
     if (visited[nodeId]) return [];
     visited[nodeId] = true;
@@ -46,7 +47,10 @@ var cascadeAlgorithm = (function() {
       if (!downNode) continue;
 
       if (_isCompNode(downNode)) {
-        result.push(downNode.id);
+        // Only count active terminal wires — dormant ones (_pathLayerUUID === null) are not live paths
+        if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
+          result.push(downNode.id);
+        }
       } else {
         deeper = _hasCompDownstreamExcluding(wire.toNode, excludeWireId, visited);
         for (i = 0; i < deeper.length; i++) {
@@ -62,71 +66,219 @@ var cascadeAlgorithm = (function() {
     return _hasCompDownstreamExcluding(nodeId, null, {});
   }
 
-  function _collectCascadeSet(sourceNodeId, excludeWireId) {
-    var cascadeSet = [];
+  // Walks upstream from a terminal wire's fromNode following layer wires.
+  // Returns { sourceNode: nodeData|null, effectors: [nodeData, ...] }
+  // effectors are ordered closest-to-source first.
+  function collectPathUpstream(terminalWireId) {
+    var wire = graphState.getWire(terminalWireId);
+    if (!wire) return { sourceNode: null, effectors: [] };
+
+    var effectors = [];
+    var current = wire.fromNode;
+    var allWires = graphState.getAllWires();
+    var nodeData, wireId, w, foundUpstream;
+
+    while (true) {
+      nodeData = graphState.getNode(current);
+      if (!nodeData) return { sourceNode: null, effectors: effectors };
+
+      if (nodeData.nodeKind !== 'effector') {
+        return { sourceNode: nodeData, effectors: effectors };
+      }
+
+      effectors.unshift(nodeData); // prepend → closest-to-source first
+
+      foundUpstream = false;
+      for (wireId in allWires) {
+        w = allWires[wireId];
+        if (w.toNode === current && w.type === 'layer') {
+          current = w.fromNode;
+          foundUpstream = true;
+          break;
+        }
+      }
+      if (!foundUpstream) return { sourceNode: null, effectors: effectors };
+    }
+  }
+
+  // Walks downstream from startNodeId collecting all terminal wire IDs reachable
+  // through layer wires, excluding excludeWireId.
+  function _findStrandedTerminalWireIds(startNodeId, excludeWireId) {
+    var result = [];
     var visited = {};
-    var stack = [sourceNodeId];
+    var stack = [startNodeId];
     var wires = graphState.getAllWires();
-    var current, nodeData, wireId, wire, fromNodeData, nodeId;
-    var i;
+    var current, wireId, wire;
 
     while (stack.length > 0) {
       current = stack.pop();
       if (visited[current]) continue;
       visited[current] = true;
 
-      nodeData = graphState.getNode(current);
-      if (!nodeData) continue;
-      if (nodeData.state !== 'alive') continue;
-      if (_isCompNode(nodeData)) continue;
-
-      cascadeSet.push(nodeData);
-
       for (wireId in wires) {
         if (wireId === excludeWireId) continue;
         wire = wires[wireId];
         if (wire.type !== 'layer') continue;
-        if (wire.toNode !== current) continue;
-        if (!visited[wire.fromNode]) stack.push(wire.fromNode);
+        if (wire.fromNode !== current) continue;
+
+        if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
+          result.push(wireId);
+        } else {
+          if (!visited[wire.toNode]) stack.push(wire.toNode);
+        }
       }
     }
 
-    // Collect effectors wired into each affected node in cascade set
-    for (i = 0; i < cascadeSet.length; i++) {
-      nodeId = cascadeSet[i].id;
-      for (wireId in wires) {
-        wire = wires[wireId];
-        if (wire.toNode !== nodeId) continue;
-        if (visited[wire.fromNode]) continue;
-        fromNodeData = graphState.getNode(wire.fromNode);
-        if (!fromNodeData) continue;
-        if (fromNodeData.nodeKind !== 'effector') continue;
-        if (fromNodeData.state !== 'alive') continue;
-        visited[wire.fromNode] = true;
-        cascadeSet.push(fromNodeData);
-      }
-    }
-
-    return cascadeSet;
+    return result;
   }
 
-  function _orderCascadeSet(cascadeSet) {
-    var effectors = [];
-    var affected  = [];
-    var i;
+  // Builds teardown commands and node updates for one terminal wire.
+  // Does NOT modify wireMap, does NOT dispatch, does NOT call rebuildTempGraph.
+  function _buildTeardownForTerminalWire(terminalWireId) {
+    var wire = graphState.getWire(terminalWireId);
+    if (!wire) return { batchCommands: [], nodeUpdates: {} };
 
-    for (i = 0; i < cascadeSet.length; i++) {
-      if (cascadeSet[i].nodeKind === 'effector') {
-        effectors.push(cascadeSet[i]);
+    var path = collectPathUpstream(terminalWireId);
+    var hostingCompUUID = wire.toNode;
+    var pathLayerUUID = wire._pathLayerUUID;
+
+    var batchCommands = [];
+    var nodeUpdates = {};
+    var i, effNode, effDef, effCmd, effRemainingComps;
+
+    // Ghost effectors outermost-first (reverse of effectors array which is closest-to-source first)
+    for (i = path.effectors.length - 1; i >= 0; i--) {
+      effNode = path.effectors[i];
+      effDef = nodeRegistry.getDefinition(effNode.type);
+      if (effDef && effNode.state === 'alive') {
+        effCmd = effDef.onGhost(effNode, hostingCompUUID, pathLayerUUID);
+        if (effCmd !== null) batchCommands.push(effCmd);
+      }
+      effRemainingComps = _hasCompDownstreamExcluding(effNode.id, terminalWireId, {});
+      nodeUpdates[effNode.id] = {
+        state:          effRemainingComps.length === 0 ? 'ghost' : 'alive',
+        hostingComps:   effRemainingComps,
+        hasParkedLayer: false
+      };
+    }
+
+    // Handle source affected node
+    if (path.sourceNode) {
+      var sourceNode = path.sourceNode;
+      var sourceDef = nodeRegistry.getDefinition(sourceNode.type);
+      var sourceRemainingComps = _hasCompDownstreamExcluding(sourceNode.id, terminalWireId, {});
+
+      if (sourceRemainingComps.length === 0) {
+        // Last path — park the layer to preserve keyframes
+        if (sourceDef && sourceNode.state === 'alive') {
+          var parkCmd = sourceDef.onGhost(sourceNode, hostingCompUUID);
+          if (parkCmd !== null) {
+            // Inject layerUUID so actionParkLayer finds the layer by wire UUID and re-stamps it
+            if (!parkCmd.params) parkCmd.params = {};
+            parkCmd.params.layerUUID = pathLayerUUID;
+            batchCommands.push(parkCmd);
+          }
+        }
+        nodeUpdates[sourceNode.id] = {
+          state:          'ghost',
+          hostingComps:   [],
+          hasParkedLayer: true
+        };
       } else {
-        affected.push(cascadeSet[i]);
+        // Still has other paths — delete just this path's layer from comp
+        batchCommands.push({
+          action: 'deletePathLayer',
+          params: { layerUUID: pathLayerUUID, compUUID: hostingCompUUID }
+        });
+        nodeUpdates[sourceNode.id] = {
+          state:          'alive',
+          hostingComps:   sourceRemainingComps,
+          hasParkedLayer: sourceNode.hasParkedLayer
+        };
       }
     }
 
-    var ordered = [];
-    for (i = 0; i < effectors.length; i++) ordered.push(effectors[i]);
-    for (i = 0; i < affected.length; i++)  ordered.push(affected[i]);
-    return ordered;
+    return { batchCommands: batchCommands, nodeUpdates: nodeUpdates };
+  }
+
+  // EVENT 2 — terminal wire deleted.
+  function _teardownTerminalWire(terminalWireId) {
+    var wire = graphState.getWire(terminalWireId);
+    if (!wire) return;
+
+    var td = _buildTeardownForTerminalWire(terminalWireId);
+    var nodeId;
+
+    for (nodeId in td.nodeUpdates) {
+      graphState.updateNode(nodeId, td.nodeUpdates[nodeId]);
+    }
+
+    var basePortId = _getBasePortId(wire.toPort);
+    graphState.removeWire(terminalWireId);
+    portManager.afterDisconnect(wire.toNode, basePortId);
+
+    if (td.batchCommands.length > 0) {
+      evalBridge.dispatchBatch(td.batchCommands).then(function(res) {
+        if (!res.ok) {
+          console.error('[cascadeAlgorithm] _teardownTerminalWire error: ' + res.error);
+        }
+      });
+    }
+
+    graphState.rebuildTempGraph();
+  }
+
+  // EVENT 4 — non-terminal wire deleted (path broken mid-chain).
+  // Finds all active terminal wires stranded downstream, tears each one down, then makes
+  // them dormant (_pathLayerUUID = null) so they stay in the graph for later re-activation.
+  function _teardownIntermediateWire(nonTerminalWireId) {
+    var wire = graphState.getWire(nonTerminalWireId);
+    if (!wire) return;
+
+    // Collect stranded terminal wires while non-terminal wire still in wireMap
+    // (so collectPathUpstream inside _buildTeardownForTerminalWire sees the full chain)
+    var strandedIds = _findStrandedTerminalWireIds(wire.toNode, nonTerminalWireId);
+
+    var allBatchCommands = [];
+    var allNodeUpdates = {};
+    var i, j, twId, td, nodeId;
+
+    for (i = 0; i < strandedIds.length; i++) {
+      twId = strandedIds[i];
+      td = _buildTeardownForTerminalWire(twId);
+
+      for (j = 0; j < td.batchCommands.length; j++) {
+        allBatchCommands.push(td.batchCommands[j]);
+      }
+      for (nodeId in td.nodeUpdates) {
+        allNodeUpdates[nodeId] = td.nodeUpdates[nodeId];
+      }
+
+      // Make dormant instead of removing: clear _pathLayerUUID so the wire stays in the
+      // graph (can be re-activated by reconnecting a source) but no longer counts as an
+      // active path. _hasCompDownstreamExcluding skips wires with null _pathLayerUUID,
+      // so iterating multiple stranded wires still produces correct park/delete decisions.
+      graphState.updateWire(twId, { _pathLayerUUID: null });
+    }
+
+    // Remove only the non-terminal wire that was explicitly deleted
+    var basePortId = _getBasePortId(wire.toPort);
+    graphState.removeWire(nonTerminalWireId);
+    portManager.afterDisconnect(wire.toNode, basePortId);
+
+    for (nodeId in allNodeUpdates) {
+      graphState.updateNode(nodeId, allNodeUpdates[nodeId]);
+    }
+
+    if (allBatchCommands.length > 0) {
+      evalBridge.dispatchBatch(allBatchCommands).then(function(res) {
+        if (!res.ok) {
+          console.error('[cascadeAlgorithm] _teardownIntermediateWire error: ' + res.error);
+        }
+      });
+    }
+
+    graphState.rebuildTempGraph();
   }
 
   function cascadeGhost(deletedWireId) {
@@ -138,84 +290,18 @@ var cascadeAlgorithm = (function() {
 
     if (wire.type !== 'layer') return;
 
-    var sourceNodeData = graphState.getNode(wire.fromNode);
-    if (!sourceNodeData) {
-      graphState.removeWire(deletedWireId);
-      return;
+    if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
+      _teardownTerminalWire(deletedWireId);
+    } else {
+      _teardownIntermediateWire(deletedWireId);
     }
-
-    var remainingComps = _hasCompDownstreamExcluding(sourceNodeData.id, deletedWireId, {});
-    if (remainingComps.length > 0) {
-      // Source node still has a comp path — no cascade needed, but still remove wire
-      graphState.removeWire(deletedWireId);
-      return;
-    }
-
-    var cascadeSet = _collectCascadeSet(sourceNodeData.id, deletedWireId);
-    var ordered    = _orderCascadeSet(cascadeSet);
-
-    var batchCommands = [];
-    var nodeUpdates   = [];
-    var i, j, k, m, u;
-    var nodeData, nodeRemainingComps, losingComps, found, def, cmd;
-
-    for (i = 0; i < ordered.length; i++) {
-      nodeData = ordered[i];
-      nodeRemainingComps = _hasCompDownstreamExcluding(nodeData.id, deletedWireId, {});
-
-      losingComps = [];
-      for (j = 0; j < nodeData.hostingComps.length; j++) {
-        found = false;
-        for (k = 0; k < nodeRemainingComps.length; k++) {
-          if (nodeData.hostingComps[j] === nodeRemainingComps[k]) { found = true; break; }
-        }
-        if (!found) losingComps.push(nodeData.hostingComps[j]);
-      }
-
-      def = nodeRegistry.getDefinition(nodeData.type);
-      if (def) {
-        for (m = 0; m < losingComps.length; m++) {
-          cmd = def.onGhost(nodeData, losingComps[m]);
-          if (cmd !== null) batchCommands.push(cmd);
-        }
-      }
-
-      nodeUpdates.push({
-        id:             nodeData.id,
-        state:          nodeRemainingComps.length === 0 ? 'ghost' : 'alive',
-        hostingComps:   nodeRemainingComps,
-        hasParkedLayer: nodeRemainingComps.length === 0
-      });
-    }
-
-    for (u = 0; u < nodeUpdates.length; u++) {
-      graphState.updateNode(nodeUpdates[u].id, {
-        state:          nodeUpdates[u].state,
-        hostingComps:   nodeUpdates[u].hostingComps,
-        hasParkedLayer: nodeUpdates[u].hasParkedLayer
-      });
-    }
-
-    graphState.removeWire(deletedWireId);
-
-    // Notify portManager that a slot was freed on the destination node
-    var cascadeBasePortId = _getBasePortId(wire.toPort);
-    portManager.afterDisconnect(wire.toNode, cascadeBasePortId);
-
-    if (batchCommands.length > 0) {
-      evalBridge.dispatchBatch(batchCommands).then(function(res) {
-        if (!res.ok) {
-          console.error('[cascadeAlgorithm] dispatchBatch error: ' + res.error);
-        }
-      });
-    }
-
-    graphState.rebuildTempGraph();
   }
 
   return {
-    cascadeGhost:      cascadeGhost,
-    hasCompDownstream: hasCompDownstream
+    cascadeGhost:        cascadeGhost,
+    hasCompDownstream:   hasCompDownstream,
+    collectPathUpstream: collectPathUpstream,
+    isCompNode:          _isCompNode
   };
 
 })();

@@ -52,6 +52,7 @@ function _route(action, params) {
     if (action === 'parkLayer')         return actionParkLayer(params);
     if (action === 'unparkLayer')       return actionUnparkLayer(params);
     if (action === 'deleteParkedLayer') return actionDeleteParkedLayer(params);
+    if (action === 'deletePathLayer')   return actionDeletePathLayer(params);
     if (action === 'deleteComp')        return actionDeleteComp(params);
     if (action === 'setLayerProperty')  return actionSetLayerProperty(params);
     if (action === 'setCompProperty')   return actionSetCompProperty(params);
@@ -61,6 +62,9 @@ function _route(action, params) {
     if (action === 'renameNode')        return actionRenameNode(params);
     if (action === 'focusComp')         return actionFocusComp(params);
     if (action === 'pollAliveNodes')    return _routePollAliveNodes(params);
+    if (action === 'applyEffect')       return actionApplyEffect(params);
+    if (action === 'removeEffect')      return actionRemoveEffect(params);
+    if (action === 'setEffectProperty') return actionSetEffectProperty(params);
     return { ok: false, data: null, error: 'Unknown action: ' + action };
 }
 
@@ -102,8 +106,9 @@ function actionCreateTextLayer(params) {
         var comp = findCompByUUID(params.hostingCompUUID);
         if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
 
+        var layerComment = (params.layerUUID !== undefined && params.layerUUID !== null) ? params.layerUUID : params.nodeUUID;
         var textLayer = comp.layers.addText(params.content);
-        textLayer.comment = params.nodeUUID;
+        textLayer.comment = layerComment;
         textLayer.name    = params.label;
 
         var textProp = textLayer.property('ADBE Text Properties').property('ADBE Text Document');
@@ -131,8 +136,9 @@ function actionCreateNullLayer(params) {
         var comp = findCompByUUID(params.hostingCompUUID);
         if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
 
+        var layerComment = (params.layerUUID !== undefined && params.layerUUID !== null) ? params.layerUUID : params.nodeUUID;
         var nullLayer = comp.layers.addNull(10);
-        nullLayer.comment = params.nodeUUID;
+        nullLayer.comment = layerComment;
         nullLayer.name    = params.label;
 
         var xform = nullLayer.property('ADBE Transform Group');
@@ -155,8 +161,9 @@ function actionCreateShapeLayer(params) {
         var comp = findCompByUUID(params.hostingCompUUID);
         if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
 
+        var layerComment = (params.layerUUID !== undefined && params.layerUUID !== null) ? params.layerUUID : params.nodeUUID;
         var layer = comp.layers.addShape();
-        layer.comment = params.nodeUUID;
+        layer.comment = layerComment;
         layer.name    = params.label;
 
         var xform = layer.property('ADBE Transform Group');
@@ -179,10 +186,11 @@ function actionCreateAdjustmentLayer(params) {
         var comp = findCompByUUID(params.hostingCompUUID);
         if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
 
+        var layerComment = (params.layerUUID !== undefined && params.layerUUID !== null) ? params.layerUUID : params.nodeUUID;
         var layer = comp.layers.addSolid([0.5, 0.5, 0.5], params.label,
                                           comp.width, comp.height, 1.0);
         layer.adjustmentLayer = true;
-        layer.comment = params.nodeUUID;
+        layer.comment = layerComment;
         layer.name    = params.label;
 
         var xform = layer.property('ADBE Transform Group');
@@ -224,10 +232,36 @@ function actionParkLayer(params) {
     var result = { ok: false, data: null, error: null };
     try {
         var comp = findCompByUUID(params.hostingCompUUID);
-        if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
+        if (!comp) {
+            result.ok   = true;
+            result.data = { parked: params.nodeUUID };
+            return result;
+        }
 
-        var layer = findLayerByUUID(comp, params.nodeUUID);
-        if (!layer) { result.error = 'Layer not found: ' + params.nodeUUID; return result; }
+        var layer = null;
+        // When a path layer UUID is provided, find by wire UUID and re-stamp to node UUID before parking
+        if (params.layerUUID !== undefined && params.layerUUID !== null) {
+            layer = findLayerByUUID(comp, params.layerUUID);
+            if (layer) layer.comment = params.nodeUUID;
+        }
+        if (!layer) layer = findLayerByUUID(comp, params.nodeUUID);
+        if (!layer) {
+            // Layer already gone — treat as success so cascades don't error
+            result.ok   = true;
+            result.data = { parked: params.nodeUUID };
+            return result;
+        }
+
+        // Strip all effects before parking so the layer lands clean in RESERVED.
+        // Isolated try/catch: a stripping failure must not block the move.
+        try {
+            var effects = layer.Effects;
+            while (effects.numProperties > 0) {
+                effects.property(1).remove();
+            }
+        } catch (stripErr) {
+            // best-effort — continue to park
+        }
 
         var reserved = findOrCreateReservedComp();
         moveLayerToComp(layer, reserved);
@@ -252,7 +286,11 @@ function actionUnparkLayer(params) {
         var comp = findCompByUUID(params.hostingCompUUID);
         if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
 
-        moveLayerToComp(layer, comp);
+        // moveLayerToComp copies then removes the original — use the returned layer to re-stamp
+        var movedLayer = moveLayerToComp(layer, comp);
+        if (movedLayer && params.newLayerUUID !== undefined && params.newLayerUUID !== null) {
+            movedLayer.comment = params.newLayerUUID;
+        }
 
         result.ok   = true;
         result.data = { unparked: params.nodeUUID };
@@ -288,6 +326,32 @@ function actionDeleteParkedLayer(params) {
     return result;
 }
 
+function actionDeletePathLayer(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.compUUID);
+        if (!comp) {
+            result.ok   = true;
+            result.data = { deleted: params.layerUUID };
+            return result;
+        }
+
+        var layer = findLayerByUUID(comp, params.layerUUID);
+        if (!layer) {
+            result.ok   = true;
+            result.data = { deleted: params.layerUUID };
+            return result;
+        }
+
+        layer.remove();
+        result.ok   = true;
+        result.data = { deleted: params.layerUUID };
+    } catch (e) {
+        result.error = e.toString();
+    }
+    return result;
+}
+
 function actionDeleteComp(params) {
     var result = { ok: false, data: null, error: null };
     try {
@@ -313,8 +377,9 @@ function actionSetLayerProperty(params) {
         var comp = findCompByUUID(params.hostingCompUUID);
         if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
 
-        var layer = findLayerByUUID(comp, params.nodeUUID);
-        if (!layer) { result.error = 'Layer not found: ' + params.nodeUUID; return result; }
+        var layerId = (params.layerUUID !== undefined && params.layerUUID !== null) ? params.layerUUID : params.nodeUUID;
+        var layer = findLayerByUUID(comp, layerId);
+        if (!layer) { result.error = 'Layer not found: ' + layerId; return result; }
 
         setPropertyByKey(layer, params.key, params.value);
 
@@ -485,6 +550,121 @@ function _routePollAliveNodes(params) {
         result.error = parsed.error;
     } catch (e) {
         result.error = 'pollAliveNodes route error: ' + e.toString();
+    }
+    return result;
+}
+
+function actionApplyEffect(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.hostingCompUUID);
+        if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
+
+        var layer = findLayerByUUID(comp, params.layerNodeUUID);
+        if (!layer) { result.error = 'Layer not found: ' + params.layerNodeUUID; return result; }
+
+        var effect = layer.Effects.addProperty(params.matchName);
+        effect.comment = params.nodeUUID;
+
+        var props = params.props;
+
+        if (params.matchName === 'ADBE Fill') {
+            if (props.color)                     effect.property('ADBE Fill-0002').setValue([props.color[0], props.color[1], props.color[2]]);
+            if (props.opacity !== undefined)     effect.property('ADBE Fill-0006').setValue(props.opacity);
+        }
+
+        if (params.matchName === 'ADBE Gaussian Blur 2') {
+            if (props.blurriness !== undefined)       effect.property('ADBE Gaussian Blur 2-0001').setValue(props.blurriness);
+            if (props.blurDimensions !== undefined)   effect.property('ADBE Gaussian Blur 2-0002').setValue(props.blurDimensions);
+            if (props.repeatEdgePixels !== undefined) effect.property('ADBE Gaussian Blur 2-0003').setValue(props.repeatEdgePixels);
+        }
+
+        if (params.matchName === 'ADBE Drop Shadow') {
+            if (props.color)                     effect.property('ADBE Drop Shadow-0001').setValue([props.color[0], props.color[1], props.color[2]]);
+            if (props.opacity !== undefined)     effect.property('ADBE Drop Shadow-0002').setValue(props.opacity);
+            if (props.direction !== undefined)   effect.property('ADBE Drop Shadow-0003').setValue(props.direction);
+            if (props.distance !== undefined)    effect.property('ADBE Drop Shadow-0004').setValue(props.distance);
+            if (props.softness !== undefined)    effect.property('ADBE Drop Shadow-0005').setValue(props.softness);
+        }
+
+        result.ok   = true;
+        result.data = { effectName: effect.name };
+    } catch (e) {
+        result.error = e.toString();
+    }
+    return result;
+}
+
+function actionRemoveEffect(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.hostingCompUUID);
+        if (!comp) { result.ok = true; result.data = { removed: params.nodeUUID }; return result; }
+
+        var layer = findLayerByUUID(comp, params.layerNodeUUID);
+        if (!layer) { result.ok = true; result.data = { removed: params.nodeUUID }; return result; }
+
+        var effects = layer.Effects;
+        for (var i = 1; i <= effects.numProperties; i++) {
+            if (effects.property(i).comment === params.nodeUUID) {
+                effects.property(i).remove();
+                break;
+            }
+        }
+
+        result.ok   = true;
+        result.data = { removed: params.nodeUUID };
+    } catch (e) {
+        result.error = e.toString();
+    }
+    return result;
+}
+
+function actionSetEffectProperty(params) {
+    var result = { ok: false, data: null, error: null };
+    try {
+        var comp = findCompByUUID(params.hostingCompUUID);
+        if (!comp) { result.error = 'Hosting comp not found: ' + params.hostingCompUUID; return result; }
+
+        var layer = findLayerByUUID(comp, params.layerNodeUUID);
+        if (!layer) { result.error = 'Layer not found: ' + params.layerNodeUUID; return result; }
+
+        var effects = layer.Effects;
+        var effect = null;
+        for (var i = 1; i <= effects.numProperties; i++) {
+            if (effects.property(i).comment === params.nodeUUID) {
+                effect = effects.property(i);
+                break;
+            }
+        }
+        if (!effect) { result.error = 'Effect not found: ' + params.nodeUUID; return result; }
+
+        var key   = params.key;
+        var value = params.value;
+
+        if (params.matchName === 'ADBE Fill') {
+            if (key === 'color')   effect.property('ADBE Fill-0002').setValue([value[0], value[1], value[2]]);
+            if (key === 'opacity') effect.property('ADBE Fill-0006').setValue(value);
+        }
+
+        if (params.matchName === 'ADBE Gaussian Blur 2') {
+            if (key === 'blurriness')       effect.property('ADBE Gaussian Blur 2-0001').setValue(value);
+            if (key === 'blurDimensions')   effect.property('ADBE Gaussian Blur 2-0002').setValue(value);
+            if (key === 'repeatEdgePixels') effect.property('ADBE Gaussian Blur 2-0003').setValue(value);
+        }
+
+        if (params.matchName === 'ADBE Drop Shadow') {
+            if (key === 'color')     effect.property('ADBE Drop Shadow-0001').setValue([value[0], value[1], value[2]]);
+            if (key === 'opacity')   effect.property('ADBE Drop Shadow-0002').setValue(value);
+            if (key === 'direction') effect.property('ADBE Drop Shadow-0003').setValue(value);
+            if (key === 'distance')  effect.property('ADBE Drop Shadow-0004').setValue(value);
+            if (key === 'softness')  effect.property('ADBE Drop Shadow-0005').setValue(value);
+        }
+
+        result.ok   = true;
+        result.data = { key: key };
+    } catch (e) {
+        result.error = e.toString();
     }
     return result;
 }

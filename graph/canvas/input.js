@@ -96,9 +96,13 @@ var canvasInput = (function() {
       el.style.left = newX + 'px';
       el.style.top  = newY + 'px';
     }
+
+    // Redraw wires so they follow the moving node
+    if (typeof wireRenderer !== 'undefined') wireRenderer.render();
   }
 
   function _onMouseUp(e) {
+    if (_dragState.active && typeof wireRenderer !== 'undefined') wireRenderer.render();
     _dragState.active          = false;
     _dragState.nodeId          = null;
     _dragState.dragStartCanvas = null;
@@ -114,6 +118,7 @@ var canvasInput = (function() {
     var localY = e.clientY - rect.top;
     var delta = e.deltaY > 0 ? 0.9 : 1.1;
     viewport.setZoom(viewport.getTransform().zoom * delta, localX, localY);
+    if (typeof statusBar !== 'undefined') statusBar.update();
   }
 
   function init() {

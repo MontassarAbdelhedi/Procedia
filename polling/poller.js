@@ -59,11 +59,52 @@ var poller = (function() {
     }
 
     var nodes    = graphState.getAllNodes();
+    var wires    = graphState.getAllWires();
     var uuidList = [];
-    for (var id in nodes) {
-      var n = nodes[id];
-      if (n.state === 'alive' && n.nodeKind !== 'effector' && n.nodeKind !== 'data') {
+    var id, n, wireId, w, current, nd, sourceNode, foundUp, upWireId, upW, safetyCount;
+
+    // CompNodes: still polled by node UUID (they are AE CompItems, not layers)
+    for (id in nodes) {
+      n = nodes[id];
+      if (n.state === 'alive' && n.nodeKind === 'affected' && n.type === 'core/comp') {
         uuidList.push({ uuid: n.id, nodeKind: n.nodeKind, type: n.type });
+      }
+    }
+
+    // Path-created layers: one entry per terminal wire — layer identified by wire UUID within a specific comp
+    for (wireId in wires) {
+      w = wires[wireId];
+      if (!w._pathLayerUUID) continue;
+
+      // Walk upstream to find the source affected node for this path
+      current = w.fromNode;
+      sourceNode = null;
+      safetyCount = 0;
+      while (current && safetyCount < 100) {
+        safetyCount++;
+        nd = graphState.getNode(current);
+        if (!nd) break;
+        if (nd.nodeKind !== 'effector') { sourceNode = nd; break; }
+        foundUp = false;
+        for (upWireId in wires) {
+          upW = wires[upWireId];
+          if (upW.toNode === current && upW.type === 'layer') {
+            current = upW.fromNode;
+            foundUp = true;
+            break;
+          }
+        }
+        if (!foundUp) break;
+      }
+
+      if (sourceNode && sourceNode.state === 'alive') {
+        uuidList.push({
+          uuid:      sourceNode.id,
+          layerUUID: w._pathLayerUUID,
+          compUUID:  w.toNode,
+          nodeKind:  sourceNode.nodeKind,
+          type:      sourceNode.type
+        });
       }
     }
 

@@ -20,7 +20,7 @@ function pollAliveNodes(uuidListJSON) {
             var found = false;
             var props = null;
 
-            // CompNode — look up as CompItem
+            // CompNode — look up as CompItem by node UUID
             if (kind === 'affected' && type === 'core/comp') {
                 var comp = findCompByUUID(uuid);
                 if (comp) {
@@ -33,8 +33,19 @@ function pollAliveNodes(uuidListJSON) {
                         duration: comp.duration
                     };
                 }
+            } else if (entry.layerUUID !== undefined && entry.layerUUID !== null &&
+                       entry.compUUID  !== undefined && entry.compUUID  !== null) {
+                // Path-created layer: search by wire UUID within the specific hosting comp
+                var pathComp = findCompByUUID(entry.compUUID);
+                if (pathComp) {
+                    var pathLayer = findLayerByUUID(pathComp, entry.layerUUID);
+                    if (pathLayer) {
+                        found = true;
+                        props = { label: pathLayer.name };
+                    }
+                }
             } else {
-                // Affected layer node — search all comps (skip Reserved)
+                // Legacy fallback: search all comps by node UUID (skip Reserved)
                 var proj = app.project;
                 for (var j = 1; j <= proj.numItems; j++) {
                     var item = proj.item(j);

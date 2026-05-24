@@ -306,8 +306,10 @@ var wireInteraction = (function() {
     if (target && target.hasAttribute && target.hasAttribute('data-wire-id')) {
       var wireId = target.getAttribute('data-wire-id');
       _selectedWireId = (_selectedWireId === wireId) ? null : wireId;
+      graphState.setSelection(null); // wire and node selection are mutually exclusive
+      renderer.render();
       wireRenderer.render();
-      e.stopPropagation(); // prevent canvas background-click from deselecting the node
+      e.stopPropagation(); // prevent canvas background-click from clearing wire selection
     } else {
       _selectedWireId = null;
       wireRenderer.render();
@@ -322,6 +324,7 @@ var wireInteraction = (function() {
       renderer.render();
       wireRenderer.render();
       e.preventDefault();
+      e.stopImmediatePropagation();
     }
   }
 

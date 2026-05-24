@@ -52,29 +52,11 @@ var notificationBar = (function() {
         dismiss(nodeId);
         return;
       }
-
-      var def = nodeRegistry.getDefinition(nodeData.type);
-      if (!def) {
-        console.error('[notificationBar] No definition for node type:', nodeData.type);
-        return;
-      }
-
-      for (var i = 0; i < nodeData.hostingComps.length; i++) {
-        (function(hostingCompUUID) {
-          var command = def.onAlive(nodeData, hostingCompUUID);
-          if (command !== null) {
-            evalBridge.dispatch(command).then(function(res) {
-              if (res.ok) {
-                graphState.updateNode(nodeId, { state: 'alive' });
-                renderer.updateNode(nodeId);
-                dismiss(nodeId);
-              } else {
-                console.error('[notificationBar] Re-create failed:', res.error);
-              }
-            });
-          }
-        })(nodeData.hostingComps[i]);
-      }
+      // engine.recreateNode fires _firePathCreation for every terminal wire whose
+      // source is this node — recreates layers with the correct wire UUIDs as comments
+      engine.recreateNode(nodeId);
+      renderer.updateNode(nodeId);
+      dismiss(nodeId);
     };
 
     removeBtn.onclick = function() {
