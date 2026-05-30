@@ -212,6 +212,11 @@ var cascadeAlgorithm = (function() {
           cmd = def.onGhost(cn, losingCompId, upstreamNodeUUID);
         } else {
           cmd = def.onGhost(cn, losingCompId);
+          // Inject layerUUID (terminal wire UUID) so dispatcher finds the AE layer
+          // by its .comment (set to pathLayerUUID), not by nodeUUID
+          if (cmd && cmd.params) {
+            cmd.params.layerUUID = _resolvePathLayerUUID(cn.id);
+          }
         }
 
         if (cmd !== null) batchCommands.push(cmd);
