@@ -162,17 +162,8 @@ var inspector = (function() {
     if (!nodeData) return;
 
     if (action === 'recreate') {
-      var def = nodeRegistry.getDefinition(nodeData.type);
-      if (!def) return;
-      if (nodeData.state !== 'alive' && def.onDrop) {
-        var cmd = def.onDrop(nodeData);
-        if (cmd) {
-          evalBridge.dispatch(cmd).then(function(res) {
-            if (res.ok) {
-              graphState.updateNode(nodeId, { state: 'alive' });
-            }
-          });
-        }
+      if (typeof engine !== 'undefined' && engine.recreateNode) {
+        engine.recreateNode(nodeId);
       }
       renderer.render();
       if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);

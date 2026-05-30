@@ -609,6 +609,101 @@ var engine = (function() {
     }
   }
 
+  function recreateNode(nodeId) {
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) { console.warn('[engine] recreateNode: node not found: ' + nodeId); return; }
+    if (nodeData.state !== 'error') return;
+
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def) return;
+
+    var wireMap = graphState.getAllWires();
+    var errors = [];
+
+    for (var c = 0; c < nodeData.hostingComps.length; c++) {
+      var hostUUID = nodeData.hostingComps[c];
+
+      if (nodeData.nodeKind === 'affected') {
+        var pathLayerUUID = _findPathLayerUUID(nodeId);
+        var cmd = def.onAlive(nodeData, hostUUID);
+        if (cmd) {
+          cmd.params.layerUUID = pathLayerUUID;
+          (function(nId, cCmd) {
+            evalBridge.dispatch(cCmd).then(function(res) {
+              if (res.ok) {
+                graphState.updateNode(nId, { state: 'alive' });
+                _refreshNodeUI();
+              } else {
+                console.error('[engine] recreateNode onAlive failed: ' + nId + ': ' + res.error);
+              }
+            });
+          })(nodeId, cmd);
+        }
+
+      } else if (nodeData.nodeKind === 'effector') {
+        var upstreamUUID = null;
+        for (var wId in wireMap) {
+          if (!wireMap.hasOwnProperty(wId)) continue;
+          var w = wireMap[wId];
+          if (w.toNode === nodeId && w.toPort === 'main_input') {
+            upstreamUUID = _findPathLayerUUID(w.fromNode);
+            break;
+          }
+        }
+        var cmd = def.onAlive(nodeData, hostUUID, upstreamUUID);
+        if (cmd) {
+          (function(nId, cCmd) {
+            evalBridge.dispatch(cCmd).then(function(res) {
+              if (res.ok) {
+                graphState.updateNode(nId, { state: 'alive' });
+                _refreshNodeUI();
+              }
+            });
+          })(nodeId, cmd);
+        }
+
+      } else if (nodeData.nodeKind === 'blending') {
+        var blendUpstreamUUID = null;
+        for (var bwId in wireMap) {
+          if (!wireMap.hasOwnProperty(bwId)) continue;
+          var bw = wireMap[bwId];
+          if (bw.toNode === nodeId && bw.toPort === 'main_input') {
+            blendUpstreamUUID = _findPathLayerUUID(bw.fromNode);
+            break;
+          }
+        }
+        var cmd = def.onAlive(nodeData, hostUUID, blendUpstreamUUID);
+        if (cmd) {
+          evalBridge.dispatch(cmd).then(function(res) {
+            if (res.ok) {
+              graphState.updateNode(nId, { state: 'alive' });
+            }
+          });
+        }
+
+      } else if (nodeData.nodeKind === 'matte') {
+        var matteTopUUID = null;
+        var matteLayerUUID = null;
+        for (var mwId in wireMap) {
+          if (!wireMap.hasOwnProperty(mwId)) continue;
+          var mw = wireMap[mwId];
+          if (mw.toNode === nodeId) {
+            if (mw.toPort === 'top_layer')   matteTopUUID   = _findPathLayerUUID(mw.fromNode);
+            if (mw.toPort === 'matte_layer') matteLayerUUID = _findPathLayerUUID(mw.fromNode);
+          }
+        }
+        var cmd = def.onAlive(nodeData, hostUUID, matteTopUUID, matteLayerUUID);
+        if (cmd) {
+          evalBridge.dispatch(cmd).then(function(res) {
+            if (res.ok) {
+              graphState.updateNode(nId, { state: 'alive' });
+            }
+          });
+        }
+      }
+    }
+  }
+
   function setNodeProperty(nodeId, key, value) {
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) {
@@ -628,6 +723,7 @@ var engine = (function() {
     deleteNode:          deleteNode,
     deleteSelectedNodes: deleteSelectedNodes,
     duplicateSelectedNodes: duplicateSelectedNodes,
+    recreateNode:        recreateNode,
     toggleLockSelectedNodes: toggleLockSelectedNodes,
     disconnectWire:      disconnectWire,
     setNodeProperty:     setNodeProperty,
