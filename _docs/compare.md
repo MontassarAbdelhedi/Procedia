@@ -54,7 +54,7 @@
 | 26 | **Wire drop on empty canvas** | §19 | DOM node picker filtered by `main_input` compatibility | ✅ Done |
 | 27 | **Parent ports** | §3c | `child_of`/`parent_of` on affected nodes. `setLayerParent`/`clearLayerParent`. Not in cascade | ✅ Done |
 | 28 | **Layer ordering** | — | `setLayerOrder` action. `moveToBeginning()` bottom-to-top. `layerOrderList.js` stub exists | ⚠️ Stub |
-| 29 | **Error state recovery** | §2 | Node→`error` when AE object missing. Re-create / Remove UI buttons not yet implemented | 🔲 Pending |
+| 29 | **Error state recovery** | §2 | Node→`error` when AE object missing. `engine.recreateNode()` + Re-create/Remove buttons in inspector | ✅ Done |
 
 ---
 
@@ -113,6 +113,4 @@
 
 | # | Task | Priority | Notes |
 |---|------|----------|-------|
-| 1 | **Run integration test** (P4 #30) | High | Cache reset to bootstrap. Test suite at `_tests/manual-integration.js`. Load into CEP DevTools console. |
-| 2 | **Error state recovery UI** (P3 #29) | Medium | Add `[Re-create in AE]` and `[Remove from Graph]` buttons in inspector for `error`-state nodes |
-| 3 | **Layer ordering UI** (P3 #28) | Low | `layerOrderList.js` is a stub — implement drag-to-reorder in CompNode inspector |
+| 1 | **Layer ordering UI** (P3 #28) | Low | `layerOrderList.js` is a stub — implement drag-to-reorder in CompNode inspector |
