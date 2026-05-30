@@ -62,7 +62,7 @@
 
 | # | Task | Details | Status |
 |---|------|---------|--------|
-| 30 | **Integration test** | Follow §12 in arch_specs. Five scenarios: cache miss, cache hit, panel reload, param→AE, version diff | — |
+| 30 | **Integration test** | Follow §12 in arch_specs. Five scenarios: cache miss, cache hit, panel reload, param→AE, version diff | ⚡ Test suite ready |
 | 31 | **`data/effectSchemaCache.json` bootstrap** | Verify content is `{ "aeVersion": "", "schemas": {} }` | ✅ Done |
 | 32 | **`index.html` load order audit** | Verify every `<script>` tag matches actual files | ✅ Done |
 | 33 | **Discrepancy: `settings.js`** | File created — `settingsModal.js` now loads after it | ✅ Done |
@@ -113,6 +113,6 @@
 
 | # | Task | Priority | Notes |
 |---|------|----------|-------|
-| 1 | **Integration test** (P4 #30) | High | Test cache miss, cache hit, panel reload, param→AE, version diff per §12 |
+| 1 | **Run integration test** (P4 #30) | High | Cache reset to bootstrap. Test suite at `_tests/manual-integration.js`. Load into CEP DevTools console. |
 | 2 | **Error state recovery UI** (P3 #29) | Medium | Add `[Re-create in AE]` and `[Remove from Graph]` buttons in inspector for `error`-state nodes |
 | 3 | **Layer ordering UI** (P3 #28) | Low | `layerOrderList.js` is a stub — implement drag-to-reorder in CompNode inspector |
