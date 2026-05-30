@@ -504,6 +504,23 @@ var engine = (function() {
         if (affBatch.length > 0) evalBridge.dispatchBatch(affBatch);
         // fire and forget — do not wait before onDelete
       }
+
+      // CompNode: cascade upstream layer wires before deletion
+      // so upstream effectors/affected nodes properly ghost/park
+      if (cascadeAlgorithm && cascadeAlgorithm.isCompNode && cascadeAlgorithm.isCompNode(nodeId)) {
+        var cascadeWireIds = [];
+        for (var cwId in delWireMap) {
+          if (!delWireMap.hasOwnProperty(cwId)) continue;
+          var cw = delWireMap[cwId];
+          if (cw.toNode === nodeId && cw.type === 'layer' && cw._pathLayerUUID !== null) {
+            cascadeWireIds.push(cwId);
+          }
+        }
+        for (var ci = 0; ci < cascadeWireIds.length; ci++) {
+          cascadeAlgorithm.cascadeGhost(cascadeWireIds[ci]);
+        }
+      }
+
       var affDeleteCmd = def ? def.onDelete(nodeData) : null;
       if (affDeleteCmd) evalBridge.dispatch(affDeleteCmd);
     }
