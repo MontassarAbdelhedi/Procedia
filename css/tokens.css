@@ -1,0 +1,24 @@
+/* tokens.css — color/spacing reference. Defined here for documentation.
+   Other CSS files hardcode these values directly (CEP CSS variable support varies).
+
+  --bg-main:          #111110
+  --bg-bar:           rgba(15,15,13,0.9)
+  --bg-topbar:        rgba(20,20,18,0.95)
+  --bg-bottombar:     rgba(13,13,11,0.97)
+  --border:           #2a2a28
+  --border-inner:     #1e1e1c
+  --text-primary:     #d4d2cc
+  --text-secondary:   #B4B2A9
+  --text-muted:       #888780
+  --text-very-muted:  #5F5E5A
+  --text-ghost:       #444441
+  --text-invisible:   #333331
+  --accent-purple:    #534AB7
+  --canvas-dot:       #222220
+
+  Spacing:
+  --bar-left-width:   210px
+  --bar-right-width:  252px
+  --topbar-height:    40px
+  --bottombar-height: 30px
+*/

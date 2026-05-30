@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.29.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/topBar.css">
+  <link rel="stylesheet" href="css/leftBar.css">
+  <link rel="stylesheet" href="css/rightBar.css">
+  <link rel="stylesheet" href="css/canvas.css">
+  <link rel="stylesheet" href="css/node.css">
+  <link rel="stylesheet" href="css/bottomBar.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div id="top-bar"></div>
+
+  <!-- MIDDLE ROW -->
+  <div id="mid-row">
+    <div id="left-bar"></div>
+    <div id="canvas-wrap">
+      <div id="canvas-grid"></div>
+      <div id="canvas-nodes"></div>
+      <canvas id="node-graph"></canvas>
+      <div id="edge-zone-left" class="edge-zone"></div>
+      <div id="edge-zone-right" class="edge-zone"></div>
+      <canvas id="minimap-canvas" width="160" height="100"></canvas>
+    </div>
+    <div id="right-bar"></div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div id="bottom-bar"></div>
+
+  <!-- 1. CEP interface -->
+  <script src="lib/CSInterface.js"></script>
+
+  <!-- 2. Infrastructure — no dependencies -->
+  <script src="data/uuidGenerator.js"></script>
+  <script src="bridge/evalBridge.js"></script>
+  <script src="graph/graphState.js"></script>
+  <script src="graph/nodeRegistry.js"></script>
+
+  <!-- 3. Node definitions — depend on nodeRegistry -->
+  <script src="graph/nodes/categories/core/Comp.js"></script>
+  <script src="graph/nodes/categories/layers/Text.js"></script>
+  <script src="graph/nodes/categories/layers/Null.js"></script>
+  <script src="graph/nodes/categories/layers/Shape.js"></script>
+  <script src="graph/nodes/categories/layers/Adjustment.js"></script>
+  <script src="graph/nodes/categories/effects/FillEffect.js"></script>
+  <script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
+  <script src="graph/nodes/categories/effects/DropShadow.js"></script>
+  <script src="graph/nodes/categories/data/Color.js"></script>
+  <script src="graph/nodes/categories/data/Number.js"></script>
+  <script src="graph/nodes/categories/utility/Blending.js"></script>
+  <script src="graph/nodes/categories/utility/MatteLuma.js"></script>
+  <script src="graph/nodes/categories/utility/MatteAlpha.js"></script>
+
+  <!-- 4. Schema cache — after nodeRegistry, before engine -->
+  <script src="graph/schemaCache.js"></script>
+
+  <!-- 5. Graph engine — depends on graphState, nodeRegistry, all nodes, schemaCache -->
+  <script src="graph/cycleChecker.js"></script>
+  <script src="graph/wireValidator.js"></script>
+  <script src="graph/cascadeAlgorithm.js"></script>
+  <script src="flush/dirtyFlusher.js"></script>
+  <script src="graph/engine.js"></script>
+
+  <!-- 6. Canvas — depends on engine -->
+  <script src="graph/canvas/viewport.js"></script>
+  <script src="graph/canvas/renderer.js"></script>
+  <script src="graph/canvas/input.js"></script>
+  <script src="graph/canvas/minimap.js"></script>
+  <script src="graph/wire/wireRenderer.js"></script>
+  <script src="graph/wire/wire.js"></script>
+
+  <!-- 7. UI — depends on graphState, nodeRegistry, engine -->
+  <script src="ui/nodeList.js"></script>
+  <script src="ui/inspector.js"></script>
+  <script src="ui/settingsModal.js"></script>
+
+  <!-- 8. Infrastructure services -->
+  <script src="polling/poller.js"></script>
+  <script src="notifications/notificationBar.js"></script>
+
+  <!-- 9. UI chrome — no graph dependencies -->
+  <script src="ui/topBar.js"></script>
+  <script src="ui/bottomBar.js"></script>
+  <script src="ui/statusBar.js"></script>
+  <script src="ui/sidebarToggle.js"></script>
+
+  <!-- 10. Entry point — depends on everything -->
+  <script src="index.js"></script>
+
+
+</body>
+</html>

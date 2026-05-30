@@ -1,0 +1,90 @@
+/* base.css — layout grid. Do not add component styles here. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #111110;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#top-bar {
+  height: 40px;
+  flex-shrink: 0;
+}
+
+#mid-row {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#left-bar {
+  width: 210px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.18s ease;
+}
+
+#left-bar.collapsed {
+  width: 0;
+}
+
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+#right-bar {
+  width: 252px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.18s ease;
+}
+
+#right-bar.collapsed {
+  width: 0;
+}
+
+#bottom-bar {
+  height: 30px;
+  flex-shrink: 0;
+}
+
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a28;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a38;
+}
+
+button {
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+}

@@ -1,0 +1,100 @@
+/* canvas.css */
+
+#canvas-wrap {
+  background: #111110;
+}
+
+/* --- Dot grid --- */
+
+#canvas-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #222220 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+#node-graph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* --- Edge hover zones --- */
+
+.edge-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  z-index: 10;
+}
+
+#edge-zone-left {
+  left: 0;
+}
+
+#edge-zone-right {
+  right: 0;
+}
+
+/* --- Sidebar toggle handles (created in sidebarToggle.js) --- */
+
+.sidebar-handle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 36px;
+  background: rgba(22,22,20,0.92);
+  border: 0.5px solid #2a2a28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+  color: #333331;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.sidebar-handle:hover {
+  color: #888780;
+}
+
+.sidebar-handle.visible {
+  opacity: 1;
+}
+
+.sidebar-handle--left {
+  left: 0;
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+}
+
+.sidebar-handle--right {
+  right: 0;
+  border-radius: 4px 0 0 4px;
+  border-right: none;
+}
+
+/* --- Minimap --- */
+
+#minimap-canvas {
+  position:       absolute;
+  bottom:         12px;
+  right:          12px;
+  width:          160px;
+  height:         100px;
+  background:     #111116;
+  border:         1px solid var(--panel-border);
+  border-radius:  6px;
+  pointer-events: all;
+  cursor:         crosshair;
+  z-index:        50;
+}

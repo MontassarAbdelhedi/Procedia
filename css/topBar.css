@@ -1,0 +1,127 @@
+/* topBar.css */
+
+#top-bar {
+  background: rgba(20,20,18,0.95);
+  border-bottom: 1px solid #2a2a28;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+/* --- Left section: logo --- */
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  min-width: 140px;
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.topbar-logo-mark {
+  width: 22px;
+  height: 22px;
+  background: #534AB7;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.82);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.topbar-wordmark {
+  font-size: 12px;
+  font-weight: 600;
+  color: #B4B2A9;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+/* --- Center section: static action icons --- */
+
+.topbar-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+/* --- Right section: dynamic zone --- */
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 140px;
+  gap: 2px;
+}
+
+.topbar-dynamic {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.topbar-selection-badge {
+  font-size: 10px;
+  color: #888780;
+  padding: 2px 7px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid #2a2a28;
+  border-radius: 3px;
+  margin-right: 2px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* --- Shared button style --- */
+
+.topbar-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #888780;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.topbar-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: #B4B2A9;
+}
+
+.topbar-btn--delete {
+  color: #D4614A;
+}
+
+.topbar-btn--delete:hover {
+  background: rgba(212,97,74,0.1);
+  color: #E07060;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 16px;
+  background: #2a2a28;
+  margin: 0 3px;
+  flex-shrink: 0;
+}

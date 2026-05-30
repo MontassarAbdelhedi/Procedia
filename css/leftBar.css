@@ -1,0 +1,172 @@
+/* leftBar.css */
+
+#left-bar {
+  background: rgba(15,15,13,0.9);
+  border-right: 1px solid #2a2a28;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* --- Search field --- */
+
+.leftbar-search {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1e1e1c;
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.leftbar-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2a2a28;
+  outline: none;
+  color: #d4d2cc;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 3px 20px 3px 0;
+  caret-color: #534AB7;
+  min-width: 0;
+}
+
+.leftbar-search-input::placeholder {
+  color: #444441;
+}
+
+.leftbar-search-input:focus {
+  border-bottom-color: #534AB7;
+}
+
+.leftbar-search-clear {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #5F5E5A;
+  font-size: 13px;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.leftbar-search-clear.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.leftbar-search-clear:hover {
+  color: #888780;
+}
+
+/* --- Node list --- */
+
+.leftbar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0 8px;
+}
+
+/* --- Category section --- */
+
+.leftbar-category-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px 5px;
+  cursor: pointer;
+  user-select: none;
+  gap: 4px;
+}
+
+.leftbar-category-header:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.leftbar-category-name {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5F5E5A;
+}
+
+.leftbar-category-chevron {
+  font-size: 12px;
+  color: #5F5E5A;
+  transition: transform 0.15s ease;
+  line-height: 1;
+}
+
+.leftbar-category.open .leftbar-category-chevron {
+  transform: rotate(90deg);
+}
+
+/* --- Collapsible items container --- */
+
+.leftbar-category-items {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.2s ease;
+}
+
+.leftbar-category.open .leftbar-category-items {
+  max-height: 600px;
+}
+
+/* --- Node items --- */
+
+.leftbar-node-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px 5px 14px;
+  gap: 7px;
+  cursor: default;
+}
+
+.leftbar-node-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.leftbar-node-item:hover .leftbar-node-name {
+  color: #d4d2cc;
+}
+
+.leftbar-node-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.leftbar-node-name {
+  font-size: 12px;
+  color: #888780;
+  transition: color 0.1s ease;
+}
+
+.leftbar-node-item.hidden {
+  display: none;
+}
+
+.leftbar-node-item--disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.leftbar-node-item--dragging {
+  background: rgba(255,255,255,0.06);
+}
+
+.leftbar-node-item:not(.leftbar-node-item--disabled) {
+  cursor: grab;
+}
+
+.leftbar-node-item:not(.leftbar-node-item--disabled):active {
+  cursor: grabbing;
+}
