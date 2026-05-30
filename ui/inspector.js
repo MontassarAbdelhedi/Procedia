@@ -125,6 +125,7 @@ var inspector = (function() {
       nodeId:           nodeData.id,
       name:             def.label || nodeData.type,
       state:            _stateLabel(nodeData, def),
+      nodeType:         nodeData.type,
       hostingCompUUID:  nodeData.hostingComps && nodeData.hostingComps.length > 0 ? nodeData.hostingComps[0] : null,
       groups:           [{ label: 'Properties', params: rows }]
     };
@@ -182,20 +183,24 @@ var inspector = (function() {
 
     var nodeId = btn.getAttribute('data-node-id');
     var hostUUID = btn.getAttribute('data-host-uuid');
+    var direction = btn.getAttribute('data-direction') || 'top';
     if (!nodeId || !hostUUID) return;
 
     evalBridge.dispatch({
       action: 'setLayerOrder',
-      params: { layerUUID: nodeId, hostingCompUUID: hostUUID }
+      params: { layerUUID: nodeId, hostingCompUUID: hostUUID, direction: direction }
     });
   }
 
   function renderLayerActions(view) {
     return (
       '<div class="inspector-group">' +
-        '<div class="inspector-group-label">Layer</div>' +
-        '<button class="inspector-layer-btn" data-node-id="' + view.nodeId + '" data-host-uuid="' + view.hostingCompUUID + '">' +
-          '<i class="ti ti-arrow-up"></i> Move to Top' +
+        '<div class="inspector-group-label">Layer Order</div>' +
+        '<button class="inspector-layer-btn" data-node-id="' + view.nodeId + '" data-host-uuid="' + view.hostingCompUUID + '" data-direction="up">' +
+          '<i class="ti ti-chevron-up"></i> Move Up' +
+        '</button>' +
+        '<button class="inspector-layer-btn" data-node-id="' + view.nodeId + '" data-host-uuid="' + view.hostingCompUUID + '" data-direction="down">' +
+          '<i class="ti ti-chevron-down"></i> Move Down' +
         '</button>' +
       '</div>'
     );
@@ -240,7 +245,7 @@ var inspector = (function() {
     }
 
     var layerActionsHtml = '';
-    if (view.state.indexOf('alive') !== -1 && view.hostingCompUUID) {
+    if (view.nodeType === 'core/comp' && view.state.indexOf('alive') !== -1 && view.hostingCompUUID) {
       layerActionsHtml = renderLayerActions(view);
     }
 

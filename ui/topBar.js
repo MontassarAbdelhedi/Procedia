@@ -44,7 +44,11 @@ var topBar = (function() {
     }
 
     document.getElementById('topbar-reset').addEventListener('click', function() {
-      console.log('[Procedia] reset');
+      if (typeof engine !== 'undefined' && engine.resetAll) {
+        if (confirm('Reset graph? This will delete all Procedia objects in AE.')) {
+          engine.resetAll();
+        }
+      }
     });
 
     document.getElementById('topbar-reload').addEventListener('click', function() {

@@ -609,6 +609,29 @@ var engine = (function() {
     }
   }
 
+  function resetAll() {
+    var allNodes = graphState.getAllNodes();
+    var ids = Object.keys(allNodes);
+
+    // Delete nodes in reverse dependency order: effectors before affected
+    for (var i = ids.length - 1; i >= 0; i--) {
+      var nd = allNodes[ids[i]];
+      var def = nodeRegistry.getDefinition(nd.type);
+      if (def && def.onDelete) evalBridge.dispatch(def.onDelete(nd));
+    }
+
+    graphState.clearGraph();
+
+    if (typeof viewport !== 'undefined' && viewport.reset) viewport.reset();
+    if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection([]);
+
+    console.log('[Procedia] reset complete — ' + ids.length + ' nodes removed');
+  }
+
   function recreateNode(nodeId) {
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) { console.warn('[engine] recreateNode: node not found: ' + nodeId); return; }
@@ -724,6 +747,7 @@ var engine = (function() {
     deleteSelectedNodes: deleteSelectedNodes,
     duplicateSelectedNodes: duplicateSelectedNodes,
     recreateNode:        recreateNode,
+    resetAll:            resetAll,
     toggleLockSelectedNodes: toggleLockSelectedNodes,
     disconnectWire:      disconnectWire,
     setNodeProperty:     setNodeProperty,

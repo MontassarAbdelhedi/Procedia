@@ -524,7 +524,14 @@ function _handleSetLayerOrder(cmd) {
     if (!comp) { result.error = 'setLayerOrder: host comp not found'; return result; }
     var layer = findLayerByUUID(comp, params.layerUUID);
     if (!layer) { result.error = 'setLayerOrder: layer not found'; return result; }
-    layer.moveToBeginning();
+    var dir = params.direction || 'top';
+    if (dir === 'top') {
+      layer.moveToBeginning();
+    } else if (dir === 'up') {
+      if (layer.index > 1) layer.moveBefore(comp.layer(layer.index - 1));
+    } else if (dir === 'down') {
+      if (layer.index < comp.numLayers) layer.moveAfter(comp.layer(layer.index + 1));
+    }
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
   return result;
