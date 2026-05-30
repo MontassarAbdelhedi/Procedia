@@ -40,21 +40,21 @@
 
 ## P3 — Features & Systems to Complete
 
-| # | Feature | Arch Spec | Verification Criteria |
-|---|---------|-----------|----------------------|
-| 17 | **Reserved Comp** | §11 | Created on panel init: `"DO NOT DELETE — Procedia Reserved"`. Skip `DO NOT DELETE` comps in traversal. Parked layers preserve keyframes natively. Not auto-repaired |
-| 18 | **Node lifecycle** | §2, §10 | OnDrop→ghost (exceptions). OnAlive→creates AE layer. OnGhost→parks layer. OnDelete→removes parked layer. Property change→dirty flush |
-| 19 | **Alive/ghost transitions** | §2, §7 | Wire connect→alive. Wire disconnect→cascade→ghost. Reconnect dormant→unpark. `hasCompDownstream()` checks all paths. Multi-comp support |
-| 20 | **Dirty flush** | §10 | `dirtyFlusher.schedule()` 300ms debounce. `flush()` calls `onPropertyChange` then `evalBridge.dispatch()`. After `_pathLayerUUID` stamp: sync flush |
-| 21 | **Polling** | §14 | 1s active / 5s idle tick. Skips if `isWriting`. `pollAliveNodes(uuidList)`. Error→`error` state |
-| 22 | **Persistence** | §9 | Written on AE save, AE quit, panel unload. Two text layers: `__PROCEDIA_NODES__`, `__PROCEDIA_WIRES__`. Chunked if over char limit. Read on panel open |
-| 23 | **Settings system** | §17 | `settings.js` loads from `localStorage`. `settingsModal.js` re-syncs on open. Minimap toggle, wire style selector functional |
-| 24 | **Wire styles** | §16 | Bezier, direct, stepped. All three modes in `drawAll()`, `drawWire()`, drag preview. Hit testing always bezier |
-| 25 | **Wire-insertion** | §18 | Drop node on active wire → graph-only remove + `_transplantLayerUUID` + drop + re-wire + `restampLayer`. Drop on dormant wire → full cascade |
-| 26 | **Wire drop on empty canvas** | §19 | DOM node picker filtered by `main_input` compatibility. On selection: drop node + wire connect |
-| 27 | **Parent ports** | §3c | `child_of`/`parent_of` on affected nodes. `layer.parent = targetLayer`. Not traversed by cascade |
-| 28 | **Layer ordering** | — | Drag-to-reorder in CompNode. `setLayerOrder`. `moveToBeginning()` bottom-to-top. 0-based panel ↔ 1-based AE |
-| 29 | **Error state recovery** | §2 | Node→`error` when AE object missing. `[Re-create in AE]`→unpark. `[Remove from Graph]`→remove parked |
+| # | Feature | Arch Spec | Verification Criteria | Status |
+|---|---------|-----------|----------------------|--------|
+| 17 | **Reserved Comp** | §11 | Created on panel init. Skip `DO NOT DELETE` comps. Park preserves keyframes. Not auto-repaired | ✅ Done |
+| 18 | **Node lifecycle** | §2, §10 | OnDrop→ghost (exceptions). OnAlive→creates AE layer. OnGhost→parks. OnDelete→removes. Property→dirty flush | ✅ Done |
+| 19 | **Alive/ghost transitions** | §2, §7 | Wire connect→alive. Wire disconnect→cascade→ghost. Reconnect dormant→unpark. Multi-comp support | ✅ Done |
+| 20 | **Dirty flush** | §10 | `dirtyFlusher.schedule()` 300ms debounce. Sync flush after `_pathLayerUUID` stamp | ✅ Done |
+| 21 | **Polling** | §14 | 1s/5s tick. Skips if `isWriting`. `pollAliveNodes(uuidList)`. Error→`error` state | ✅ Done |
+| 22 | **Persistence** | §9 | Written on AE save/quit/panel unload. Chunked `__PROCEDIA_NODES__` / `__PROCEDIA_WIRES__` | ✅ Done |
+| 23 | **Settings system** | §17 | `settings.js` + `settingsModal.js`. Minimap toggle, wire style selector | ✅ Done |
+| 24 | **Wire styles** | §16 | Bezier, direct, stepped. Read per-frame from `settings.get('wireStyle')` | ✅ Done |
+| 25 | **Wire-insertion** | §18 | Active wire: `_transplantLayerUUID` + `restampLayer`. Dormant: full cascade | ✅ Done |
+| 26 | **Wire drop on empty canvas** | §19 | DOM node picker filtered by `main_input` compatibility | ✅ Done |
+| 27 | **Parent ports** | §3c | `child_of`/`parent_of` on affected nodes. `setLayerParent`/`clearLayerParent`. Not in cascade | ✅ Done |
+| 28 | **Layer ordering** | — | `setLayerOrder` action. `moveToBeginning()` bottom-to-top. `layerOrderList.js` stub exists | ⚠️ Stub |
+| 29 | **Error state recovery** | §2 | Node→`error` when AE object missing. Re-create / Remove UI buttons not yet implemented | 🔲 Pending |
 
 ---
 
@@ -106,3 +106,13 @@
 
 *Generated from `arch_specs.md` vs actual disk state.*
 *Use this as the tracking document for implementation.*
+
+---
+
+## Remaining TODO
+
+| # | Task | Priority | Notes |
+|---|------|----------|-------|
+| 1 | **Integration test** (P4 #30) | High | Test cache miss, cache hit, panel reload, param→AE, version diff per §12 |
+| 2 | **Error state recovery UI** (P3 #29) | Medium | Add `[Re-create in AE]` and `[Remove from Graph]` buttons in inspector for `error`-state nodes |
+| 3 | **Layer ordering UI** (P3 #28) | Low | `layerOrderList.js` is a stub — implement drag-to-reorder in CompNode inspector |
