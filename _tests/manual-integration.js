@@ -91,15 +91,11 @@ var PT = (function() {
   function findNodesByType(type) {
     var result = [];
     var nodes = getAllNodes();
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].type === type) result.push(nodes[i]);
+    var keys = Object.keys(nodes);
+    for (var i = 0; i < keys.length; i++) {
+      if (nodes[keys[i]].type === type) result.push(nodes[keys[i]]);
     }
     return result;
-  }
-
-  function inspectorParamLabels() {
-    var labels = document.querySelectorAll('#inspector-content .inspector-param-label, .inspector-param-label');
-    return Array.prototype.map.call(labels, function(el) { return el.textContent.trim(); });
   }
 
   function qs(sel) { return document.querySelector(sel); }

@@ -58,8 +58,9 @@
   function findNodesByType(type) {
     var out = [];
     var nodes = getAllNodes();
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].type === type) out.push(nodes[i]);
+    var keys = Object.keys(nodes);
+    for (var i = 0; i < keys.length; i++) {
+      if (nodes[keys[i]].type === type) out.push(nodes[keys[i]]);
     }
     return out;
   }
