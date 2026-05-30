@@ -71,9 +71,17 @@ var renderer = (function() {
     span.className = 'node-param-value' + (_isParamWired(nodeId, param.key) ? ' is-wired' : '');
   }
 
-  function _buildParamRow(nodeId, param, value) {
+  function _buildParamRow(nodeId, param, value, portId) {
     var row = document.createElement('div');
     row.className = 'node-param';
+
+    if (portId) {
+      var dot = document.createElement('div');
+      dot.className = 'port-dot data';
+      dot.setAttribute('data-node-id', nodeId);
+      dot.setAttribute('data-port-id', portId);
+      row.appendChild(dot);
+    }
 
     var keySpan = document.createElement('span');
     keySpan.className = 'node-param-key';
@@ -102,7 +110,7 @@ var renderer = (function() {
         var props = nodeData.dynamicSchema.properties;
         for (var i = 0; i < props.length; i++) {
           var dynParam = { key: props[i].matchName, type: props[i].type, label: props[i].label };
-          body.appendChild(_buildParamRow(nodeId, dynParam, nodeData.props[props[i].matchName]));
+          body.appendChild(_buildParamRow(nodeId, dynParam, nodeData.props[props[i].matchName], props[i].matchName));
         }
       }
     } else {
@@ -113,39 +121,6 @@ var renderer = (function() {
     }
 
     return body;
-  }
-
-  function _appendPortDot(container, nodeId, port) {
-    var dot = document.createElement('div');
-    dot.className = 'port-dot ' + (port.type || 'layer');
-    dot.setAttribute('data-node-id', nodeId);
-    dot.setAttribute('data-port-id', port.id);
-    if (port.label) dot.setAttribute('title', port.label);
-    container.appendChild(dot);
-  }
-
-  function _buildPortsInput(nodeId, def, nodeData) {
-    var container = document.createElement('div');
-    container.className = 'ports-input';
-
-    var ports = def.ports;
-    var pi;
-    for (pi = 0; pi < ports.length; pi++) {
-      var port = ports[pi];
-      if (port.category === 'mainInput') {
-        _appendPortDot(container, nodeId, port);
-      } else if (port.category === 'secondaryInput') {
-        _appendPortDot(container, nodeId, port);
-      }
-    }
-
-    if (nodeData.secondaryPorts && nodeData.secondaryPorts.length) {
-      for (var si = 0; si < nodeData.secondaryPorts.length; si++) {
-        _appendPortDot(container, nodeId, nodeData.secondaryPorts[si]);
-      }
-    }
-
-    return container;
   }
 
   function _buildPortsOutput(nodeId, def) {
@@ -203,8 +178,15 @@ var renderer = (function() {
   function _getStateClasses(nodeData) {
     var classes = ['node', nodeData.nodeKind];
     classes.push(nodeData.state || 'ghost');
-    if (graphState.getSelection() === nodeData.id) classes.push('selected');
+    if (graphState.isSelected(nodeData.id)) classes.push('selected');
     return classes.join(' ');
+  }
+
+  function _hasMainInput(def) {
+    for (var mi = 0; mi < def.ports.length; mi++) {
+      if (def.ports[mi].category === 'mainInput') return true;
+    }
+    return false;
   }
 
   function _buildNodeCard(nodeId, nodeData, def) {
@@ -225,6 +207,15 @@ var renderer = (function() {
     catBar.style.background = catColor;
     header.appendChild(catBar);
 
+    if (_hasMainInput(def)) {
+      var mainDot = document.createElement('div');
+      mainDot.className = 'port-dot layer';
+      mainDot.setAttribute('data-node-id', nodeId);
+      mainDot.setAttribute('data-port-id', 'main_input');
+      mainDot.style.flexShrink = '0';
+      header.appendChild(mainDot);
+    }
+
     var labelEl = document.createElement('span');
     labelEl.className = 'node-label';
     labelEl.textContent = (nodeData.props && nodeData.props.label) || def.label;
@@ -238,9 +229,6 @@ var renderer = (function() {
 
     // Body
     card.appendChild(_buildParamBody(nodeId, nodeData, def));
-
-    // Input ports
-    card.appendChild(_buildPortsInput(nodeId, def, nodeData));
 
     // Output port
     var outputPorts = _buildPortsOutput(nodeId, def);
@@ -273,12 +261,7 @@ var renderer = (function() {
     }
 
     var oldInputPorts = el.querySelector('.ports-input');
-    var newInputPorts = _buildPortsInput(nodeId, def, nodeData);
-    if (oldInputPorts) {
-      el.replaceChild(newInputPorts, oldInputPorts);
-    } else {
-      el.appendChild(newInputPorts);
-    }
+    if (oldInputPorts) oldInputPorts.parentNode.removeChild(oldInputPorts);
   }
 
   function render() {

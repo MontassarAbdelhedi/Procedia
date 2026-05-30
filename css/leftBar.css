@@ -170,3 +170,32 @@
 .leftbar-node-item:not(.leftbar-node-item--disabled):active {
   cursor: grabbing;
 }
+
+/* --- Drag ghost --- */
+
+.node-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  background: rgba(20,20,18,0.92);
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.node-drag-ghost-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.node-drag-ghost-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d4d2cc;
+}

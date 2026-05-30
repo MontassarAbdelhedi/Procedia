@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/canvas.css">
   <link rel="stylesheet" href="css/node.css">
   <link rel="stylesheet" href="css/bottomBar.css">
+  <link rel="stylesheet" href="css/settingsModal.css">
+  <link rel="stylesheet" href="css/nodePicker.css">
 </head>
 <body>
 
@@ -43,6 +45,7 @@
   <script src="bridge/evalBridge.js"></script>
   <script src="graph/graphState.js"></script>
   <script src="graph/nodeRegistry.js"></script>
+  <script src="ui/settings.js"></script>
 
   <!-- 3. Node definitions — depend on nodeRegistry -->
   <script src="graph/nodes/categories/core/Comp.js"></script>
@@ -74,11 +77,13 @@
   <script src="graph/canvas/renderer.js"></script>
   <script src="graph/canvas/input.js"></script>
   <script src="graph/canvas/minimap.js"></script>
+  <script src="graph/canvas/drag.js"></script>
   <script src="graph/wire/wireRenderer.js"></script>
   <script src="graph/wire/wire.js"></script>
 
   <!-- 7. UI — depends on graphState, nodeRegistry, engine -->
   <script src="ui/nodeList.js"></script>
+  <script src="ui/nodePicker.js"></script>
   <script src="ui/inspector.js"></script>
   <script src="ui/settingsModal.js"></script>
 

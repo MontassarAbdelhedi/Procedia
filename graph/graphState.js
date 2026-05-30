@@ -8,7 +8,7 @@ var graphState = (function() {
   var nodeMap   = {};
   var wireMap   = {};
   var tempGraph = { version: '4.0', nodes: {}, wires: {} };
-  var selection = null;
+  var selection = [];
   var _onSelectionChangeCb = null;
 
   var _strippedNodeFields = {
@@ -138,8 +138,10 @@ var graphState = (function() {
 
   function updateProp(uuid, key, value) {
     if (!nodeMap.hasOwnProperty(uuid)) return;
-    nodeMap[uuid].props[key] = value;
-    nodeMap[uuid].dirty = true;
+    var node = nodeMap[uuid];
+    if (!node.props) node.props = {};
+    node.props[key] = value;
+    node.dirty = true;
   }
 
   function clearDirty(uuid) {
@@ -147,17 +149,72 @@ var graphState = (function() {
     nodeMap[uuid].dirty = false;
   }
 
-  // --- selection ---
+  // --- selection (multi-select) ---
+
+  function _fireSelectionChange() {
+    if (_onSelectionChangeCb) {
+      _onSelectionChangeCb(selection);
+    }
+  }
 
   function setSelection(uuid) {
-    selection = uuid;
-    if (_onSelectionChangeCb) {
-      _onSelectionChangeCb(uuid);
+    if (uuid === null || uuid === undefined) {
+      selection = [];
+    } else {
+      selection = [uuid];
     }
+    _fireSelectionChange();
   }
 
   function getSelection() {
     return selection;
+  }
+
+  function addToSelection(uuid) {
+    if (selection.indexOf(uuid) === -1) {
+      selection.push(uuid);
+    }
+    _fireSelectionChange();
+  }
+
+  function removeFromSelection(uuid) {
+    var idx = selection.indexOf(uuid);
+    if (idx !== -1) {
+      selection.splice(idx, 1);
+    }
+    _fireSelectionChange();
+  }
+
+  function toggleSelection(uuid) {
+    var idx = selection.indexOf(uuid);
+    if (idx !== -1) {
+      selection.splice(idx, 1);
+    } else {
+      selection.push(uuid);
+    }
+    _fireSelectionChange();
+  }
+
+  function isSelected(uuid) {
+    return selection.indexOf(uuid) !== -1;
+  }
+
+  function clearSelection() {
+    selection = [];
+    _fireSelectionChange();
+  }
+
+  function getSelectionCount() {
+    return selection.length;
+  }
+
+  function replaceSelection(uuids) {
+    if (!Array.isArray(uuids)) {
+      selection = [];
+    } else {
+      selection = uuids.slice();
+    }
+    _fireSelectionChange();
   }
 
   function onSelectionChange(callback) {
@@ -169,7 +226,7 @@ var graphState = (function() {
   function loadGraph(graphData) {
     nodeMap   = {};
     wireMap   = {};
-    selection = null;
+    selection = [];
 
     if (graphData && graphData.nodes) {
       for (var nodeId in graphData.nodes) {
@@ -179,6 +236,7 @@ var graphState = (function() {
         if (node.hasParkedLayer=== undefined) node.hasParkedLayer= false;
         if (node.secondaryPorts === undefined) node.secondaryPorts = null;
         if (node.dynamicSchema === undefined) node.dynamicSchema = null;
+        if (node.locked === undefined) node.locked = false;
       }
     }
 
@@ -195,7 +253,7 @@ var graphState = (function() {
     nodeMap   = {};
     wireMap   = {};
     tempGraph = { version: '4.0', nodes: {}, wires: {} };
-    selection = null;
+    selection = [];
   }
 
   return {
@@ -214,9 +272,16 @@ var graphState = (function() {
     updateProp:        updateProp,
     clearDirty:        clearDirty,
 
-    setSelection:      setSelection,
-    getSelection:      getSelection,
-    onSelectionChange: onSelectionChange,
+    setSelection:        setSelection,
+    getSelection:        getSelection,
+    addToSelection:      addToSelection,
+    removeFromSelection: removeFromSelection,
+    toggleSelection:     toggleSelection,
+    isSelected:          isSelected,
+    clearSelection:      clearSelection,
+    replaceSelection:    replaceSelection,
+    getSelectionCount:   getSelectionCount,
+    onSelectionChange:   onSelectionChange,
 
     rebuildTempGraph:  rebuildTempGraph,
     loadGraph:         loadGraph,

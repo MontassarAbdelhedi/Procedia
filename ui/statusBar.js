@@ -38,24 +38,28 @@ var statusBar = (function() {
     if (typeof viewport !== 'undefined' && viewport.getTransform) {
       zoom = Math.round(viewport.getTransform().zoom * 100);
     }
+    var selCount = 0;
+    if (typeof graphState !== 'undefined' && typeof graphState.getSelectionCount === 'function') {
+      selCount = graphState.getSelectionCount();
+    }
+    var selPart = selCount > 0 ? selCount + ' selected · ' : '';
     _el.textContent =
-      nc.total + ' nodes · ' + nc.alive + ' alive · ' + nc.ghost + ' ghost · ' +
+      selPart + nc.total + ' nodes · ' + nc.alive + ' alive · ' + nc.ghost + ' ghost · ' +
       wires + ' wires · ' + zoom + '%';
   }
 
   function init() {
-    var bar = document.getElementById('bottom-bar');
-    if (!bar) return;
-    var notif = bar.querySelector('.bottombar-notif');
-    if (!notif) return;
-    _el = document.createElement('span');
-    _el.className = 'bottombar-notif-text';
-    _el.id = 'statusbar-text';
-    notif.innerHTML = '';
-    var pip = document.createElement('div');
-    pip.className = 'bottombar-pip';
-    notif.appendChild(pip);
-    notif.appendChild(_el);
+    _el = document.getElementById('bottombar-notif-text');
+    if (!_el) {
+      var bar = document.getElementById('bottom-bar');
+      if (!bar) return;
+      var notif = bar.querySelector('.bottombar-notif');
+      if (!notif) return;
+      _el = document.createElement('span');
+      _el.className = 'bottombar-notif-text';
+      _el.id = 'bottombar-notif-text';
+      notif.appendChild(_el);
+    }
     refresh();
   }
 

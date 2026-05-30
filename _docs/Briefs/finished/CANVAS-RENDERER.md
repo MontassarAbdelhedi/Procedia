@@ -38,7 +38,7 @@ This task does **not** include wire rendering — that is `graph/wire/wireRender
 - No wire drag interaction (port click/drag is TASK-10)
 - No palette drag-to-canvas (`ui/drag.js` is TASK-11)
 - No inspector wiring (`ui/inspector.js` is TASK-11)
-- No keyboard shortcuts (`ui/keyboard.js` is TASK-11)
+- No keyboard shortcuts
 - No minimap (`graph/canvas/minimap.js` is a later task)
 
 Files written or modified in this task: `graph/graphState.js` (extended), `graph/canvas/viewport.js`, `graph/canvas/renderer.js`, `graph/canvas/input.js` (partial — node drag only).

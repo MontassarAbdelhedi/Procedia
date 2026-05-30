@@ -1,0 +1,140 @@
+/* settingsModal.css — Settings modal overlay and controls */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  background: #1a1a18;
+  border: 1px solid #2a2a28;
+  border-radius: 8px;
+  width: 380px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.settings-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #2a2a28;
+}
+
+.settings-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #d4d2cc;
+}
+
+.settings-modal-close {
+  background: none;
+  border: none;
+  color: #888780;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 1;
+}
+
+.settings-modal-close:hover {
+  color: #d4d2cc;
+}
+
+.settings-modal-body {
+  padding: 18px;
+}
+
+.settings-group {
+  margin-bottom: 20px;
+}
+
+.settings-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-label {
+  font-size: 13px;
+  color: #d4d2cc;
+  font-weight: 500;
+}
+
+.settings-hint {
+  font-size: 11px;
+  color: #888780;
+  margin-top: 4px;
+}
+
+/* Toggle switch */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.settings-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #333331;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+
+.settings-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  bottom: 2px;
+  background: #888780;
+  border-radius: 50%;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+  background: #534AB7;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider::before {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+/* Select dropdown */
+.settings-select {
+  background: #111110;
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+  color: #d4d2cc;
+  font-size: 12px;
+  padding: 4px 8px;
+  font-family: system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  outline: none;
+}
+
+.settings-select:focus {
+  border-color: #534AB7;
+}

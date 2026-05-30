@@ -75,7 +75,7 @@ procedia-v4/
 │   ├── drag.js
 │   ├── inspector.js
 │   ├── layerOrderList.js
-│   └── keyboard.js
+
 │
 ├── flush/
 │   └── dirtyFlusher.js
@@ -137,7 +137,7 @@ Every `.js` and `.jsx` file must be created with a stub — not empty, not logic
 | `ui/drag.js` | graph/graphState.js, graph/nodeRegistry.js | index.js |
 | `ui/inspector.js` | graph/graphState.js, graph/nodeRegistry.js | index.js |
 | `ui/layerOrderList.js` | graph/graphState.js | index.js |
-| `ui/keyboard.js` | graph/graphState.js | index.js |
+
 | `flush/dirtyFlusher.js` | graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js | index.js |
 | `polling/poller.js` | bridge/evalBridge.js | index.js |
 | `notifications/notificationBar.js` | none | index.js |
@@ -513,7 +513,7 @@ Place these at the bottom of `<body>`, after all HTML. This is the load-order so
 <script src="ui/drag.js"></script>
 <script src="ui/inspector.js"></script>
 <script src="ui/layerOrderList.js"></script>
-<script src="ui/keyboard.js"></script>
+
 
 <!-- Services -->
 <script src="flush/dirtyFlusher.js"></script>

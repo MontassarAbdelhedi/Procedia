@@ -5,6 +5,7 @@
   border-top: 1px solid #2a2a28;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0 10px;
   gap: 0;
   flex-shrink: 0;
@@ -13,11 +14,9 @@
 /* --- Notification area --- */
 
 .bottombar-notif {
-  flex: 1;
   display: flex;
   align-items: center;
   gap: 7px;
-  min-width: 0;
 }
 
 .bottombar-pip {

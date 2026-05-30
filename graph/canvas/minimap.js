@@ -1,5 +1,5 @@
 // graph/canvas/minimap.js
-// DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js
+// DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js, ui/settings.js
 // MUST LOAD BEFORE: index.js
 
 var minimap = (function() {
@@ -74,6 +74,7 @@ var minimap = (function() {
   function render() {
     var canvas = document.getElementById('minimap-canvas');
     if (!canvas) return;
+    if (canvas.style.display === 'none') return;
     var ctx = canvas.getContext('2d');
 
     ctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
@@ -89,10 +90,6 @@ var minimap = (function() {
     _lastFrame = frame;
 
     var nodes = _getNodes();
-    var selection = null;
-    if (typeof graphState !== 'undefined' && typeof graphState.getSelection === 'function') {
-      selection = graphState.getSelection();
-    }
 
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
@@ -115,14 +112,6 @@ var minimap = (function() {
       ctx.arc(mp.x, mp.y, DOT_RADIUS, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
-
-      if (selection && selection === node.id) {
-        ctx.strokeStyle = '#5555AA';
-        ctx.lineWidth   = 1.5;
-        ctx.beginPath();
-        ctx.arc(mp.x, mp.y, DOT_RADIUS + 1.5, 0, Math.PI * 2);
-        ctx.stroke();
-      }
     }
 
     ctx.fillStyle   = 'rgba(255, 255, 255, 0.05)';
@@ -152,9 +141,59 @@ var minimap = (function() {
     canvasView.setPan(newX, newY);
   }
 
+  function _fitAll() {
+    var nodes = _getNodes();
+    if (nodes.length === 0) return;
+
+    var minX = Infinity, maxX = -Infinity;
+    var minY = Infinity, maxY = -Infinity;
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.x < minX) minX = n.x;
+      if (n.x > maxX) maxX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.y > maxY) maxY = n.y;
+    }
+
+    var PAD = 80;
+    var bboxW = (maxX - minX) + NODE_WIDTH + PAD * 2;
+    var bboxH = (maxY - minY) + NODE_HEIGHT + PAD * 2;
+
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return;
+    var wrapW = wrap.clientWidth;
+    var wrapH = wrap.clientHeight;
+
+    var zoom = Math.min(wrapW / bboxW, wrapH / bboxH);
+    zoom = Math.max(0.1, Math.min(4.0, zoom));
+
+    var centerX = (minX + maxX + NODE_WIDTH) / 2;
+    var centerY = (minY + maxY + NODE_HEIGHT) / 2;
+
+    viewport.setTransform(zoom, wrapW / 2 - centerX * zoom, wrapH / 2 - centerY * zoom);
+  }
+
   function init() {
     var canvas = document.getElementById('minimap-canvas');
     if (!canvas) { console.warn('[minimap] canvas element not found'); return; }
+
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return;
+
+    var btn = document.createElement('button');
+    btn.className = 'minimap-fit-btn';
+    btn.title = 'Fit all nodes';
+    btn.innerHTML = '<i class="ti ti-focus-2"></i>';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      _fitAll();
+    });
+
+    var container = document.createElement('div');
+    container.className = 'minimap-container';
+    canvas.parentNode.insertBefore(container, canvas);
+    container.appendChild(canvas);
+    container.appendChild(btn);
 
     canvas.addEventListener('mousedown', function(e) {
       _panning = true;
@@ -168,6 +207,6 @@ var minimap = (function() {
     document.addEventListener('mouseup', function() { _panning = false; });
   }
 
-  return { render: render, init: init };
+  return { render: render, init: init, fitAll: _fitAll };
 
 })();

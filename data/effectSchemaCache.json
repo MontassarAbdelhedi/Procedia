@@ -1,1 +1,1 @@
-{"aeVersion":"25.1x68","schemas":{}}
+{"aeVersion":"25.1x68","schemas":{"ADBE Fill":{"matchName":"ADBE Fill","properties":[{"matchName":"ADBE Fill-0002","label":"Color","type":"color","defaultValue":[1,0,0,1]},{"matchName":"ADBE Effect Built In Params","label":"Compositing Options","type":"number"}]}}}

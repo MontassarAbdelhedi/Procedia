@@ -740,6 +740,7 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="bridge/evalBridge.js"></script>
 <script src="graph/graphState.js"></script>
 <script src="graph/nodeRegistry.js"></script>
+<script src="ui/settings.js"></script>
 
 <!-- 3. Node definitions — depend on nodeRegistry -->
 <script src="graph/nodes/categories/core/Comp.js"></script>
@@ -761,9 +762,9 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 
 <!-- 5. Graph engine — depends on graphState, nodeRegistry, schemaCache, all nodes -->
 <script src="graph/cycleChecker.js"></script>
-<script src="graph/portManager.js"></script>
 <script src="graph/wireValidator.js"></script>
 <script src="graph/cascadeAlgorithm.js"></script>
+<script src="flush/dirtyFlusher.js"></script>
 <script src="graph/engine.js"></script>
 
 <!-- 6. Canvas — depends on engine -->
@@ -771,28 +772,26 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/canvas/renderer.js"></script>
 <script src="graph/canvas/input.js"></script>
 <script src="graph/canvas/minimap.js"></script>
+<script src="graph/canvas/drag.js"></script>
+<script src="graph/canvas/layerOrderList.js"></script>
 <script src="graph/wire/wireRenderer.js"></script>
 <script src="graph/wire/wire.js"></script>
 
 <!-- 7. UI — depends on graphState, nodeRegistry, engine -->
 <script src="ui/nodeList.js"></script>
-<script src="canvas/drag.js"></script>
+<script src="ui/nodePicker.js"></script>
 <script src="ui/inspector.js"></script>
-<script src="canvas/layerOrderList.js"></script>
-<script src="ui/statusBar.js"></script>
-<script src="canvas/keyboard.js"></script>
 <script src="ui/settingsModal.js"></script>
 
 <!-- 8. Infrastructure services -->
-<script src="flush/dirtyFlusher.js"></script>
 <script src="polling/poller.js"></script>
 <script src="notifications/notificationBar.js"></script>
 
 <!-- 9. UI chrome — no graph dependencies -->
 <script src="ui/topBar.js"></script>
 <script src="ui/bottomBar.js"></script>
+<script src="ui/statusBar.js"></script>
 <script src="ui/sidebarToggle.js"></script>
-<script src="canvas/node.js"></script>
 
 <!-- 10. Entry point — depends on everything -->
 <script src="index.js"></script>
@@ -947,13 +946,15 @@ procedia/
 │
 ├── graph/
 │   ├── graphState.js                       ← nodeMap, wireMap, tempGraph. ONLY mutator.
+│   │                                         Supports `locked` node property.
 │   ├── nodeRegistry.js                     ← register(), getDefinition(), getAll(), getByCategory()
 │   ├── schemaCache.js                      ← Dynamic effect schema cache. init(), getSchema(),
 │   │                                         storeSchema(), hasSchema(), isReady()
 │   ├── engine.js                           ← Dumb executor. Zero node-type conditionals.
+│   │                                         Exposes: duplicateSelectedNodes(),
+│   │                                         toggleLockSelectedNodes()
 │   ├── cascadeAlgorithm.js                 ← cascadeGhost(), hasCompDownstream(), collectPathUpstream()
 │   ├── cycleChecker.js                     ← hasCycle() — pure graph traversal
-│   ├── portManager.js                      ← Extendable port slot lifecycle
 │   ├── wireValidator.js                    ← Wire type compatibility. Filters picker list.
 │   │                                         Enforces blending node main_input ← affected only.
 │   │                                         Enforces matte node three-condition validation.
@@ -965,25 +966,24 @@ procedia/
 │   │       ├── data/        Color.js, Number.js
 │   │       └── utility/     Blending.js, MatteLuma.js, MatteAlpha.js
 │   ├── canvas/
-│   │   ├── viewport.js, renderer.js, input.js, minimap.js
+│   │   ├── viewport.js, renderer.js, input.js, minimap.js (no selection highlight)
+│   │   ├── drag.js          ← onDrop handler + wire-insertion (drop on wire to insert mid-path)
+│   │   └── layerOrderList.js← Drag-to-reorder stub
 │   └── wire/
 │       ├── wire.js, wireRenderer.js
 │
-├── canvas/
-│   ├── canvasView.js    ← Stub (moved to graph/canvas/viewport.js, not loaded)
-│   ├── drag.js          ← onDrop handler + wire-insertion (drop on wire to insert mid-path)
-│   ├── keyboard.js      ← Delete/Backspace shortcuts
-│   ├── layerOrderList.js← Drag-to-reorder for CompNode layer stacking
-│   └── node.js          ← nodeModel — node DOM layer, positioned divs
-│
 ├── ui/
 │   ├── nodeList.js      ← Node palette — category collapse, search, drag-to-canvas
+│   │                      Shows drag ghost with category-colored dot + node name
+│   ├── nodePicker.js    ← Popup picker when dropping wire on empty canvas
 │   ├── inspector.js     ← Inspector panel — renders params for selected node
 │   │                      Handles both static (params array) and dynamic (schema) nodes
 │   ├── statusBar.js     ← Status bar: node/wire counts, alive/ghost counts, zoom level
+│   ├── settings.js      ← Persistent key/value store (localStorage): minimap, wireStyle
 │   ├── settingsModal.js ← Gear-button modal — open/close, minimap toggle, wire style select
-│   ├── topBar.js        ← Top bar chrome
-│   ├── bottomBar.js     ← Bottom bar chrome
+│   ├── topBar.js        ← Top bar chrome with Save/Undo/Redo/Fit, Duplicate/Delete,
+│   │                      Reset/Reload/Settings buttons. Selection-badge removed.
+│   ├── bottomBar.js     ← Bottom bar chrome — centered notification text only
 │   └── sidebarToggle.js ← Left/right panel collapse toggle
 │
 ├── flush/         dirtyFlusher.js

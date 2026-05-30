@@ -158,3 +158,34 @@
   outline: none;
   border-color: rgba(83,74,183,0.45);
 }
+
+.inspector-state-dot.error {
+  background: #E74C3C;
+}
+
+.inspector-recover-btn,
+.inspector-layer-btn {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #d4d2cc;
+  background: #2a2a28;
+  border: 1px solid #3a3a38;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.inspector-recover-btn:hover,
+.inspector-layer-btn:hover {
+  background: #3a3a38;
+}
+
+.inspector-recover-btn i,
+.inspector-layer-btn i {
+  margin-right: 6px;
+  font-size: 13px;
+}

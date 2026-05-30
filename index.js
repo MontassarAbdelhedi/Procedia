@@ -9,53 +9,6 @@
 
 var csInterface = new CSInterface();
 
-// Remove or set false before release — seeds the graph so canvas UX can be tested without AE drop wiring.
-var SEED_TEST_NODE = true;
-
-function _seedTestNode() {
-  if (!SEED_TEST_NODE) return;
-  var textDef = nodeRegistry.getDefinition('layers/text');
-  var compDef = nodeRegistry.getDefinition('core/comp');
-  if (!textDef || !compDef) {
-    console.warn('[Procedia] test seed skipped — text or comp not registered');
-    return;
-  }
-  var textNode = engine.dropNode(textDef, 200, 160);
-  var compNode = engine.dropNode(compDef, 480, 160);
-  if (!textNode || !compNode) return;
-
-  var attempts = 0;
-  var maxAttempts = 100;
-
-  function _tryConnect() {
-    var compData = graphState.getNode(compNode.id);
-    if (!compData) return;
-
-    if (compData.state === 'alive') {
-      engine.connectWire(textNode.id, 'output', compNode.id, 'main_input');
-      graphState.setSelection(textNode.id);
-      renderer.render();
-      if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-      console.log('[Procedia] test graph seeded:', textNode.id, '→', compNode.id);
-      return;
-    }
-
-    if (compData.state === 'error') {
-      console.warn('[Procedia] test seed aborted — comp node failed to create in AE');
-      return;
-    }
-
-    attempts++;
-    if (attempts < maxAttempts) {
-      setTimeout(_tryConnect, 50);
-    } else {
-      console.warn('[Procedia] test seed timed out waiting for comp node to become alive');
-    }
-  }
-
-  _tryConnect();
-}
-
 function init() {
   evalBridge.init(csInterface);
   var _extPath = (typeof window.__adobe_cep__ !== 'undefined')
@@ -71,11 +24,12 @@ function init() {
 
   canvasView.init();
   canvasInput.init();
-  graphState.onSelectionChange(function() {
+  graphState.onSelectionChange(function(sel) {
     renderer.render();
     if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
     if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
     if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
   });
   wireRenderer.init();
   wireTool.init();
@@ -86,6 +40,7 @@ function init() {
   bottomBar.init();
   statusBar.init();
   sidebarToggle.init();
+  settingsModal.init();
   evalBridge.onReady(function(ready) {
     if (!ready) {
       console.warn('[Procedia] test seed skipped — evalBridge preamble not loaded');
@@ -96,9 +51,31 @@ function init() {
       chain = schemaCache.init();
     }
     chain.then(function() {
-      _seedTestNode();
+      return evalBridge.dispatch({ action: 'ensureReservedComp' });
+    }).then(function() {
+      return evalBridge.dispatch({ action: 'readGraph' });
+    }).then(function(res) {
+      if (res && res.ok && res.data && res.data.nodes) {
+        var hasNodes = false;
+        for (var k in res.data.nodes) { hasNodes = true; break; }
+        if (hasNodes) {
+          graphState.loadGraph(res.data);
+          renderer.render();
+          if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+          console.log('[Procedia] graph restored from persistence');
+        }
+      }
+    }).then(function() {
+      if (typeof poller !== 'undefined' && poller.start) poller.start();
       if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     });
+  });
+
+  window.addEventListener('beforeunload', function() {
+    if (typeof graphState === 'undefined') return;
+    var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
+    evalBridge.dispatch({ action: 'writeGraph', params: graphData });
+    if (typeof poller !== 'undefined' && poller.stop) poller.stop();
   });
 }
 

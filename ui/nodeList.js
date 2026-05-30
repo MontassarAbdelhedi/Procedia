@@ -10,10 +10,22 @@ var nodeList = (function() {
     'Null':     'layers/null',
     'Comp':     'core/comp',
     'Fill':     'effects/fill',
+    'Color':    'data/color',
+    'Number':   'data/number',
     'Blending': 'utility/blending'
   };
 
   var _dragLabel = null;
+  var _ghostEl = null;
+
+  function _getCategoryColor(label) {
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      for (var j = 0; j < CATEGORIES[i].nodes.length; j++) {
+        if (CATEGORIES[i].nodes[j] === label) return CATEGORIES[i].color;
+      }
+    }
+    return '#888780';
+  }
 
   var CATEGORIES = [
     {
@@ -36,6 +48,13 @@ var nodeList = (function() {
       color: '#534AB7',
       open: false,
       nodes: ['Comp']
+    },
+    {
+      id: 'data',
+      name: 'Data',
+      color: '#2E7D32',
+      open: false,
+      nodes: ['Color', 'Number']
     },
     {
       id: 'utility',
@@ -92,12 +111,33 @@ var nodeList = (function() {
           if (e.button !== 0) return;
           _dragLabel = label;
           item.classList.add('leftbar-node-item--dragging');
+
+          var ghost = document.createElement('div');
+          ghost.className = 'node-drag-ghost';
+          ghost.innerHTML =
+            '<span class="node-drag-ghost-dot" style="background:' + _getCategoryColor(label) + '"></span>' +
+            '<span class="node-drag-ghost-label">' + label + '</span>';
+          ghost.style.left = (e.clientX + 12) + 'px';
+          ghost.style.top = (e.clientY - 8) + 'px';
+          document.body.appendChild(ghost);
+          _ghostEl = ghost;
+
           e.preventDefault();
         });
       }(items[i]));
     }
 
+    document.addEventListener('mousemove', function(e) {
+      if (!_ghostEl) return;
+      _ghostEl.style.left = (e.clientX + 12) + 'px';
+      _ghostEl.style.top = (e.clientY - 8) + 'px';
+    });
+
     document.addEventListener('mouseup', function(e) {
+      if (_ghostEl) {
+        _ghostEl.parentNode.removeChild(_ghostEl);
+        _ghostEl = null;
+      }
       if (!_dragLabel) return;
 
       var dragging = listEl.querySelector('.leftbar-node-item--dragging');
@@ -118,6 +158,23 @@ var nodeList = (function() {
       if (!def) return;
 
       var pos = viewport.screenToCanvas(e.clientX, e.clientY);
+
+      // Check for wire-insertion: if drop is on an existing wire, insert node
+      if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt) {
+        var hitWire = canvasDrag.findWireAt(pos.x, pos.y);
+        if (hitWire) {
+          var insertNode = canvasDrag.insertNodeOnWire(hitWire.id, def, pos.x, pos.y);
+          if (insertNode) {
+            graphState.setSelection(insertNode.id);
+            renderer.render();
+            if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+            if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+            if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+          }
+          return;
+        }
+      }
+
       var node = engine.dropNode(def, pos.x, pos.y);
       if (node) {
         graphState.setSelection(node.id);

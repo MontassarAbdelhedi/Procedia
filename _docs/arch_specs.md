@@ -44,7 +44,7 @@ Every node definition declares a `nodeKind`. This is a type-level constant — n
 | ---------- | ---------- | ------ | ----------- | ------------ | -------- |
 | `affected` | Creates and owns a standalone AE layer. Layer moves between comps when alive. When ghosted, layer is parked in the Reserved Comp — keyframes survive natively. | Create new AE Layer. Output "Layer" | Layer in hosting comp | No | TextNode, NullNode, ShapeNode, AdjustmentNode, CompNode |
 | `effector` | Modifies an existing layer owned by an affected node upstream. No standalone AE layer. When ghosted, modification is removed from the host layer; properties preserved in `nodeMap`. Lifecycle hooks receive a 3rd argument `upstreamNodeUUID` (the terminal wire UUID). | Doesn't create a new AE Layer. Output "Layer". | Effect / mask / expression on host layer | No | FillEffectNode, GaussianBlurNode, DropShadowNode |
-| `data` | Outputs a pure value. No AE layer, no AE presence of any kind. Drives extendable param slots on downstream nodes via data wires. Set to `alive` immediately on drop. All lifecycle hooks return `null`. | Output "data V value" | None | **Yes** | ColorNode, NumberNode |
+| `data` | Outputs a pure value. No AE layer, no AE presence of any kind. Drives secondary input ports on downstream effector nodes via data wires. Set to `alive` immediately on drop. All lifecycle hooks return `null`. | Output "data V value" | None | **Yes** | ColorNode, NumberNode |
 | `blending` | Applies an AE blending mode to the AE layer of the affected node wired directly into its input. Must be wired directly to an affected node's output port — cannot be placed between two effectors. No AE layer created. Passes the upstream layer reference through. | Doesn't create a new AE Layer. Output "Layer". | Sets `layer.blendingMode` on upstream affected node's layer. | **Yes** | BlendingNode |
 | `matte` | Applies a luma or alpha matte relationship between two upstream AE layers sharing the same first-level hosting comp. Two input ports (top layer, matte layer), one output port. No AE layer created. Exports the top wired AE layer. Two variants: MatteAlphaNode, MatteLumaNode. | Doesn't create a new AE Layer. Output "Layer". | Sets `layer.trackMatteType` on the top layer using the second layer as matte source. | **Yes** | MatteAlphaNode, MatteLumaNode |
 
@@ -133,7 +133,7 @@ Ports are the connection points on a node. This architecture has four distinct p
 | Category | Node Kind | Direction | Purpose | Color |
 | -------- | --------- | --------- | ------- | ----- |
 | `mainInput` | effector · affected · blending · matte | Incoming | Receives layer from upstream nodes | Green |
-| `secondaryInput` | effector · affected · blending · matte | Incoming | Receives and locks layer property values; dynamically spawned for effectors via schema cache | Gray |
+| `secondaryInput` | effector · affected · blending · matte | Incoming | Receives and locks layer property values; resolved from schema cache on drop for effectors | Gray |
 | `output` | effector · affected · data · blending · matte | Outgoing | Sends layer or data wires to downstream nodes | Green for Layer, Gray for data |
 | `parent` | effector · affected | Bidirectional | Declares AE parenting relationships only between two AE layers sharing same host comp. | Orange |
 
@@ -157,7 +157,7 @@ Affected nodes that accept upstream layers declare:
 ```javascript
 // Affected source node (e.g. TextNode — no upstream layer input)
 ports: [
-  { id: 'output',     category: 'output', type: 'layer'  },
+  { id: 'output',     category: 'output', type: 'layer' },
   { id: 'child_of',   category: 'parent', role: 'child',  type: 'parent' },
   { id: 'parent_of',  category: 'parent', role: 'parent', type: 'parent' }
 ]
@@ -165,7 +165,7 @@ ports: [
 // Affected node with layer input (e.g. NullNode used as parenting anchor)
 ports: [
   { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
-  { id: 'output',     category: 'output',    type: 'layer'  },
+  { id: 'output',     category: 'output',    type: 'layer' },
   { id: 'child_of',   category: 'parent',    role: 'child',  type: 'parent' },
   { id: 'parent_of',  category: 'parent',    role: 'parent', type: 'parent' }
 ]
@@ -173,95 +173,12 @@ ports: [
 
 #### Effector node port contract
 
-Effector nodes declare only a `main_input` and an `output`. Secondary input ports (the effect's individual parameters) are **not declared in the node definition**. They are resolved at runtime from the schema cache (§19) and injected by the engine after schema resolution. Effectors have no parent ports.
+Effector nodes declare only a `main_input` and an `output`. Secondary input ports (the effect's individual parameters) are **not declared in the node definition**. They are resolved at runtime from the schema cache (§20) and displayed immediately on drop. Effectors have no parent ports.
 
 ```javascript
-ports: [
-  { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
-  { id: 'output',     category: 'output',    type: 'layer', extendable: false }
-]
-```
-
-#### Data node port contract
-
-Data nodes have only one output port. No input ports. No parent ports.
-
-```javascript
-ports: [
-  { id: 'output', category: 'output', type: 'data', extendable: false }
-]
-```
-
-#### Blending node port contract
-
-```javascript
-ports: [
-  { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
-  { id: 'output',     category: 'output',    type: 'layer', extendable: false }
-]
-```
-
-The blending node's `main_input` must receive a wire directly from an affected node's output port. Wiring a blending node to an effector's output is not permitted — `wireValidator.js` rejects it.
-
-#### Matte node port contract (both MatteAlphaNode and MatteLumaNode)
-
-```javascript
-ports: [
-  { id: 'top_layer',   category: 'mainInput',      type: 'layer', required: true },
-  { id: 'matte_layer', category: 'secondaryInput',  type: 'layer', required: true },
-  { id: 'output',      category: 'output',          type: 'layer', extendable: false }
-]
-```
-
-#### Port field reference (complete)
-
-| Field | Required | Values | Notes |
-| ----- | -------- | ------ | ----- |
-| `id` | Yes | string | Unique within the node. `snake_case`. |
-| `category` | Yes | `'mainInput'` \| `'secondaryInput'` \| `'output'` \| `'parent'` | — |
-| `type` | Yes | `'layer'` \| `'data'` \| `'parent'` | — |
-| `required` | Input only | `true` | Omit if not required. |
-| `role` | Parent only | `'child'` \| `'parent'` | Required on parent-category ports. |
-| `extendable` | Output only | `true` \| `false` | Whether port spawns additional slots. |
-
----
-
-### 3c. Parent Ports
-
-Every affected node that can participate in AE layer parenting declares both a `child_of` and a `parent_of` port. This includes CompNode (only if the comp is hosted by another comp downstream). Effector nodes, data nodes, blending nodes, and matte nodes do not have parent ports.
-
-- `child_of` port (top edge): Wiring this port to another node's `parent_of` port calls `layer.parent = targetLayer` in AE.
-- `parent_of` port (bottom edge): Receives incoming `child_of` wires from child nodes.
-
-**Rules:**
-
-- A `parent` wire connects one `child_of` port to one `parent_of` port, or vice versa.
-- A node can have one `child_of` connection (one parent) but unlimited `parent_of` connections (many children).
-- Ghost cascade never follows a `parent` wire. The cascade algorithm's traversal explicitly skips wires of type `'parent'`.
-
----
-
-## 4. Node Definition Contract
-
-Every node is a plain JS object registered with `nodeRegistry.register()`. These are all the required fields. One complete example is provided per `nodeKind`.
-
----
-
-### Example 1 — Affected source node (TextNode)
-
-```javascript
-var TextNode = {
-  type:     'layers/text',
-  label:    'Text',
-  category: 'Layers',
-  version:  '1.0.0',
-  nodeKind:  'affected',
-  dedicated: false,
-
   ports: [
-    { id: 'output',    category: 'output', type: 'layer',  extendable: false },
-    { id: 'child_of',  category: 'parent', role: 'child',  type: 'parent'   },
-    { id: 'parent_of', category: 'parent', role: 'parent', type: 'parent'   }
+    { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
+    { id: 'output',     category: 'output',    type: 'layer' }
   ],
 
   params: [
@@ -339,7 +256,7 @@ var NullNode = {
 
   ports: [
     { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
-    { id: 'output',     category: 'output',    type: 'layer', extendable: false },
+    { id: 'output',     category: 'output',    type: 'layer' },
     { id: 'child_of',   category: 'parent',    role: 'child',  type: 'parent' },
     { id: 'parent_of',  category: 'parent',    role: 'parent', type: 'parent' }
   ],
@@ -409,7 +326,7 @@ var FillEffectNode = {
 
   ports: [
     { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
-    { id: 'output',     category: 'output',    type: 'layer', extendable: false }
+    { id: 'output',     category: 'output',    type: 'layer' }
   ],
 
   onDrop: function(nodeData) { return null; },
@@ -470,7 +387,7 @@ All hooks return `null`. The node is always alive.
 var ColorNode = {
   type: 'data/color', label: 'Color', category: 'Data', version: '1.0.0',
   nodeKind: 'data', dedicated: false,
-  ports: [{ id: 'output', category: 'output', type: 'data', extendable: false }],
+  ports: [{ id: 'output', category: 'output', type: 'data' }],
   params: [
     { key: 'label', type: 'string', default: 'Color',      label: 'Label' },
     { key: 'color', type: 'color',  default: [1, 1, 1, 1], label: 'Color' }
@@ -499,7 +416,7 @@ var BlendingNode = {
 
   ports: [
     { id: 'main_input', category: 'mainInput', type: 'layer', required: true },
-    { id: 'output',     category: 'output',    type: 'layer', extendable: false }
+    { id: 'output',     category: 'output',    type: 'layer' }
   ],
 
   params: [
@@ -557,7 +474,7 @@ var MatteLumaNode = {
   ports: [
     { id: 'top_layer',   category: 'mainInput',      type: 'layer', required: true },
     { id: 'matte_layer', category: 'secondaryInput',  type: 'layer', required: true },
-    { id: 'output',      category: 'output',          type: 'layer', extendable: false }
+    { id: 'output',      category: 'output',          type: 'layer' }
   ],
 
   params: [
@@ -690,14 +607,13 @@ The engine is intentionally dumb. It knows nothing about individual node types. 
 - Maintains `nodeMap` and `wireMap` as the in-session ledger (via `graphState`)
 - Calls the correct lifecycle hook on the correct node definition based on state transitions
 - Traverses the graph to determine alive/ghost state changes
-- Manages extendable port slot spawning and removal
 - Enforces wire type compatibility before allowing connections
 - Stamps `_pathLayerUUID` on terminal wires when a path is activated
 - After stamping `_pathLayerUUID`, checks for dirty nodes in the new path and calls `dirtyFlusher.flush()` if any are dirty — ensuring data wires connected before the path existed take effect immediately
 - Sends command objects from lifecycle hooks to `evalBridge.dispatch()` or `evalBridge.dispatchBatch()`
 - Manages the dirty flag and debounce timer for property changes
 - Supports wire-insertion: dropping a node onto an active wire performs a graph-only wire removal + `_transplantLayerUUID` stamp, then re-wires through the new node, then `_firePathCreation` issues a `restampLayer` instead of a full park/unpark round-trip
-- On node drop, checks `params: 'dynamic'` and calls `schemaCache.getSchema()` — spawns secondary input port slots via `portManager` after schema resolution (see §19)
+- On node drop, checks `params: 'dynamic'` and calls `schemaCache.getSchema()` — stores resolved schema on `nodeMap[uuid].dynamicSchema`, all secondary input ports are displayed immediately (see §20)
 
 **What the engine never does:**
 
@@ -822,6 +738,7 @@ var nodeMap = {
     dirty:       false,
     x:           120,              // canvas position
     y:           240,
+    locked:     false,            // prevents node from being moved
     props: {
       label:    'My Text',
       content:  'Hello',
@@ -838,9 +755,6 @@ var nodeMap = {
     //   2. Dormant path: non-terminal upstream wire deleted, breaking source chain.
     //      In both cases: state = 'ghost', hasParkedLayer = true.
     //      Reconnect uses unparkLayer in both cases.
-    portSlots: {
-      'layer_in': 1              // current slot count for extendable ports
-    },
     // dynamicSchema — runtime-only, never persisted. Populated on drop or panel load restore.
     // Only present on effector nodes with params: 'dynamic'.
     dynamicSchema: null
@@ -867,7 +781,7 @@ var wireMap = {
     fromNode: 'PROC-aaa',
     fromPort: 'output',
     toNode:   'PROC-bbb',
-    toPort:   'layer_in_0',       // slot-indexed for extendable ports
+    toPort:   'main_input',       // port ID on the target node
     boundParam: null,             // null | param key string (e.g. 'color') — data wires only
 
     // Terminal-wire-only field (toNode is a CompNode):
@@ -1126,7 +1040,7 @@ When the user drops a node from the palette directly onto an existing wire, `dra
 
 **Active path (wire has `_pathLayerUUID`):**
 
-1. Graph-only wire removal: `graphState.removeWire(wireId)` + `portManager.afterDisconnect()`
+1. Graph-only wire removal: `graphState.removeWire(wireId)`
 2. Stamp `_transplantLayerUUID` on the source node (the old path UUID)
 3. Drop the new node via `engine.dropNode()`
 4. Wire A: original source → new node input
@@ -1154,25 +1068,25 @@ On first drop, Procedia queries AE for the effect's full property schema at runt
 
 This feature touches: `schemaCache.js` (new file), `jsx/utils.jsx` (one new function), `jsx/dispatcher.jsx` (new actions), `engine.js` (one new hook call), all effect node definitions (simplified to `matchName` + `params: 'dynamic'` + two ports). It does not touch `cascadeAlgorithm.js`, `graphState.js`, `wireValidator.js`, or any non-effect node.
 
-### 20b. Secondary Port Slot Spawning After Schema Resolution
+### 20b. Port Resolution — All Ports Visible from Drop
 
-When `engine.js` calls `schemaCache.getSchema(matchName)` on node drop and receives a resolved schema, it immediately spawns secondary input port slots for the node:
+When `engine.js` calls `schemaCache.getSchema(matchName)` on node drop, the resolved schema populates the node's secondary input ports immediately:
 
 1. Schema is returned as `[{ matchName, label, type, defaultValue }, ...]`
-2. For each property entry, `portManager.spawnSlot()` creates a secondary input port slot on the node
-3. Port slot ID convention: `secondary_in_{property.matchName}` (non-alphanumeric characters replaced with `_`)
-4. The spawned port is `category: 'secondaryInput'`, `type: 'data'`
+2. Each property entry becomes a secondary input port on the node — no spawning needed, all ports exist from drop
+3. Port ID convention: `secondary_in_{property.matchName}` (non-alphanumeric characters replaced with `_`)
+4. Each port is `category: 'secondaryInput'`, `type: 'data'`
 5. `nodeMap[uuid].props` is initialized with `{ [property.matchName]: property.defaultValue }` for each property
 6. The inspector reads `nodeMap[uuid].props` to render inspectable parameters — no additional schema lookup needed at render time
 
-Secondary input port slots spawned this way behave identically to static `secondaryInput` ports for wiring, dirty flush, and `onPropertyChange`. The engine passes the property's `matchName` as the `key` argument to `onPropertyChange`.
+All secondary input ports behave identically to static `secondaryInput` ports for wiring, dirty flush, and `onPropertyChange`. The engine passes the property's `matchName` as the `key` argument to `onPropertyChange`.
 
 ### 20c. Deliverables
 
 - `graph/schemaCache.js` — in-memory cache + disk read/write + diff logic
 - `jsx/utils.jsx` — new function: `getAEVersion()`
 - `jsx/dispatcher.jsx` — new actions: `introspectEffect`, `readSchemaCache`, `writeSchemaCache`, `getAEVersion`
-- `engine.js` — call `schemaCache.getSchema()` on node drop when `params: 'dynamic'`; spawn secondary port slots
+- `engine.js` — call `schemaCache.getSchema()` on node drop when `params: 'dynamic'`; store schema on node instance, all ports visible immediately
 - `data/effectSchemaCache.json` — ships empty, never created at runtime
 - `index.html` — `<script>` tag for `schemaCache.js` after `nodeRegistry.js`, before `engine.js`
 - Effect node definitions — simplified (`matchName` + `params: 'dynamic'` + two ports only)
@@ -1402,8 +1316,8 @@ On node drop, after adding the node to `nodeMap`, `engine.js` checks `nodeDef.pa
 2. If `params === 'dynamic'`:
    - Read `matchName` from the node definition
    - Call `schemaCache.hasSchema(matchName)`
-   - **Cache hit:** call `schemaCache.getSchema(matchName)` → store as `nodeMap[uuid].dynamicSchema` → spawn secondary port slots via `portManager` → call `inspector.render(nodeData)`
-   - **Cache miss:** dispatch `introspectEffect` → on success: `schemaCache.storeSchema(matchName, res.data)` → store as `dynamicSchema` → spawn secondary port slots → render inspector. On failure: log error, node stays with no inspector params
+   - **Cache hit:** call `schemaCache.getSchema(matchName)` → store as `nodeMap[uuid].dynamicSchema` → secondary input ports become available immediately → call `inspector.render(nodeData)`
+   - **Cache miss:** dispatch `introspectEffect` → on success: `schemaCache.storeSchema(matchName, res.data)` → store as `dynamicSchema` → secondary input ports resolve → render inspector. On failure: log error, node stays with no inspector params
 
 On **panel load restore**: any node with `params: 'dynamic'` triggers the same schema resolution path. `dynamicSchema` is never persisted — always resolved fresh.
 

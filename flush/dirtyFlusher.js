@@ -8,6 +8,12 @@ var dirtyFlusher = (function() {
   var DEBOUNCE_MS = 300;
 
   function _findPathLayerUUID(nodeId) {
+    return _findPathLayerUUIDWithVisited(nodeId, {});
+  }
+
+  function _findPathLayerUUIDWithVisited(nodeId, visited) {
+    if (visited[nodeId]) return null;
+    visited[nodeId] = true;
     var wireMap = graphState.getAllWires();
     for (var wireId in wireMap) {
       if (!wireMap.hasOwnProperty(wireId)) continue;
@@ -16,7 +22,7 @@ var dirtyFlusher = (function() {
         if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
           return wire._pathLayerUUID;
         }
-        var found = _findPathLayerUUID(wire.toNode);
+        var found = _findPathLayerUUIDWithVisited(wire.toNode, visited);
         if (found !== null) return found;
       }
     }

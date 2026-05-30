@@ -61,13 +61,19 @@ var engine = (function() {
   }
 
   function _findPathLayerUUID(nodeId) {
+    return _findPathLayerUUIDWithVisited(nodeId, {});
+  }
+
+  function _findPathLayerUUIDWithVisited(nodeId, visited) {
+    if (visited[nodeId]) return null;
+    visited[nodeId] = true;
     var wireMap = graphState.getAllWires();
     for (var wireId in wireMap) {
       if (!wireMap.hasOwnProperty(wireId)) continue;
       var wire = wireMap[wireId];
       if (wire.fromNode === nodeId && wire.type === 'layer') {
         if (wire._pathLayerUUID !== null) return wire._pathLayerUUID;
-        var found = _findPathLayerUUID(wire.toNode);
+        var found = _findPathLayerUUIDWithVisited(wire.toNode, visited);
         if (found !== null) return found;
       }
     }
@@ -85,6 +91,50 @@ var engine = (function() {
 
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def) return;
+
+    // Wire-insertion transplant — the AE layer already exists,
+    // just restamp its comment to the new node UUID
+    if (nodeData._transplantLayerUUID) {
+      var restampCmd = {
+        action: 'restampLayer',
+        params: {
+          hostingCompUUID: hostingCompUUID,
+          oldUUID:         nodeData._transplantLayerUUID,
+          newUUID:         nodeData.id
+        }
+      };
+      evalBridge.dispatch(restampCmd);
+
+      var transplantHostingComps = nodeData.hostingComps.slice();
+      transplantHostingComps.push(hostingCompUUID);
+      graphState.updateNode(nodeId, {
+        state:                'alive',
+        hostingComps:         transplantHostingComps,
+        _transplantLayerUUID: null
+      });
+
+      // Still traverse upstream
+      var transplantWires = graphState.getAllWires();
+      for (var twId in transplantWires) {
+        if (!transplantWires.hasOwnProperty(twId)) continue;
+        var tw = transplantWires[twId];
+        if (tw.toNode !== nodeId || tw.type !== 'layer') continue;
+        var tUpstreamData = graphState.getNode(tw.fromNode);
+        if (!tUpstreamData) continue;
+        if (tUpstreamData.nodeKind === 'data') continue;
+        if (tUpstreamData.nodeKind === 'matte') continue;
+        var alreadyAlive = false;
+        for (var ti = 0; ti < tUpstreamData.hostingComps.length; ti++) {
+          if (tUpstreamData.hostingComps[ti] === hostingCompUUID) { alreadyAlive = true; break; }
+        }
+        if (alreadyAlive) continue;
+        _propagateAlive(tw.fromNode, hostingCompUUID, nodeData.id);
+      }
+
+      // If dirtyFlusher should run after transplant
+      if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
+      return;
+    }
 
     var command = null;
 
@@ -107,18 +157,8 @@ var engine = (function() {
     updatedHostingComps.push(hostingCompUUID);
     graphState.updateNode(nodeId, { state: 'alive', hostingComps: updatedHostingComps });
 
-    if (command !== null) {
-      (function(nId, cmd) {
-        evalBridge.dispatch(cmd).then(function(res) {
-          if (!res.ok) {
-            console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
-            graphState.updateNode(nId, { state: 'error' });
-          }
-        });
-      }(nodeId, command));
-    }
-
-    // Traverse upstream layer wires
+    // Traverse upstream layer wires FIRST — affected nodes must create AE layers
+    // before downstream effectors try to apply effects to them.
     var wireMap = graphState.getAllWires();
     for (var wireId in wireMap) {
       if (!wireMap.hasOwnProperty(wireId)) continue;
@@ -134,6 +174,17 @@ var engine = (function() {
       }
       if (alreadyAlive) continue;
       _propagateAlive(wire.fromNode, hostingCompUUID, pathLayerUUID);
+    }
+
+    if (command !== null) {
+      (function(nId, cmd) {
+        evalBridge.dispatch(cmd).then(function(res) {
+          if (!res.ok) {
+            console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
+            graphState.updateNode(nId, { state: 'error' });
+          }
+        });
+      }(nodeId, command));
     }
   }
 
@@ -262,7 +313,8 @@ var engine = (function() {
 
     graphState.updateWire(terminalWireId, { _pathLayerUUID: terminalWireId });
 
-    var hostingCompUUID = wireData.toNode;
+    var compNodeData = graphState.getNode(wireData.toNode);
+    var hostingCompUUID = (compNodeData && compNodeData.hostingComps && compNodeData.hostingComps[0]) || wireData.toNode;
 
     _propagateAlive(wireData.fromNode, hostingCompUUID, terminalWireId);
 
@@ -319,7 +371,29 @@ var engine = (function() {
     graphState.addWire(wireData);
     _refreshNodeUI();
 
-    if (wireType === 'parent' || wireType === 'data') {
+    if (wireType === 'parent') {
+      if (fromNodeData.state === 'alive' && toNodeData.state === 'alive') {
+        evalBridge.dispatch({
+          action: 'setLayerParent',
+          params: {
+            hostingCompUUID: toNodeData.hostingComps[0],
+            childNodeUUID:  fromNodeData.id,
+            parentNodeUUID: toNodeData.id
+          }
+        });
+      }
+      return true;
+    }
+
+    if (wireType === 'data') {
+      // Propagate the source node's current value to the target node
+      for (var pk in fromNodeData.props) {
+        if (!fromNodeData.props.hasOwnProperty(pk)) continue;
+        if (pk === 'label') continue;
+        graphState.updateProp(toNodeId, toPort, fromNodeData.props[pk]);
+        if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+        break;
+      }
       return true;
     }
 
@@ -337,6 +411,18 @@ var engine = (function() {
       var pathLayerUUID = _findPathLayerUUID(toNodeId);
       if (pathLayerUUID) {
         _propagateAlive(fromNodeId, toNodeData.hostingComps[0], pathLayerUUID);
+      }
+      return true;
+    }
+
+    // Dormant reconnection — toNode is ghost but has active comp downstream
+    if (wireType === 'layer' && toNodeData.hostingComps.length === 0 && toNodeData.hasParkedLayer) {
+      var downstreamComps = cascadeAlgorithm.hasCompDownstream(toNodeId);
+      if (downstreamComps.length > 0) {
+        pathLayerUUID = _findPathLayerUUID(toNodeId);
+        if (pathLayerUUID) {
+          _propagateAlive(fromNodeId, downstreamComps[0], pathLayerUUID);
+        }
       }
     }
 
@@ -426,10 +512,60 @@ var engine = (function() {
     graphState.removeNode(nodeId);
     _refreshNodeUI();
 
-    // Clear selection if this node was selected
-    if (graphState.getSelection() === nodeId) {
-      graphState.setSelection(null);
+    // Remove from selection if this node was selected
+    graphState.removeFromSelection(nodeId);
+  }
+
+  function deleteSelectedNodes() {
+    var sel = graphState.getSelection().slice();
+    if (sel.length === 0) return;
+    for (var i = 0; i < sel.length; i++) {
+      deleteNode(sel[i]);
     }
+  }
+
+  function duplicateSelectedNodes() {
+    var sel = graphState.getSelection().slice();
+    if (sel.length === 0) return;
+    var newIds = [];
+    for (var i = 0; i < sel.length; i++) {
+      var src = graphState.getNode(sel[i]);
+      if (!src) continue;
+      var copy = {};
+      for (var key in src) {
+        if (key === 'id' || key === 'dirty' || key === '_transplantLayerUUID') continue;
+        if (Array.isArray(src[key])) {
+          copy[key] = src[key].slice();
+        } else if (typeof src[key] === 'object' && src[key] !== null) {
+          copy[key] = JSON.parse(JSON.stringify(src[key]));
+        } else {
+          copy[key] = src[key];
+        }
+      }
+      copy.id = uuidGenerator.node();
+      copy.x = src.x + 30;
+      copy.y = src.y + 30;
+      copy.dirty = false;
+      graphState.addNode(copy);
+      newIds.push(copy.id);
+    }
+    graphState.replaceSelection(newIds);
+    _refreshNodeUI();
+  }
+
+  function toggleLockSelectedNodes() {
+    var sel = graphState.getSelection().slice();
+    if (sel.length === 0) return;
+    var allLocked = true;
+    for (var i = 0; i < sel.length; i++) {
+      var n = graphState.getNode(sel[i]);
+      if (!n || !n.locked) { allLocked = false; break; }
+    }
+    var newLocked = !allLocked;
+    for (var j = 0; j < sel.length; j++) {
+      graphState.updateNode(sel[j], { locked: newLocked });
+    }
+    _refreshNodeUI();
   }
 
   function disconnectWire(wireId) {
@@ -461,6 +597,18 @@ var engine = (function() {
     _refreshNodeUI();
   }
 
+  function _propagateDataValue(fromNodeId, key, value) {
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.fromNode === fromNodeId && w.type === 'data') {
+        graphState.updateProp(w.toNode, w.toPort, value);
+        if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+      }
+    }
+  }
+
   function setNodeProperty(nodeId, key, value) {
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) {
@@ -468,13 +616,19 @@ var engine = (function() {
       return;
     }
     graphState.updateProp(nodeId, key, value);
-    dirtyFlusher.schedule();
+    if (nodeData.nodeKind === 'data' && key !== 'label') {
+      _propagateDataValue(nodeId, key, value);
+    }
+    if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
   }
 
   return {
     dropNode:            dropNode,
     connectWire:         connectWire,
     deleteNode:          deleteNode,
+    deleteSelectedNodes: deleteSelectedNodes,
+    duplicateSelectedNodes: duplicateSelectedNodes,
+    toggleLockSelectedNodes: toggleLockSelectedNodes,
     disconnectWire:      disconnectWire,
     setNodeProperty:     setNodeProperty,
     _firePathCreation:   _firePathCreation,

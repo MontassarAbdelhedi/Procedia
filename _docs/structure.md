@@ -15,46 +15,45 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
  3. bridge/evalBridge.js
  4. graph/graphState.js
  5. graph/nodeRegistry.js
- 6. graph/nodes/categories/core/Comp.js
- 7. graph/nodes/categories/layers/Text.js
- 8. graph/nodes/categories/layers/Null.js
- 9. graph/nodes/categories/layers/Shape.js
-10. graph/nodes/categories/layers/Adjustment.js
-11. graph/nodes/categories/effects/FillEffect.js
-12. graph/nodes/categories/effects/GaussianBlur.js
-13. graph/nodes/categories/effects/DropShadow.js
-14. graph/nodes/categories/data/Color.js
-15. graph/nodes/categories/data/Number.js
-16. graph/nodes/categories/utility/Blending.js
-17. graph/nodes/categories/utility/MatteLuma.js
-18. graph/nodes/categories/utility/MatteAlpha.js
-19. graph/schemaCache.js                         ← after node defs, before engine
-20. graph/cycleChecker.js
-21. graph/portManager.js
+ 6. ui/settings.js
+ 7. graph/nodes/categories/core/Comp.js
+ 8. graph/nodes/categories/layers/Text.js
+ 9. graph/nodes/categories/layers/Null.js
+10. graph/nodes/categories/layers/Shape.js
+11. graph/nodes/categories/layers/Adjustment.js
+12. graph/nodes/categories/effects/FillEffect.js
+13. graph/nodes/categories/effects/GaussianBlur.js
+14. graph/nodes/categories/effects/DropShadow.js
+15. graph/nodes/categories/data/Color.js
+16. graph/nodes/categories/data/Number.js
+17. graph/nodes/categories/utility/Blending.js
+18. graph/nodes/categories/utility/MatteLuma.js
+19. graph/nodes/categories/utility/MatteAlpha.js
+20. graph/schemaCache.js                         ← after node defs, before engine
+21. graph/cycleChecker.js
 22. graph/wireValidator.js
 23. graph/cascadeAlgorithm.js
-24. graph/engine.js
-25. graph/canvas/viewport.js
-26. graph/canvas/renderer.js
-27. graph/canvas/input.js
-28. graph/canvas/minimap.js
-29. graph/wire/wireRenderer.js
-30. graph/wire/wire.js
-31. ui/nodeList.js
-32. canvas/drag.js
-33. ui/inspector.js
-34. canvas/layerOrderList.js
-35. ui/statusBar.js
-36. canvas/keyboard.js
+24. flush/dirtyFlusher.js                        ← moved before engine
+25. graph/engine.js
+26. graph/canvas/viewport.js
+27. graph/canvas/renderer.js
+28. graph/canvas/input.js
+29. graph/canvas/minimap.js
+30. graph/canvas/drag.js
+31. graph/canvas/layerOrderList.js
+32. graph/wire/wireRenderer.js
+33. graph/wire/wire.js
+34. ui/nodeList.js
+35. ui/nodePicker.js
+36. ui/inspector.js
 37. ui/settingsModal.js
-38. flush/dirtyFlusher.js
-39. polling/poller.js
-40. notifications/notificationBar.js
-41. ui/topBar.js
-42. ui/bottomBar.js
+38. polling/poller.js
+39. notifications/notificationBar.js
+40. ui/topBar.js
+41. ui/bottomBar.js
+42. ui/statusBar.js
 43. ui/sidebarToggle.js
-44. canvas/node.js
-45. index.js
+44. index.js
 ```
 
 ---
@@ -67,7 +66,7 @@ procedia/
 ├── index.html                          ← DOM shell + script load order (single source of truth)
 ├── index.js                            ← Panel entry point
 │                                         Calls: evalBridge.init(), canvasView.init(),
-│                                                nodeModel.init(), topBar.init(),
+│                                                topBar.init(),
 │                                                nodeList.init(), inspector.init(),
 │                                                bottomBar.init(), sidebarToggle.init()
 │                                         Depends on: everything
@@ -130,14 +129,6 @@ procedia/
 │   │                                     Exposes: cycleChecker.hasCycle(fromNodeId, toNodeId)
 │   │                                     Depends on: graph/graphState.js
 │   │
-│   ├── portManager.js                  ← Extendable port slot lifecycle
-│   │                                     Exposes: portManager.spawnSlot(nodeId, portId),
-│   │                                              portManager.removeSlot(nodeId, portId),
-│   │                                              portManager.resolveSlotName(portId, index),
-│   │                                              portManager.getOpenSlot(nodeId, portId),
-│   │                                              portManager.afterDisconnect(nodeId, portId)
-│   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js
-│   │
 │   ├── wireValidator.js                ← Wire type compatibility checks before connection
 │   │                                     Exposes: wireValidator.canConnect(fromNode, fromPort,
 │   │                                                                        toNode, toPort),
@@ -158,6 +149,9 @@ procedia/
 │   ├── engine.js                       ← Dumb executor — zero node-type conditionals
 │   │                                     Exposes: engine.dropNode(nodeDef, x, y),
 │   │                                              engine.deleteNode(nodeId),
+│   │                                              engine.deleteSelectedNodes(),
+│   │                                              engine.duplicateSelectedNodes(),
+│   │                                              engine.toggleLockSelectedNodes(),
 │   │                                              engine.connectWire(fromNode, fromPort, toNode, toPort),
 │   │                                              engine.disconnectWire(wireId),
 │   │                                              engine._firePathCreation(terminalWireId)
@@ -165,11 +159,10 @@ procedia/
 │   │                                            onDelete, onPropertyChange),
 │   │                                            evalBridge.dispatch() / dispatchBatch(),
 │   │                                            cascadeAlgorithm.cascadeGhost(),
-│   │                                            portManager.spawnSlot() / removeSlot(),
 │   │                                            schemaCache.hasSchema() / getSchema() / storeSchema(),
 │   │                                            dirtyFlusher.flush() (after _pathLayerUUID stamp)
 │   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js,
-│   │                                                  graph/cascadeAlgorithm.js, graph/portManager.js,
+│   │                                                  graph/cascadeAlgorithm.js,
 │   │                                                  graph/wireValidator.js, graph/schemaCache.js,
 │   │                                                  bridge/evalBridge.js
 │   │
@@ -228,16 +221,15 @@ procedia/
 │       │                                 Depends on: graph/graphState.js
 │       └── wire.js                     ← Wire drag, commit, delete
 │                                         Calls: engine.connectWire(), engine.disconnectWire(),
-│                                                cascadeAlgorithm.cascadeGhost(),
-│                                                portManager.afterDisconnect()
+│                                                cascadeAlgorithm.cascadeGhost()
 │                                         Depends on: graph/graphState.js, graph/wireValidator.js,
 │                                                      graph/cycleChecker.js,
-│                                                      graph/cascadeAlgorithm.js,
-│                                                      graph/portManager.js
+│                                                      graph/cascadeAlgorithm.js
 │
 ├── ui/
 │   ├── nodeList.js                     ← Node palette — category collapse, search, drag source
 │   │                                     Exposes: nodeList.init()
+│   │                                     Shows drag ghost with category-colored dot + node name
 │   │                                     Depends on: graph/nodeRegistry.js
 │   │
 │   ├── inspector.js                    ← Inspector panel — renders node params
@@ -256,11 +248,14 @@ procedia/
 │   │                                     Depends on: ui/settings.js (not yet created)
 │   │
 │   ├── topBar.js                       ← Top bar chrome
-│   │                                     Exposes: topBar.init()
+│   │                                     Exposes: topBar.init(), topBar.refreshSelection()
+│   │                                     Buttons: Save, Undo, Redo, Fit View,
+│   │                                              Duplicate, Delete,
+│   │                                              Reset, Reload, Settings
 │   │                                     Depends on: (none)
 │   │
-│   ├── bottomBar.js                    ← Bottom bar chrome
-│   │                                     Exposes: bottomBar.init()
+│   ├── bottomBar.js                    ← Bottom bar chrome (centered notification only)
+│   │                                     Exposes: bottomBar.init(), bottomBar.notify()
 │   │                                     Depends on: (none)
 │   │
 │   └── sidebarToggle.js                ← Left/right panel collapse toggle
@@ -289,22 +284,13 @@ procedia/
 │                                                  notificationBar.hide()
 │                                         Depends on: (none)
 │
-├── canvas/                             ← Canvas interaction & node DOM layer
-│   ├── canvasView.js                   ← Stub (moved to graph/canvas/viewport.js, not loaded)
-│   ├── drag.js                         ← onDrop handler + wire-insertion logic
-│   │                                     Calls: engine.dropNode(), engine.connectWire(),
-│   │                                            engine.disconnectWire(), graphState.removeWire()
-│   │                                     Wire-insertion: stamps _transplantLayerUUID, re-wires
-│   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js
-│   ├── keyboard.js                     ← Delete/Backspace shortcuts
-│   │                                     Calls: engine.deleteNode(), wire.deleteSelected()
-│   │                                     Depends on: graph/graphState.js
-│   ├── layerOrderList.js               ← Drag-to-reorder for CompNode layer stacking
-│   │                                     Calls: evalBridge.dispatch({ action: 'setLayerOrder' })
-│   │                                     Depends on: graph/graphState.js
-│   └── node.js                         ← nodeModel — node DOM layer, positioned divs
-│                                         Exposes: nodeModel.init()
-│                                         Depends on: canvas/canvasView.js (resolves to viewport.js)
+├── graph/canvas/                       ← Canvas interaction & node DOM layer
+│   ├── viewport.js, renderer.js, input.js, minimap.js
+│   └── drag.js                         ← onDrop handler + wire-insertion logic
+│                                         Calls: engine.dropNode(), engine.connectWire(),
+│                                                engine.disconnectWire(), graphState.removeWire()
+│                                         Wire-insertion: stamps _transplantLayerUUID, re-wires
+│                                         Depends on: graph/graphState.js, graph/nodeRegistry.js
 │
 ├── css/
 │   ├── tokens.css                      ← Design tokens (colors, spacing, typography)
@@ -368,11 +354,11 @@ procedia/
 
 ### Node drop → AE layer created
 ```
-canvas/drag.js
+graph/canvas/drag.js
   └─ engine.dropNode(nodeDef, x, y)
        ├─ graphState.addNode()
-       ├─ [if params:'dynamic'] schemaCache.getSchema() or introspectEffect
-       └─ portManager.spawnSlot() [for dynamic secondary ports]
+       └─ [if params:'dynamic'] schemaCache.getSchema() or introspectEffect
+            └─ nodeMap[uuid].dynamicSchema populated → all secondary ports visible
 
   (wire drawn to CompNode)
   └─ engine.connectWire()
@@ -418,6 +404,22 @@ index.js: init()
   └─ graphState.loadGraph(parsed)          ← rebuilds nodeMap, wireMap, tempGraph
   └─ poller.start()                        ← begins alive-node polling
 ```
+
+---
+
+## Discrepancies: Spec vs Disk (May 2026)
+
+| File | Status | Notes |
+| ---- | ------ | ----- |
+| `graph/portManager.js` | 🗑️ Removed | Extendable port slot lifecycle removed from arch_specs — concept deprecated |
+| `graph/canvas/drag.js` | ✅ Exists | Wire-insertion drag handler |
+| `graph/canvas/layerOrderList.js` | ✅ Exists | Drag-to-reorder stub |
+| `ui/settings.js` | ✅ Exists | Persistent key/value store (localStorage) |
+| `ui/nodePicker.js` | ✅ Exists | Popup picker when dropping wire on empty canvas |
+| `css/nodePicker.css` | ✅ Exists | Styles for node picker |
+| `css/settingsModal.css` | ✅ Exists | Styles for settings modal |
+| `data/effectSchemaCache.json` | ✅ Exists | Ships as `{ "aeVersion": "", "schemas": {} }` — matches arch_specs §20c |
+| `graph/schemaCache.js` | ✅ Exists | Implementation exists on disk — resolved schema populates all secondary ports from drop (no spawning) |
 
 ---
 

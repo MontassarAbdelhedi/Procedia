@@ -19,6 +19,8 @@ var inspector = (function() {
     if (_contentEl) {
       _contentEl.addEventListener('change', _onInspectorChange);
       _contentEl.addEventListener('input', _onInspectorInput);
+      _contentEl.addEventListener('click', _onRecoverClick);
+      _contentEl.addEventListener('click', _onLayerActionClick);
     }
 
     refresh();
@@ -119,11 +121,12 @@ var inspector = (function() {
     }
 
     return {
-      loading: false,
-      nodeId:  nodeData.id,
-      name:    def.label || nodeData.type,
-      state:   _stateLabel(nodeData, def),
-      groups:  [{ label: 'Properties', params: rows }]
+      loading:          false,
+      nodeId:           nodeData.id,
+      name:             def.label || nodeData.type,
+      state:            _stateLabel(nodeData, def),
+      hostingCompUUID:  nodeData.hostingComps && nodeData.hostingComps.length > 0 ? nodeData.hostingComps[0] : null,
+      groups:           [{ label: 'Properties', params: rows }]
     };
   }
 
@@ -147,6 +150,80 @@ var inspector = (function() {
     contentEl.innerHTML = renderNodeContent(view);
   }
 
+  function _onRecoverClick(e) {
+    var btn = e.target;
+    if (!btn || !btn.classList || !btn.classList.contains('inspector-recover-btn')) return;
+
+    var nodeId = btn.getAttribute('data-node-id');
+    var action = btn.getAttribute('data-action');
+    if (!nodeId || !action) return;
+
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) return;
+
+    if (action === 'recreate') {
+      var def = nodeRegistry.getDefinition(nodeData.type);
+      if (!def) return;
+      if (nodeData.state !== 'alive' && def.onDrop) {
+        var cmd = def.onDrop(nodeData);
+        if (cmd) {
+          evalBridge.dispatch(cmd).then(function(res) {
+            if (res.ok) {
+              graphState.updateNode(nodeId, { state: 'alive' });
+            }
+          });
+        }
+      }
+      renderer.render();
+      if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+      if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+      if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    } else if (action === 'remove') {
+      var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
+      evalBridge.dispatch({ action: 'writeGraph', params: graphData });
+      engine.deleteNode(nodeId);
+    }
+  }
+
+  function _onLayerActionClick(e) {
+    var btn = e.target;
+    if (!btn || !btn.classList || !btn.classList.contains('inspector-layer-btn')) return;
+
+    var nodeId = btn.getAttribute('data-node-id');
+    var hostUUID = btn.getAttribute('data-host-uuid');
+    if (!nodeId || !hostUUID) return;
+
+    evalBridge.dispatch({
+      action: 'setLayerOrder',
+      params: { layerUUID: nodeId, hostingCompUUID: hostUUID }
+    });
+  }
+
+  function renderLayerActions(view) {
+    return (
+      '<div class="inspector-group">' +
+        '<div class="inspector-group-label">Layer</div>' +
+        '<button class="inspector-layer-btn" data-node-id="' + view.nodeId + '" data-host-uuid="' + view.hostingCompUUID + '">' +
+          '<i class="ti ti-arrow-up"></i> Move to Top' +
+        '</button>' +
+      '</div>'
+    );
+  }
+
+  function renderErrorActions(view) {
+    return (
+      '<div class="inspector-group">' +
+        '<div class="inspector-group-label">Error Recovery</div>' +
+        '<button class="inspector-recover-btn" data-node-id="' + view.nodeId + '" data-action="recreate">' +
+          '<i class="ti ti-refresh"></i> Re-create in AE' +
+        '</button>' +
+        '<button class="inspector-recover-btn" data-node-id="' + view.nodeId + '" data-action="remove">' +
+          '<i class="ti ti-trash"></i> Remove from Graph' +
+        '</button>' +
+      '</div>'
+    );
+  }
+
   function renderNodeContent(view) {
     if (view.loading) {
       return (
@@ -166,6 +243,16 @@ var inspector = (function() {
       );
     }
 
+    var errorActionsHtml = '';
+    if (view.state.indexOf('error') !== -1) {
+      errorActionsHtml = renderErrorActions(view);
+    }
+
+    var layerActionsHtml = '';
+    if (view.state.indexOf('alive') !== -1 && view.hostingCompUUID) {
+      layerActionsHtml = renderLayerActions(view);
+    }
+
     var groupsHtml = '';
     for (var i = 0; i < view.groups.length; i++) {
       groupsHtml += renderGroup(view.nodeId, view.groups[i]);
@@ -175,10 +262,12 @@ var inspector = (function() {
       '<div class="inspector-header">' +
         '<div class="inspector-node-name">' + view.name + '</div>' +
         '<div class="inspector-state-badge">' +
-          '<div class="inspector-state-dot"></div>' +
+          '<div class="inspector-state-dot' + (view.state.indexOf('error') !== -1 ? ' error' : '') + '"></div>' +
           '<span class="inspector-state-text">' + view.state + '</span>' +
         '</div>' +
       '</div>' +
+      errorActionsHtml +
+      layerActionsHtml +
       groupsHtml
     );
   }
@@ -263,11 +352,26 @@ var inspector = (function() {
 
   function refresh() {
     var sel = graphState.getSelection();
-    if (!sel) {
+    if (sel.length === 0) {
       showEmpty();
       return;
     }
-    var nodeData = graphState.getNode(sel);
+    if (sel.length > 1) {
+      var emptyEl = document.getElementById('inspector-empty');
+      var contentEl = document.getElementById('inspector-content');
+      if (emptyEl) {
+        emptyEl.classList.add('visible');
+        emptyEl.innerHTML =
+          '<i class="ti ti-cursor-text inspector-empty-icon"></i>' +
+          '<span class="inspector-empty-text">' + sel.length + ' nodes selected</span>';
+      }
+      if (contentEl) {
+        contentEl.classList.remove('visible');
+        contentEl.innerHTML = '';
+      }
+      return;
+    }
+    var nodeData = graphState.getNode(sel[0]);
     if (!nodeData) {
       showEmpty();
       return;

@@ -266,9 +266,20 @@ var wireTool = (function() {
 
     wireRenderer.render(null);
 
-
-
-    if (!portEl) return;
+    if (!portEl) {
+      // Empty canvas drop — show node picker if inside canvas-wrap bounds
+      if (typeof nodePicker !== 'undefined' && nodePicker.show) {
+        var wrap = document.getElementById('canvas-wrap');
+        if (wrap) {
+          var wr = wrap.getBoundingClientRect();
+          if (e.clientX >= wr.left && e.clientX <= wr.right &&
+              e.clientY >= wr.top  && e.clientY <= wr.bottom) {
+            nodePicker.show(e.clientX, e.clientY, fromNode, fromPort, _drag.wireType);
+          }
+        }
+      }
+      return;
+    }
 
 
 

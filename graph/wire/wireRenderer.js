@@ -1,5 +1,5 @@
 // graph/wire/wireRenderer.js
-// DEPENDS ON: graph/graphState.js, graph/canvas/renderer.js, graph/canvas/viewport.js
+// DEPENDS ON: graph/graphState.js, graph/canvas/renderer.js, graph/canvas/viewport.js, ui/settings.js
 // MUST LOAD BEFORE: graph/wire/wire.js
 
 var wireRenderer = (function() {
@@ -42,10 +42,36 @@ var wireRenderer = (function() {
     };
   }
 
+  function _getStyle() {
+    if (typeof settings !== 'undefined' && settings.get) {
+      return settings.get('wireStyle');
+    }
+    return 'bezier';
+  }
+
   function _drawBezier(ctx, x1, y1, x2, y2) {
     var dx = Math.max(40, Math.abs(x2 - x1) * 0.5);
     ctx.moveTo(x1, y1);
     ctx.bezierCurveTo(x1 + dx, y1, x2 - dx, y2, x2, y2);
+  }
+
+  function _drawDirect(ctx, x1, y1, x2, y2) {
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+  }
+
+  function _drawStepped(ctx, x1, y1, x2, y2) {
+    var mx = (x1 + x2) / 2;
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(mx, y1);
+    ctx.lineTo(mx, y2);
+    ctx.lineTo(x2, y2);
+  }
+
+  function _drawSegment(ctx, x1, y1, x2, y2, style) {
+    if (style === 'direct')  { _drawDirect(ctx, x1, y1, x2, y2); return; }
+    if (style === 'stepped') { _drawStepped(ctx, x1, y1, x2, y2); return; }
+    _drawBezier(ctx, x1, y1, x2, y2);
   }
 
   function _drawWire(ctx, wire) {
@@ -54,10 +80,11 @@ var wireRenderer = (function() {
     if (!from || !to) return;
 
     var color = WIRE_COLORS[wire.type] || WIRE_COLORS.layer;
+    var style = _getStyle();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    _drawBezier(ctx, from.x, from.y, to.x, to.y);
+    _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
     ctx.stroke();
   }
 
@@ -66,7 +93,8 @@ var wireRenderer = (function() {
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    _drawBezier(ctx, from.x, from.y, to.x, to.y);
+    var style = _getStyle();
+    _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
     ctx.stroke();
     ctx.setLineDash([]);
   }

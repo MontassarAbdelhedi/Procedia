@@ -17,11 +17,48 @@ var FillEffectNode = {
     { id: 'output',     category: 'output',    type: 'layer', capacity: 'single' }
   ],
 
-  onDrop:           function() { return null; },
-  onAlive:          function() { return null; },
-  onGhost:          function() { return null; },
-  onDelete:         function() { return null; },
-  onPropertyChange: function() { return null; }
+  onDrop: function(nodeData) { return null; },
+
+  onAlive: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
+    return {
+      action: 'applyDynamicEffect',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerNodeUUID:   upstreamNodeUUID,
+        matchName:       'ADBE Fill',
+        props:           nodeData.props
+      }
+    };
+  },
+
+  onGhost: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
+    return {
+      action: 'removeEffect',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerNodeUUID:   upstreamNodeUUID,
+        matchName:       'ADBE Fill'
+      }
+    };
+  },
+
+  onDelete: function(nodeData) { return null; },
+
+  onPropertyChange: function(key, value, nodeData, hostingCompUUID, upstreamNodeUUID) {
+    return {
+      action: 'setEffectProperty',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerNodeUUID:   upstreamNodeUUID,
+        effectMatchName: 'ADBE Fill',
+        propMatchName:   key,
+        value:           value
+      }
+    };
+  }
 };
 
 nodeRegistry.register(FillEffectNode);
