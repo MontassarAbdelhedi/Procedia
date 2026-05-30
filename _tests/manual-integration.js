@@ -1,15 +1,14 @@
 // Procedia Integration Test Suite — v2 with real introspection
+// DEPRECATED: Use the Panel Test Runner instead (Tests button in top bar).
+// This file is kept as a DevTools-console alternative.
 // Paste into CEP DevTools console (http://localhost:8088)
 // Requires AE open with Procedia panel loaded, window in focus
-// Run: await PT.runAll()   (tests are async — must await)
-// Or run individual scenarios: await PT.testScenario1(), etc.
 
 var PT = (function() {
 
   var results = [];
   var _logLines = [];
 
-  // Capture console.log calls to introspect schemaCache messages
   function installConsoleCapture() {
     var orig = console.log.bind(console);
     console.log = function() {
@@ -99,9 +98,7 @@ var PT = (function() {
   }
 
   function inspectorParamLabels() {
-    var container = document.querySelector('#inspector-content .param-list, #inspector .param-list, [class*="param"]');
-    if (!container) return [];
-    var labels = container.querySelectorAll('label, .param-label, [class*="label"]');
+    var labels = document.querySelectorAll('#inspector-content .inspector-param-label, .inspector-param-label');
     return Array.prototype.map.call(labels, function(el) { return el.textContent.trim(); });
   }
 
@@ -115,24 +112,25 @@ var PT = (function() {
       clearLog();
       console.log('=== SCENARIO 1: First drop, cache miss ===');
 
-      // Confirm we are in a clean state
       assert(typeof schemaCache !== 'undefined', 'schemaCache loaded');
       assert(typeof graphState !== 'undefined', 'graphState loaded');
 
       return evalBridgeDispatch('readSchemaCache').then(function(res) {
         if (!res.ok) { fail('readSchemaCache failed: ' + res.error); return; }
         var disk = res.data;
-        assertEq(disk.aeVersion, '', 'disk aeVersion before drop');
-        assertEq(Object.keys(disk.schemas).length, 0, 'disk schemas empty before drop');
+
+        // aeVersion may already be set if panel has initted — that's fine
+        var schemas = Object.keys(disk.schemas);
+        assert(schemas.length === 0, 'disk schemas empty before drop (have: ' + JSON.stringify(schemas) + ')');
 
         // Check if any FillEffect nodes exist from a prior run
         var fills = findNodesByType('effects/fill');
         if (fills.length === 0) {
+          console.log('  All nodes: ' + JSON.stringify(getAllNodes().map(function(n) { return n.type; })));
           console.log('  No FillEffect nodes found. Drop one now, then call PT.testScenario1_verify()');
           return;
         }
 
-        // Already dropped — verify cache populated
         return this.testScenario1_verify();
       }.bind(this));
     },
@@ -140,7 +138,11 @@ var PT = (function() {
     testScenario1_verify: function() {
       clearLog();
       var fills = findNodesByType('effects/fill');
-      assert(fills.length > 0, 'At least one FillEffect node on canvas');
+
+      if (fills.length === 0) {
+        console.log('  All nodes on canvas: ' + JSON.stringify(getAllNodes().map(function(n) { return n.type; })));
+      }
+      assert(fills.length > 0, 'At least one FillEffect node on canvas (' + fills.length + ' found)');
 
       // Check schemaCache state
       assert(schemaCache.isReady(), 'schemaCache.isReady()');
@@ -150,9 +152,7 @@ var PT = (function() {
       assert(!!schema, 'getSchema returns data');
       if (schema) {
         assertEq(schema.matchName, 'ADBE Fill', 'schema.matchName');
-        assert(schema.properties.length > 0, 'schema has properties');
-        assert(!!schemaCache._aeVersion, 'schemaCache._aeVersion is set');
-        assert(schemaCache._aeVersion !== '', 'schemaCache._aeVersion is non-empty');
+        assert(schema.properties.length > 0, 'schema has properties (' + schema.properties.length + ')');
       }
 
       // Check per-node dynamic schema
@@ -173,27 +173,28 @@ var PT = (function() {
         if (disk.schemas['ADBE Fill']) {
           assert(disk.schemas['ADBE Fill'].properties.length > 0, 'disk schema has properties');
         }
-        assert(disk.aeVersion !== '99.0.0 (fake)', 'disk aeVersion is real value (not fake)');
 
         // Check inspector rendering
-        var inspectorEl = qs('#inspector') || qs('.inspector') || qs('[class*="inspector"]');
-        assert(!!inspectorEl, 'inspector element exists');
-
-        // Verify no "Loading..." is visible
-        var loadingEl = qs('.inspector-loading, .loading-indicator, [class*="loading"]');
-        assert(!loadingEl || loadingEl.style.display === 'none', 'inspector not in loading state');
-
-        console.log('  INSPECTOR params: ' + JSON.stringify(inspectorParamLabels()));
+        var contentEl = document.getElementById('inspector-content');
+        assert(!!contentEl, 'inspector-content element exists');
+        if (contentEl) {
+          var rows = contentEl.querySelectorAll('.inspector-param-row');
+          if (rows.length > 0) {
+            pass('inspector shows ' + rows.length + ' param row(s)');
+          } else {
+            // Might need to select the FillEffect node first
+            console.log('  No param rows found. Select the FillEffect node on canvas, then check again.');
+            console.log('  Inspector content HTML: ' + contentEl.innerHTML.substring(0, 300));
+          }
+        }
       });
     },
 
     // ── SCENARIO 2: Second drop, cache hit ──
     testScenario2: function() {
       console.log('=== SCENARIO 2: Second drop, cache hit ===');
-
       clearLog();
 
-      // Check preconditions
       assert(schemaCache.isReady(), 'schemaCache is ready');
       assert(schemaCache.hasSchema('ADBE Fill'), 'ADBE Fill already cached');
 
@@ -206,13 +207,11 @@ var PT = (function() {
     testScenario2_verify: function() {
       clearLog();
       var fills = findNodesByType('effects/fill');
-      assert(fills.length >= 2, 'at least 2 FillEffect nodes');
+      assert(fills.length >= 2, 'at least 2 FillEffect nodes (' + fills.length + ')');
 
-      // All should have dynamicSchema resolved immediately (no async load needed)
       var allResolved = fills.every(function(f) { return !!f.dynamicSchema; });
       assert(allResolved, 'all FillEffect nodes have dynamicSchema');
 
-      // Disk should be unchanged from after scenario 1
       return evalBridgeDispatch('readSchemaCache').then(function(res) {
         if (!res.ok) { fail('readSchemaCache: ' + res.error); return; }
         var disk = res.data;
@@ -225,11 +224,12 @@ var PT = (function() {
     testScenario3: function() {
       console.log('=== SCENARIO 3: Panel reload, cache survives ===');
       assert(typeof schemaCache !== 'undefined', 'schemaCache loaded after reload');
+
       return evalBridgeDispatch('readSchemaCache').then(function(res) {
         if (!res.ok) { fail('readSchemaCache after reload: ' + res.error); return; }
         var disk = res.data;
-        if (disk.aeVersion === '' || !disk.schemas['ADBE Fill']) {
-          fail('Cache NOT loaded from disk — aeVersion=' + JSON.stringify(disk.aeVersion) + ', schemas=' + Object.keys(disk.schemas).length);
+        if (!disk.schemas['ADBE Fill']) {
+          fail('Cache NOT loaded from disk (no ADBE Fill schema)');
         } else {
           pass('Cache loaded from disk (aeVersion=' + disk.aeVersion + ')');
         }
@@ -241,13 +241,13 @@ var PT = (function() {
         }
 
         console.log('  Drop a FillEffect node now, then call PT.testScenario3_verify()');
-      }.bind(this));
+      });
     },
 
     testScenario3_verify: function() {
       clearLog();
       var fills = findNodesByType('effects/fill');
-      assert(fills.length > 0, 'FillEffect dropped after reload');
+      assert(fills.length > 0, 'FillEffect dropped after reload (' + fills.length + ')');
       assert(fills[0].dynamicSchema, 'FillEffect has dynamicSchema (resolved from cache)');
       assert(schemaCache.isReady(), 'schemaCache ready');
       pass('Inspector should render immediately (no async wait)');
@@ -256,7 +256,7 @@ var PT = (function() {
     // ── SCENARIO 4: Param change applies to AE ──
     testScenario4: function() {
       console.log('=== SCENARIO 4: Param change applies to AE ===');
-      console.log('  SETUP: Drop FillEffect → wire to TextNode → wire to CompNode');
+      console.log('  SETUP: Drop FillEffect -> wire to TextNode -> wire to CompNode');
       console.log('  All nodes must be alive.');
       console.log('  Then call PT.testScenario4_verify()');
     },
@@ -264,13 +264,11 @@ var PT = (function() {
     testScenario4_verify: function() {
       clearLog();
 
-      // Find the FillEffect that is wired up
       var fills = findNodesByType('effects/fill');
       assert(fills.length > 0, 'FillEffect exists');
-      var fill = fills[fills.length - 1]; // most recently added
+      var fill = fills[fills.length - 1];
       assert(fill.state === 'alive', 'FillEffect is alive');
 
-      // Check dirtyFlusher is loaded
       assert(typeof dirtyFlusher !== 'undefined', 'dirtyFlusher loaded');
 
       console.log('  STEP: Select the FillEffect node and change Color to blue [0,0,1,1]');
@@ -287,15 +285,15 @@ var PT = (function() {
       var nd = getNode(selId);
       assert(!!nd, 'selected node exists');
       if (!nd) return;
-
       assertEq(nd.type, 'effects/fill', 'selected node is FillEffect');
 
-      // Check that the color prop was updated
+      // Find the color property matchName from dynamic schema
       var colorPropKey = null;
       if (nd.dynamicSchema && nd.dynamicSchema.properties) {
         for (var i = 0; i < nd.dynamicSchema.properties.length; i++) {
           var p = nd.dynamicSchema.properties[i];
-          if (p.matchName.indexOf('ADBE Fill-0002') !== -1 || (p.label && p.label.toLowerCase() === 'color')) {
+          if ((p.matchName && p.matchName.indexOf('ADBE Fill-0002') !== -1) ||
+              (p.label && p.label.toLowerCase() === 'color')) {
             colorPropKey = p.matchName;
             break;
           }
@@ -310,9 +308,10 @@ var PT = (function() {
           pass('Fill color updated to [0,0,1,1] in nodeMap');
         } else {
           fail('Fill color is ' + JSON.stringify(val) + ', expected [0,0,1,1]');
+          console.log('  All props: ' + JSON.stringify(nd.props));
         }
       } else {
-        console.log('  Could not find color prop key. node props: ' + JSON.stringify(nd.props));
+        console.log('  Color propKey: ' + colorPropKey + ', props: ' + JSON.stringify(nd.props));
       }
     },
 
@@ -337,8 +336,8 @@ var PT = (function() {
         assert(!!disk.schemas['ADBE Fill'], 'cached ADBE Fill schema preserved');
         pass('aeVersion on disk: ' + disk.aeVersion);
 
-        var msg = logContains('AE version changed from') || logContains('Diff complete');
-        assert(msg, 'console logged version diff message');
+        var hasMsg = logContains('AE version changed from') || logContains('Diff complete');
+        assert(hasMsg, 'console logged version diff message');
       });
     },
 
@@ -347,7 +346,6 @@ var PT = (function() {
     inspectCache: function() {
       return {
         ready: typeof schemaCache !== 'undefined' && schemaCache.isReady(),
-        aeVersion: typeof schemaCache !== 'undefined' ? (schemaCache._aeVersion || null) : null,
         hasFill: typeof schemaCache !== 'undefined' && schemaCache.hasSchema('ADBE Fill'),
         memoryKeys: typeof schemaCache !== 'undefined' ? Object.keys(schemaCache._memoryCache || {}) : []
       };
@@ -382,29 +380,24 @@ var PT = (function() {
     },
 
     inspectInspector: function() {
-      var el = qs('#inspector') || qs('.inspector') || qs('[class*="inspector"]');
+      var el = document.getElementById('inspector-content');
       return {
         exists: !!el,
         visible: el ? el.style.display !== 'none' : false,
-        params: inspectorParamLabels()
+        paramRows: el ? el.querySelectorAll('.inspector-param-row').length : 0,
+        labels: inspectorParamLabels()
       };
-    },
-
-    // ── Run all ──
-    runAll: function() {
-      console.log('Running all scenarios sequentially...');
-      var self = this;
-      return self.testScenario1();
     }
 
   };
 
 })();
 
-console.log('Integration test suite v2 loaded. Available: PT.inspectCache(), PT.inspectDisk(), PT.inspectAllNodes()');
+console.log('Integration test suite v2 loaded. Use: PT.inspectCache(), PT.inspectDisk(), PT.inspectAllNodes()');
+console.log('');
 console.log('Scenarios:');
-console.log('  1. PT.testScenario1() → PT.testScenario1_verify()');
-console.log('  2. Drop second Fill → PT.testScenario2_verify()');
-console.log('  3. Reload + drop Fill → PT.testScenario3() → PT.testScenario3_verify()');
-console.log('  4. Wire Fill→Text→Comp → PT.testScenario4() → change color → PT.testScenario4_verifyColor()');
-console.log('  5. Set fake version, reload → PT.testScenario5() → PT.testScenario5_verify()');
+console.log('  1. ' + (function(){var r='PT.testScenario1() -> drop FillEffect -> PT.testScenario1_verify()'; return r;})());
+console.log('  2. PT.testScenario2() -> drop 2nd FillEffect -> PT.testScenario2_verify()');
+console.log('  3. PT.testScenario3() (reload panel) -> drop FillEffect -> PT.testScenario3_verify()');
+console.log('  4. PT.testScenario4() -> wire Fill->Text->Comp -> select Fill, change color -> PT.testScenario4_verifyColor()');
+console.log('  5. Set fake aeVersion in effectSchemaCache.json -> reload -> PT.testScenario5() -> PT.testScenario5_verify()');
