@@ -1,3 +1,11 @@
+/**
+ * @file Luma Matte utility node definition (utility/matte-luma).
+ * Sets or clears a luma matte on a layer using the upstream layer's luminance.
+ * Ports: mainInput (layer, required), output (layer).
+ * Params: label, invert (boolean).
+ * Dispatches: setLumaMatte, clearMatte, setLayerProperty.
+ */
+
 // graph/nodes/categories/utility/MatteLuma.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -20,8 +28,16 @@ var MatteLumaNode = {
     { key: 'invert', type: 'boolean', default: false,          label: 'Invert' }
   ],
 
+  /** @return {null} No AE action on initial drop — matte is applied onAlive. */
   onDrop: function(nodeData) { return null; },
 
+  /**
+   * Sets the upstream layer as a luma matte on the host layer.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @param {string} upstreamNodeUUID - UUID of the layer to use as the matte source.
+   * @return {Object} Action to set a luma matte in AE.
+   */
   onAlive: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
     return {
       action: 'setLumaMatte',
@@ -34,6 +50,13 @@ var MatteLumaNode = {
     };
   },
 
+  /**
+   * Clears the luma matte from the upstream layer.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @param {string} upstreamNodeUUID - UUID of the layer to clear the matte from.
+   * @return {Object} Action to clear a matte in AE.
+   */
   onGhost: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
     return {
       action: 'clearMatte',
@@ -45,8 +68,18 @@ var MatteLumaNode = {
     };
   },
 
+  /** @return {null} No AE action on delete — matte is cleared via onGhost first. */
   onDelete: function(nodeData) { return null; },
 
+  /**
+   * Updates the invert property on the luma matte in AE.
+   * @param {string} key - The property key to update.
+   * @param {*} value - The new property value.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @param {string} upstreamNodeUUID - UUID of the layer owning the matte.
+   * @return {Object} Action to set a layer property in AE.
+   */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID, upstreamNodeUUID) {
     return {
       action: 'setLayerProperty',

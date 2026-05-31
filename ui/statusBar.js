@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Status bar UI module. Shows live counts of nodes (alive/ghost),
+ * wires, zoom level, and selection size.
+ * Depends on: graphState, viewport (globals).
+ * Exports: statusBar.init, statusBar.refresh
+ */
 // ui/statusBar.js
 // DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js
 // MUST LOAD BEFORE: index.js
@@ -6,6 +12,10 @@ var statusBar = (function() {
 
   var _el = null;
 
+  /**
+   * Counts total, alive, and ghost nodes from graphState.
+   * @return {Object} { total, alive, ghost }
+   */
   function _countNodes() {
     var nodeMap = graphState.getAllNodes();
     var total = 0;
@@ -21,6 +31,10 @@ var statusBar = (function() {
     return { total: total, alive: alive, ghost: ghost };
   }
 
+  /**
+   * Counts total wires from graphState.
+   * @return {number} The wire count.
+   */
   function _countWires() {
     var wireMap = graphState.getAllWires();
     var total = 0;
@@ -30,6 +44,9 @@ var statusBar = (function() {
     return total;
   }
 
+  /**
+   * Recalculates and updates the status bar text with current graph metrics.
+   */
   function refresh() {
     if (!_el) return;
     var nc = _countNodes();
@@ -48,6 +65,9 @@ var statusBar = (function() {
       wires + ' wires · ' + zoom + '%';
   }
 
+  /**
+   * Initializes the status bar by finding or creating the display element, then refreshes.
+   */
   function init() {
     _el = document.getElementById('bottombar-notif-text');
     if (!_el) {

@@ -37,23 +37,29 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 25. graph/engine.js
 26. graph/canvas/viewport.js
 27. graph/canvas/renderer.js
-28. graph/canvas/input.js
-29. graph/canvas/minimap.js
-30. graph/canvas/drag.js
-31. graph/canvas/layerOrderList.js
-32. graph/wire/wireRenderer.js
-33. graph/wire/wire.js
-34. ui/nodeList.js
-35. ui/nodePicker.js
-36. ui/inspector.js
-37. ui/settingsModal.js
-38. polling/poller.js
-39. notifications/notificationBar.js
-40. ui/topBar.js
-41. ui/bottomBar.js
-42. ui/statusBar.js
-43. ui/sidebarToggle.js
-44. index.js
+28. graph/canvas/input/state.js
+29. graph/canvas/input/utils.js
+30. graph/canvas/input/rubberband.js
+31. graph/canvas/input/handlers.js
+32. graph/canvas/input/index.js
+33. graph/canvas/minimap.js
+34. graph/canvas/drag.js
+35. graph/wire/wireRenderer.js
+36. graph/wire/wire.js
+37. ui/nodeList.js
+38. ui/nodePicker/compatibility.js
+39. ui/nodePicker/render.js
+40. ui/nodePicker/filter.js
+41. ui/nodePicker/events.js
+42. ui/nodePicker/index.js
+43. ui/inspector.js
+44. ui/settingsModal.js
+45. polling/poller.js
+46. ui/topBar.js
+47. ui/bottomBar.js
+48. ui/statusBar.js
+49. ui/sidebarToggle.js
+50. index.js
 ```
 
 ---
@@ -93,7 +99,7 @@ procedia/
 │                                                  evalBridge.dispatch(commandObj) → Promise,
 │                                                  evalBridge.dispatchBatch(commandArr) → Promise
 │                                         Calls: csInterface.evalScript()
-│                                         Bootstraps preamble: json.jsx → utils.jsx → dispatcher.jsx
+│                                         Bootstraps preamble: json.jsx → utils.jsx → actions_schema.jsx → actions_comp.jsx → actions_layer.jsx → actions_property.jsx → actions_park.jsx → actions_matte.jsx → actions_effect.jsx → dispatcher.jsx
 │                                         Depends on: lib/CSInterface.js, data/uuidGenerator.js
 │
 ├── graph/
@@ -209,8 +215,14 @@ procedia/
 │   │   ├── renderer.js                 ← Draw loop — nodes, wires, grid
 │   │   │                                 Depends on: graph/graphState.js, graph/nodeRegistry.js,
 │   │   │                                              graph/canvas/viewport.js
-│   │   ├── input.js                    ← Mouse and keyboard events on canvas
-│   │   │                                 Depends on: graph/graphState.js, graph/canvas/viewport.js
+│   │   ├── input/                       ← Mouse and keyboard events on canvas (split from input.js)
+│   │   │   ├── state.js                 ← Shared state variables
+│   │   │   ├── utils.js                 ← Utility helpers (wrapOffset, clientToWrap, isEditableTarget)
+│   │   │   ├── rubberband.js            ← Rubber-band selection logic
+│   │   │   ├── handlers.js              ← Event handlers (mouse, wheel, keyboard)
+│   │   │   └── index.js                 ← init() + public API
+│   │   │                                 Depends on: graph/graphState.js, graph/canvas/viewport.js,
+│   │   │                                              graph/canvas/renderer.js
 │   │   └── minimap.js                  ← Minimap canvas render
 │   │                                     Depends on: graph/graphState.js, graph/canvas/viewport.js
 │   │
@@ -278,14 +290,8 @@ procedia/
 │                                         Respects isWriting flag — skips tick if true
 │                                         Depends on: bridge/evalBridge.js
 │
-├── notifications/
-│   └── notificationBar.js              ← Panel-level notification bar
-│                                         Exposes: notificationBar.show(msg, level),
-│                                                  notificationBar.hide()
-│                                         Depends on: (none)
-│
 ├── graph/canvas/                       ← Canvas interaction & node DOM layer
-│   ├── viewport.js, renderer.js, input.js, minimap.js
+│   ├── viewport.js, renderer.js, input/, minimap.js
 │   └── drag.js                         ← onDrop handler + wire-insertion logic
 │                                         Calls: engine.dropNode(), engine.connectWire(),
 │                                                engine.disconnectWire(), graphState.removeWire()
@@ -320,32 +326,86 @@ procedia/
     │                                     Chunking: splits to _1, _2, ... if over char limit
     │                                     Requires: json.jsx, utils.jsx
     │
-    ├── polling.jsx                     ← Single multi-UUID alive check
-    │                                     Exposes: pollAliveNodes(uuidListJSON)
-    │                                     Requires: json.jsx, utils.jsx
-    │
     └── dispatcher/
+        ├── actions_schema.jsx          ← Schema cache, persistence & version handlers
+        │                                 Exposes: _handleReadSchemaCache,
+        │                                          _handleWriteSchemaCache,
+        │                                          _handleGetAEVersion,
+        │                                          _handleReadGraph, _handleWriteGraph,
+        │                                          _pluginRootFolder()
+        │                                 Requires: json.jsx, utils.jsx
+        │
+        ├── actions_comp.jsx            ← CompNode handlers
+        │                                 Exposes: _handleCreateComp, _handleDeleteComp,
+        │                                          _handleSetCompProperty, _handleFocusComp,
+        │                                          _handleEnsureReservedComp,
+        │                                          findOrCreateReservedComp()
+        │                                 Requires: json.jsx, utils.jsx
+        │
+        ├── actions_layer.jsx           ← Layer create/delete/rename handlers
+        │                                 Exposes: _handleCreateTextLayer,
+        │                                          _handleCreateNullLayer,
+        │                                          _handleCreateAdjustmentLayer,
+        │                                          _handleCreateShapeLayer,
+        │                                          _handleAddCompAsLayer,
+        │                                          _handleDeletePathLayer,
+        │                                          _handleRenameNode, _handleRestampLayer
+        │                                 Requires: json.jsx, utils.jsx
+        │
+        ├── actions_property.jsx        ← Layer property/parent/order/blending handlers
+        │                                 Exposes: _handleSetLayerProperty,
+        │                                          _handleClearLayerParent,
+        │                                          _handleSetLayerParent,
+        │                                          _handleSetLayerOrder,
+        │                                          _handleSetBlendingMode
+        │                                 Requires: json.jsx, utils.jsx
+        │
+        ├── actions_park.jsx            ← Park/unpark/poll handlers
+        │                                 Exposes: _handleParkLayer, _handleUnparkLayer,
+        │                                          _handleDeleteParkedLayer,
+        │                                          _handlePollAliveNodes
+        │                                 Requires: json.jsx, utils.jsx, actions_comp.jsx
+        │
+        ├── actions_matte.jsx           ← Matte track-matte handlers
+        │                                 Exposes: _handleSetLumaMatte,
+        │                                          _handleSetAlphaMatte,
+        │                                          _handleClearMatte
+        │                                 Requires: json.jsx, utils.jsx
+        │
+        ├── actions_effect.jsx          ← Effect-related handlers
+        │                                 Exposes: _handleApplyDynamicEffect,
+        │                                          _handleRemoveEffect,
+        │                                          _handleSetEffectProperty,
+        │                                          _handleIntrospectEffect
+        │                                 Requires: json.jsx, utils.jsx
+        │
         └── dispatcher.jsx              ← THE ONLY EXTENDSCRIPT WRITER
                                           Entry: dispatch(commandJSON),
                                                  dispatchBatch(commandArrayJSON)
-                                          Routes via: _route(action, params)
-                                          Requires: json.jsx, utils.jsx loaded first
+                                           Routes via: _route(cmd) — looks up _handlers map
+                                          Defines: _handlers map, _cmdParams(),
+                                                   _handleGeneric(), _route(),
+                                                   dispatch(), dispatchBatch()
+                                          Requires: json.jsx, utils.jsx, all actions_*.jsx
+                                          Must load LAST in preamble
 
-                                          Registered actions:
-                                            createComp, createTextLayer, createNullLayer,
+                                          Registered actions (from all actions_*.jsx):
+                                            createComp, deleteComp, setCompProperty,
+                                            focusComp, ensureReservedComp,
+                                            createTextLayer, createNullLayer,
                                             createShapeLayer, createAdjustmentLayer,
-                                            addCompAsLayer, parkLayer, unparkLayer,
-                                            deleteParkedLayer, deletePathLayer, deleteComp,
-                                            setLayerProperty, setCompProperty,
-                                            setLayerParent, clearLayerParent,
-                                            setLayerOrder, renameNode, focusComp,
-                                            applyEffect, applyDynamicEffect,
-                                            removeEffect, setEffectProperty,
-                                            restampLayer, pollAliveNodes,
-                                            setBlendingMode, setLumaMatte,
-                                            setAlphaMatte, clearMatte,
-                                            introspectEffect, readSchemaCache,
-                                            writeSchemaCache, getAEVersion
+                                            addCompAsLayer, deletePathLayer,
+                                            renameNode, restampLayer,
+                                            setLayerProperty, clearLayerParent,
+                                            setLayerParent, setLayerOrder,
+                                            setBlendingMode,
+                                            parkLayer, unparkLayer,
+                                            deleteParkedLayer, pollAliveNodes,
+                                            setLumaMatte, setAlphaMatte, clearMatte,
+                                            applyDynamicEffect, removeEffect,
+                                            setEffectProperty, introspectEffect,
+                                            readSchemaCache, writeSchemaCache,
+                                            getAEVersion, readGraph, writeGraph
 ```
 
 ---
@@ -413,13 +473,19 @@ index.js: init()
 | ---- | ------ | ----- |
 | `graph/portManager.js` | 🗑️ Removed | Extendable port slot lifecycle removed from arch_specs — concept deprecated |
 | `graph/canvas/drag.js` | ✅ Exists | Wire-insertion drag handler |
-| `graph/canvas/layerOrderList.js` | ✅ Exists | Drag-to-reorder stub |
+| `graph/canvas/layerOrderList.js` | 🗑️ Removed | Drag-to-reorder stub — removed |
 | `ui/settings.js` | ✅ Exists | Persistent key/value store (localStorage) |
-| `ui/nodePicker.js` | ✅ Exists | Popup picker when dropping wire on empty canvas |
+| `ui/nodePicker/` (5 files) | ✅ Exists | Popup picker when dropping wire on empty canvas |
 | `css/nodePicker.css` | ✅ Exists | Styles for node picker |
 | `css/settingsModal.css` | ✅ Exists | Styles for settings modal |
 | `data/effectSchemaCache.json` | ✅ Exists | Ships as `{ "aeVersion": "", "schemas": {} }` — matches arch_specs §20c |
 | `graph/schemaCache.js` | ✅ Exists | Implementation exists on disk — resolved schema populates all secondary ports from drop (no spawning) |
+
+---
+
+## Code Documentation
+
+File header comments (file description, dependency declarations, and public API) and JSDoc function-level comments have been added to every source file (`.js` and `.jsx`). Each file documents its own dependencies and exposed symbols.
 
 ---
 

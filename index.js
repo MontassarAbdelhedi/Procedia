@@ -1,14 +1,31 @@
+/**
+ * Entry point for the Procedia panel.
+ * Initializes CSInterface, loads the graph from persistence, and starts all subsystems.
+ * Depends on: lib/CSInterface.js, data/uuidGenerator.js, bridge/evalBridge.js,
+ *             graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
+ *             graph/canvas/viewport.js, ui/inspector/*, ui/nodeList/*, ui/statusBar.js,
+ *             ui/topBar.js, ui/bottomBar.js, ui/sidebarToggle.js,
+ *             graph/schemaCache.js, flush/dirtyFlusher.js
+ * Exports: (none — side-effect module)
+ */
 // index.js
 // DEPENDS ON: lib/CSInterface.js, data/uuidGenerator.js, bridge/evalBridge.js,
-//             graph/graphState.js, graph/nodeRegistry.js, graph/engine.js,
+//             graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
 //             graph/canvas/viewport.js,
-//             ui/nodeList.js, ui/inspector.js, ui/statusBar.js,
+//             ui/inspector/viewModel.js, ui/inspector/render.js, ui/inspector/events.js, ui/inspector/index.js,
+//             ui/nodeList/categories.js, ui/nodeList/render.js, ui/nodeList/search.js,
+//             ui/nodeList/dragdrop.js, ui/nodeList/index.js, ui/statusBar.js,
 //             ui/topBar.js, ui/bottomBar.js, ui/sidebarToggle.js,
 //             graph/schemaCache.js, flush/dirtyFlusher.js
 // MUST LOAD BEFORE: nothing (this is the entry point)
 
 var csInterface = new CSInterface();
 
+/**
+ * Initializes all panel subsystems after DOM content is loaded.
+ * Sets up evalBridge, canvas, wire tools, minimap, UI components, and
+ * restores the persisted graph from the host application.
+ */
 function init() {
   evalBridge.init(csInterface);
   var _extPath = (typeof window.__adobe_cep__ !== 'undefined')
@@ -30,6 +47,12 @@ function init() {
     if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
     if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
+    if (sel.length === 1) {
+      var node = graphState.getNode(sel[0]);
+      if (node && node.type === 'core/comp' && typeof evalBridge !== 'undefined') {
+        evalBridge.dispatch({ action: 'focusComp', params: { nodeUUID: sel[0] } });
+      }
+    }
   });
   wireRenderer.init();
   wireTool.init();

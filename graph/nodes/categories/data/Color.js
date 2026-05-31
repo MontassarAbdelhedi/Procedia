@@ -1,3 +1,11 @@
+/**
+ * @file Color data node definition (data/color).
+ * A simple data-only node that exposes an RGBA color value.
+ * Ports: output (data).
+ * Params: label, color (RGBA array).
+ * All lifecycle handlers return null — no AE actions are dispatched.
+ */
+
 // graph/nodes/categories/data/Color.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -19,10 +27,15 @@ var ColorNode = {
     { key: 'color', type: 'color',  default: [1, 1, 1, 1], label: 'Color' }
   ],
 
+  /** @return {null} Data node — no AE action on drop. */
   onDrop:           function(nodeData)                              { return null; },
+  /** @return {null} Data node — no AE action when alive. */
   onAlive:          function(nodeData, hostingCompUUID)             { return null; },
+  /** @return {null} Data node — no AE action when ghosted. */
   onGhost:          function(nodeData, hostingCompUUID)             { return null; },
+  /** @return {null} Data node — no AE action on delete. */
   onDelete:         function(nodeData)                              { return null; },
+  /** @return {null} Data node — no AE action on property change. */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) { return null; }
 };
 

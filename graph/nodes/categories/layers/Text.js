@@ -1,3 +1,11 @@
+/**
+ * @file Text layer node definition (layers/text).
+ * A text layer with content, font, color, and transform properties.
+ * Ports: output (layer), child_of/parent_of (parent).
+ * Params: label, content, fontSize, color, position, rotation, opacity.
+ * Dispatches: createTextLayer, parkLayer, deleteParkedLayer, setLayerProperty.
+ */
+
 // graph/nodes/categories/layers/Text.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -26,10 +34,17 @@ var TextNode = {
     { key: 'opacity',  type: 'number',  default: 100,         label: 'Opacity',   min: 0, max: 100  }
   ],
 
+  /** @return {null} No AE action on initial drop — layer is created onAlive. */
   onDrop: function(nodeData) {
     return null;
   },
 
+  /**
+   * Creates the text layer in the hosting composition.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to create a text layer in AE.
+   */
   onAlive: function(nodeData, hostingCompUUID) {
     return {
       action: 'createTextLayer',
@@ -47,6 +62,12 @@ var TextNode = {
     };
   },
 
+  /**
+   * Parks (removes from comp but retains) the text layer.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to park a layer in AE.
+   */
   onGhost: function(nodeData, hostingCompUUID) {
     return {
       action: 'parkLayer',
@@ -57,6 +78,11 @@ var TextNode = {
     };
   },
 
+  /**
+   * Deletes the previously parked text layer.
+   * @param {Object} nodeData - The full node data object.
+   * @return {Object} Action to delete a parked layer in AE.
+   */
   onDelete: function(nodeData) {
     return {
       action: 'deleteParkedLayer',
@@ -66,6 +92,14 @@ var TextNode = {
     };
   },
 
+  /**
+   * Updates a property on the text layer in AE.
+   * @param {string} key - The property key to update.
+   * @param {*} value - The new property value.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to set a layer property in AE.
+   */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) {
     return {
       action: 'setLayerProperty',

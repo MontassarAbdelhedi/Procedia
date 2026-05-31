@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Settings modal UI module. Builds and controls the settings overlay.
+ * Depends on: settings (global), wireRenderer (global), css/settingsModal.css.
+ * Exports: settingsModal.init, settingsModal.open, settingsModal.close
+ */
 // ui/settingsModal.js
 // DEPENDS ON: ui/settings.js, css/settingsModal.css
 // MUST LOAD BEFORE: index.js
@@ -10,6 +15,9 @@ var settingsModal = (function() {
   var _minimapCheckbox = null;
   var _wireStyleSelect = null;
 
+  /**
+   * Creates the settings modal DOM and appends it to the body.
+   */
   function _buildDOM() {
     _overlay = document.createElement('div');
     _overlay.className = 'settings-overlay';
@@ -46,12 +54,43 @@ var settingsModal = (function() {
             '<div class="settings-hint">Appearance of connection wires between nodes</div>' +
           '</div>' +
 
+          '<div class="settings-group">' +
+            '<div class="settings-row">' +
+              '<span class="settings-label">Layout Direction</span>' +
+              '<select id="settings-layout-direction" class="settings-select">' +
+                '<option value="LR">Left to Right</option>' +
+                '<option value="TB">Top to Bottom</option>' +
+              '</select>' +
+            '</div>' +
+            '<div class="settings-hint">Flow direction for auto layout</div>' +
+          '</div>' +
+
+          '<div class="settings-group">' +
+            '<div class="settings-row">' +
+              '<span class="settings-label">Layout Spacing</span>' +
+            '</div>' +
+            '<div class="settings-row">' +
+              '<span class="settings-label-sub">Horizontal</span>' +
+              '<input type="range" id="settings-layout-hspacing" class="settings-range" min="40" max="300" value="80">' +
+              '<span class="settings-range-value" id="settings-layout-hspacing-val">80</span>' +
+            '</div>' +
+            '<div class="settings-row">' +
+              '<span class="settings-label-sub">Vertical</span>' +
+              '<input type="range" id="settings-layout-vspacing" class="settings-range" min="20" max="200" value="40">' +
+              '<span class="settings-range-value" id="settings-layout-vspacing-val">40</span>' +
+            '</div>' +
+            '<div class="settings-hint">Spacing between layers and nodes in auto layout</div>' +
+          '</div>' +
+
         '</div>' +
       '</div>';
 
     document.body.appendChild(_overlay);
   }
 
+  /**
+   * Wires click/change events for the modal overlay, close button, and controls.
+   */
   function _bindEvents() {
     _overlay.addEventListener('click', function(e) {
       if (e.target === _overlay) close();
@@ -71,14 +110,62 @@ var settingsModal = (function() {
       settings.set('wireStyle', _wireStyleSelect.value);
       _applySettings();
     });
+
+    var layoutDir = document.getElementById('settings-layout-direction');
+    if (layoutDir) {
+      layoutDir.addEventListener('change', function() {
+        settings.set('layoutDirection', layoutDir.value);
+      });
+    }
+
+    var hSpacing = document.getElementById('settings-layout-hspacing');
+    if (hSpacing) {
+      hSpacing.addEventListener('input', function() {
+        settings.set('layoutHSpacing', parseInt(hSpacing.value, 10));
+        var valEl = document.getElementById('settings-layout-hspacing-val');
+        if (valEl) valEl.textContent = hSpacing.value;
+      });
+    }
+
+    var vSpacing = document.getElementById('settings-layout-vspacing');
+    if (vSpacing) {
+      vSpacing.addEventListener('input', function() {
+        settings.set('layoutVSpacing', parseInt(vSpacing.value, 10));
+        var valEl = document.getElementById('settings-layout-vspacing-val');
+        if (valEl) valEl.textContent = vSpacing.value;
+      });
+    }
   }
 
+  /**
+   * Reads current settings and updates the checkbox and select values.
+   */
   function _syncControls() {
     var prefs = settings.getAll();
     _minimapCheckbox.checked = prefs.minimap !== false;
     _wireStyleSelect.value = prefs.wireStyle || 'bezier';
+
+    var layoutDir = document.getElementById('settings-layout-direction');
+    if (layoutDir) layoutDir.value = prefs.layoutDirection || 'LR';
+
+    var hSpacing = document.getElementById('settings-layout-hspacing');
+    if (hSpacing) {
+      hSpacing.value = prefs.layoutHSpacing || 80;
+      var valEl = document.getElementById('settings-layout-hspacing-val');
+      if (valEl) valEl.textContent = hSpacing.value;
+    }
+
+    var vSpacing = document.getElementById('settings-layout-vspacing');
+    if (vSpacing) {
+      vSpacing.value = prefs.layoutVSpacing || 40;
+      var valEl = document.getElementById('settings-layout-vspacing-val');
+      if (valEl) valEl.textContent = vSpacing.value;
+    }
   }
 
+  /**
+   * Applies current settings to the UI (minimap visibility, wire re-render).
+   */
   function _applySettings() {
     var prefs = settings.getAll();
 
@@ -90,6 +177,9 @@ var settingsModal = (function() {
     if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
   }
 
+  /**
+   * Opens the settings modal.
+   */
   function open() {
     if (_open) return;
     _open = true;
@@ -97,6 +187,9 @@ var settingsModal = (function() {
     _syncControls();
   }
 
+  /**
+   * Closes the settings modal.
+   */
   function close() {
     if (!_open) return;
     _open = false;
@@ -104,6 +197,9 @@ var settingsModal = (function() {
     _applySettings();
   }
 
+  /**
+   * Initializes the settings modal: builds DOM, binds events, syncs controls, applies settings.
+   */
   function init() {
     if (!_overlay) {
       _buildDOM();

@@ -1,3 +1,11 @@
+/**
+ * @file Null layer node definition (layers/null).
+ * A null object layer used as a parent/controller for other layers.
+ * Ports: output (layer), child_of/parent_of (parent).
+ * Params: label, position, rotation, opacity, scale.
+ * Dispatches: createNullLayer, parkLayer, deleteParkedLayer, setLayerProperty.
+ */
+
 // graph/nodes/categories/layers/Null.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -24,10 +32,17 @@ var NullNode = {
     { key: 'scale',    type: 'vector2', default: [100, 100],  label: 'Scale'                       }
   ],
 
+  /** @return {null} No AE action on initial drop — layer is created onAlive. */
   onDrop: function(nodeData) {
     return null;
   },
 
+  /**
+   * Creates the null layer in the hosting composition.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to create a null layer in AE.
+   */
   onAlive: function(nodeData, hostingCompUUID) {
     return {
       action: 'createNullLayer',
@@ -43,6 +58,12 @@ var NullNode = {
     };
   },
 
+  /**
+   * Parks (removes from comp but retains) the null layer.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to park a layer in AE.
+   */
   onGhost: function(nodeData, hostingCompUUID) {
     return {
       action: 'parkLayer',
@@ -53,6 +74,11 @@ var NullNode = {
     };
   },
 
+  /**
+   * Deletes the previously parked null layer.
+   * @param {Object} nodeData - The full node data object.
+   * @return {Object} Action to delete a parked layer in AE.
+   */
   onDelete: function(nodeData) {
     return {
       action: 'deleteParkedLayer',
@@ -62,6 +88,14 @@ var NullNode = {
     };
   },
 
+  /**
+   * Updates a property on the null layer in AE.
+   * @param {string} key - The property key to update.
+   * @param {*} value - The new property value.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to set a layer property in AE.
+   */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) {
     return {
       action: 'setLayerProperty',

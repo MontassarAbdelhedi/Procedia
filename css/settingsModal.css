@@ -1,5 +1,9 @@
+/* settingsModal.css — Settings modal
+   Overlay, modal dialog, header, toggle switches, and select dropdowns for app preferences. */
+
 /* settingsModal.css — Settings modal overlay and controls */
 
+/* --- Overlay --- */
 .settings-overlay {
   position: fixed;
   inset: 0;
@@ -10,6 +14,7 @@
   z-index: 1000;
 }
 
+/* --- Modal container --- */
 .settings-modal {
   background: #1a1a18;
   border: 1px solid #2a2a28;
@@ -20,6 +25,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
+/* --- Header & close button --- */
 .settings-modal-header {
   display: flex;
   align-items: center;
@@ -48,10 +54,12 @@
   color: #d4d2cc;
 }
 
+/* --- Body --- */
 .settings-modal-body {
   padding: 18px;
 }
 
+/* --- Settings groups --- */
 .settings-group {
   margin-bottom: 20px;
 }
@@ -79,6 +87,7 @@
 }
 
 /* Toggle switch */
+/* --- Toggle switch --- */
 .settings-toggle {
   position: relative;
   display: inline-block;
@@ -123,6 +132,7 @@
 }
 
 /* Select dropdown */
+/* --- Select dropdown --- */
 .settings-select {
   background: #111110;
   border: 1px solid #2a2a28;
@@ -137,4 +147,51 @@
 
 .settings-select:focus {
   border-color: #534AB7;
+}
+
+/* Sub-label for grouped settings rows */
+.settings-label-sub {
+  font-size: 12px;
+  color: #888780;
+  min-width: 70px;
+}
+
+/* Range slider for layout spacing */
+.settings-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #333331;
+  outline: none;
+  margin: 0 10px;
+  cursor: pointer;
+}
+
+.settings-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #534AB7;
+  cursor: pointer;
+  border: none;
+}
+
+.settings-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #534AB7;
+  cursor: pointer;
+  border: none;
+}
+
+.settings-range-value {
+  font-size: 12px;
+  color: #d4d2cc;
+  min-width: 24px;
+  text-align: right;
 }

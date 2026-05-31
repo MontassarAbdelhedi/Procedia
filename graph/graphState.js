@@ -1,6 +1,21 @@
+/**
+ * In-memory graph state: holds all nodes, wires, and selection state.
+ * Provides CRUD operations for nodes and wires, a dirty-flag system,
+ * multi-select tracking, and a stripped temp-graph snapshot used by
+ * downstream modules (schemaCache, engine, cascade, etc.).
+ * @module graphState
+ * @dependencies none
+ * @exports addNode, removeNode, updateNode, getNode, getAllNodes,
+ *          addWire, removeWire, updateWire, getWire, getAllWires,
+ *          updateProp, clearDirty,
+ *          setSelection, getSelection, addToSelection, removeFromSelection,
+ *          toggleSelection, isSelected, clearSelection, replaceSelection,
+ *          getSelectionCount, onSelectionChange,
+ *          rebuildTempGraph, loadGraph, clearGraph
+ */
 // graph/graphState.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: graph/schemaCache.js, graph/engine.js, graph/cascadeAlgorithm.js,
+// MUST LOAD BEFORE: graph/schemaCache.js, graph/engine/index.js, graph/cascade/index.js,
 //                   graph/portManager.js, graph/wireValidator.js, graph/cycleChecker.js
 
 var graphState = (function() {
@@ -20,6 +35,11 @@ var graphState = (function() {
 
   // --- internal helpers ---
 
+  /**
+   * Rebuilds the stripped tempGraph snapshot from nodeMap and wireMap.
+   * Strips internal fields (dirty, dynamicSchema, secondaryPorts, _transplantLayerUUID)
+   * from node copies so the temp graph is safe for external consumers.
+   */
   function rebuildTempGraph() {
     var newNodes = {};
     var newWires = {};
@@ -48,6 +68,10 @@ var graphState = (function() {
     tempGraph.wires = newWires;
   }
 
+  /**
+   * Removes all wires connected to a given node UUID.
+   * @param {string} uuid - Node identifier
+   */
   function _removeWiresForNode(uuid) {
     var toRemove = [];
     for (var wireId in wireMap) {
@@ -63,6 +87,11 @@ var graphState = (function() {
 
   // --- node operations ---
 
+  /**
+   * Registers a new node in the graph state.
+   * @param {Object} nodeData - Node data object with a unique id
+   * @throws {Error} If nodeData.id is missing or already exists
+   */
   function addNode(nodeData) {
     if (!nodeData || !nodeData.id) {
       throw new Error('graphState.addNode: nodeData.id is required');
@@ -74,6 +103,10 @@ var graphState = (function() {
     rebuildTempGraph();
   }
 
+  /**
+   * Removes a node and all wires connected to it.
+   * @param {string} uuid - Node identifier to remove
+   */
   function removeNode(uuid) {
     if (!nodeMap.hasOwnProperty(uuid)) return;
     _removeWiresForNode(uuid);
@@ -81,6 +114,11 @@ var graphState = (function() {
     rebuildTempGraph();
   }
 
+  /**
+   * Applies a partial patch to an existing node.
+   * @param {string} uuid - Node identifier
+   * @param {Object} patch - Key/value pairs to merge onto the node
+   */
   function updateNode(uuid, patch) {
     if (!nodeMap.hasOwnProperty(uuid)) return;
     var node = nodeMap[uuid];
@@ -90,16 +128,30 @@ var graphState = (function() {
     rebuildTempGraph();
   }
 
+  /**
+   * Retrieves a node by UUID.
+   * @param {string} uuid - Node identifier
+   * @returns {Object|null} The node data, or null if not found
+   */
   function getNode(uuid) {
     return nodeMap.hasOwnProperty(uuid) ? nodeMap[uuid] : null;
   }
 
+  /**
+   * Returns the entire node map (all nodes).
+   * @returns {Object} Map of node uuid -> node data
+   */
   function getAllNodes() {
     return nodeMap;
   }
 
   // --- wire operations ---
 
+  /**
+   * Registers a new wire in the graph state.
+   * @param {Object} wireData - Wire data object with a unique id
+   * @throws {Error} If wireData.id is missing or already exists
+   */
   function addWire(wireData) {
     if (!wireData || !wireData.id) {
       throw new Error('graphState.addWire: wireData.id is required');
@@ -111,12 +163,21 @@ var graphState = (function() {
     rebuildTempGraph();
   }
 
+  /**
+   * Removes a wire by its ID.
+   * @param {string} wireId - Wire identifier to remove
+   */
   function removeWire(wireId) {
     if (!wireMap.hasOwnProperty(wireId)) return;
     delete wireMap[wireId];
     rebuildTempGraph();
   }
 
+  /**
+   * Applies a partial patch to an existing wire.
+   * @param {string} wireId - Wire identifier
+   * @param {Object} patch - Key/value pairs to merge onto the wire
+   */
   function updateWire(wireId, patch) {
     if (!wireMap.hasOwnProperty(wireId)) return;
     var wire = wireMap[wireId];
@@ -126,16 +187,31 @@ var graphState = (function() {
     rebuildTempGraph();
   }
 
+  /**
+   * Retrieves a wire by its ID.
+   * @param {string} wireId - Wire identifier
+   * @returns {Object|null} The wire data, or null if not found
+   */
   function getWire(wireId) {
     return wireMap.hasOwnProperty(wireId) ? wireMap[wireId] : null;
   }
 
+  /**
+   * Returns the entire wire map (all wires).
+   * @returns {Object} Map of wire id -> wire data
+   */
   function getAllWires() {
     return wireMap;
   }
 
   // --- property operations ---
 
+  /**
+   * Sets a property value on a node and marks the node as dirty.
+   * @param {string} uuid - Node identifier
+   * @param {string} key - Property key
+   * @param {*} value - Property value
+   */
   function updateProp(uuid, key, value) {
     if (!nodeMap.hasOwnProperty(uuid)) return;
     var node = nodeMap[uuid];
@@ -144,6 +220,10 @@ var graphState = (function() {
     node.dirty = true;
   }
 
+  /**
+   * Clears the dirty flag on a node.
+   * @param {string} uuid - Node identifier
+   */
   function clearDirty(uuid) {
     if (!nodeMap.hasOwnProperty(uuid)) return;
     nodeMap[uuid].dirty = false;
@@ -151,12 +231,19 @@ var graphState = (function() {
 
   // --- selection (multi-select) ---
 
+  /**
+   * Fires the selection-change callback, if one is registered.
+   */
   function _fireSelectionChange() {
     if (_onSelectionChangeCb) {
       _onSelectionChangeCb(selection);
     }
   }
 
+  /**
+   * Replaces the selection with a single UUID (or clears it if uuid is null).
+   * @param {string|null} uuid - Node to select, or null to clear
+   */
   function setSelection(uuid) {
     if (uuid === null || uuid === undefined) {
       selection = [];
@@ -166,10 +253,18 @@ var graphState = (function() {
     _fireSelectionChange();
   }
 
+  /**
+   * Returns the current selection array.
+   * @returns {string[]} Array of selected UUIDs
+   */
   function getSelection() {
     return selection;
   }
 
+  /**
+   * Adds a UUID to the selection if not already present.
+   * @param {string} uuid - Node identifier to add
+   */
   function addToSelection(uuid) {
     if (selection.indexOf(uuid) === -1) {
       selection.push(uuid);
@@ -177,6 +272,10 @@ var graphState = (function() {
     _fireSelectionChange();
   }
 
+  /**
+   * Removes a UUID from the selection.
+   * @param {string} uuid - Node identifier to remove
+   */
   function removeFromSelection(uuid) {
     var idx = selection.indexOf(uuid);
     if (idx !== -1) {
@@ -185,6 +284,10 @@ var graphState = (function() {
     _fireSelectionChange();
   }
 
+  /**
+   * Toggles a UUID in the selection (add if absent, remove if present).
+   * @param {string} uuid - Node identifier to toggle
+   */
   function toggleSelection(uuid) {
     var idx = selection.indexOf(uuid);
     if (idx !== -1) {
@@ -195,19 +298,35 @@ var graphState = (function() {
     _fireSelectionChange();
   }
 
+  /**
+   * Checks whether a UUID is currently selected.
+   * @param {string} uuid - Node identifier
+   * @returns {boolean} True if selected
+   */
   function isSelected(uuid) {
     return selection.indexOf(uuid) !== -1;
   }
 
+  /**
+   * Clears the entire selection.
+   */
   function clearSelection() {
     selection = [];
     _fireSelectionChange();
   }
 
+  /**
+   * Returns the number of selected items.
+   * @returns {number} Selection count
+   */
   function getSelectionCount() {
     return selection.length;
   }
 
+  /**
+   * Replaces the selection with an array of UUIDs.
+   * @param {string[]} uuids - Array of node identifiers (non-array input clears selection)
+   */
   function replaceSelection(uuids) {
     if (!Array.isArray(uuids)) {
       selection = [];
@@ -217,12 +336,22 @@ var graphState = (function() {
     _fireSelectionChange();
   }
 
+  /**
+   * Registers a callback to fire whenever the selection changes.
+   * @param {Function} callback - Called with the current selection array
+   */
   function onSelectionChange(callback) {
     _onSelectionChangeCb = callback;
   }
 
   // --- graph operations ---
 
+  /**
+   * Replaces the entire graph state with the given graph data.
+   * Initialises default fields (dirty, hasParkedLayer, secondaryPorts,
+   * dynamicSchema, locked) where missing.
+   * @param {Object} graphData - Object with nodes and wires maps
+   */
   function loadGraph(graphData) {
     nodeMap   = {};
     wireMap   = {};
@@ -249,6 +378,9 @@ var graphState = (function() {
     rebuildTempGraph();
   }
 
+  /**
+   * Resets the graph state to empty (no nodes, no wires, no selection).
+   */
   function clearGraph() {
     nodeMap   = {};
     wireMap   = {};

@@ -1,3 +1,9 @@
+/**
+ * Flushes dirty node property changes to the host application.
+ * Debounces flushes and walks upstream wire chains to resolve path-layer UUIDs.
+ * Depends on: graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js
+ * Exports: dirtyFlusher object with schedule, flush, cancel
+ */
 // flush/dirtyFlusher.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js
 // MUST LOAD BEFORE: index.js
@@ -7,10 +13,21 @@ var dirtyFlusher = (function() {
   var _timer = null;
   var DEBOUNCE_MS = 300;
 
+  /**
+   * Finds the _pathLayerUUID by walking upstream wires from the given node.
+   * @param {string} nodeId - The starting node UUID
+   * @returns {string|null}
+   */
   function _findPathLayerUUID(nodeId) {
     return _findPathLayerUUIDWithVisited(nodeId, {});
   }
 
+  /**
+   * Recursively walks upstream wires to find a _pathLayerUUID, tracking visited nodes.
+   * @param {string} nodeId - Current node UUID
+   * @param {Object} visited - Set of visited node IDs (used to prevent cycles)
+   * @returns {string|null}
+   */
   function _findPathLayerUUIDWithVisited(nodeId, visited) {
     if (visited[nodeId]) return null;
     visited[nodeId] = true;
@@ -29,6 +46,11 @@ var dirtyFlusher = (function() {
     return null;
   }
 
+  /**
+   * Resolves the upstream path-layer UUID for an effector node by inspecting its input wires.
+   * @param {string} nodeId - The effector node UUID
+   * @returns {string|null}
+   */
   function _resolveUpstreamNodeUUID(nodeId) {
     var wireMap = graphState.getAllWires();
     for (var wireId in wireMap) {
@@ -44,6 +66,12 @@ var dirtyFlusher = (function() {
     return null;
   }
 
+  /**
+   * Flushes all dirty properties of a single node by dispatching commands from its definition's onPropertyChange.
+   * @param {string} nodeId - The node UUID
+   * @param {Object} nodeData - The node's data object
+   * @param {Object} def - The node type definition from nodeRegistry
+   */
   function _flushNode(nodeId, nodeData, def) {
     if (!def || typeof def.onPropertyChange !== 'function') {
       graphState.clearDirty(nodeId);
@@ -95,6 +123,10 @@ var dirtyFlusher = (function() {
     });
   }
 
+  /**
+   * Immediately flushes all dirty nodes in the graph.
+   * Iterates over every node and dispatches property changes for those marked dirty.
+   */
   function flush() {
     var nodeMap = graphState.getAllNodes();
     for (var nodeId in nodeMap) {
@@ -109,11 +141,17 @@ var dirtyFlusher = (function() {
     }
   }
 
+  /**
+   * Schedules a debounced flush. Cancels any previously scheduled flush.
+   */
   function schedule() {
     cancel();
     _timer = setTimeout(flush, DEBOUNCE_MS);
   }
 
+  /**
+   * Cancels any pending scheduled flush.
+   */
   function cancel() {
     if (_timer !== null) {
       clearTimeout(_timer);

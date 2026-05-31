@@ -1,3 +1,6 @@
+/* tokens.css — Design tokens reference
+   Color palette and spacing values used throughout the application. */
+
 /* tokens.css — color/spacing reference. Defined here for documentation.
    Other CSS files hardcode these values directly (CEP CSS variable support varies).
 

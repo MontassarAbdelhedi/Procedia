@@ -1,9 +1,16 @@
+/**
+ * @fileoverview Bottom bar UI module. Displays a notification bar with status text.
+ * Exports: bottomBar.init, bottomBar.notify
+ */
 // ui/bottomBar.js
 // DEPENDS ON: (none)
 // MUST LOAD BEFORE: index.js
 
 var bottomBar = (function() {
 
+  /**
+   * Builds the bottom-bar DOM.
+   */
   function init() {
     var el = document.getElementById('bottom-bar');
     el.innerHTML =
@@ -13,6 +20,10 @@ var bottomBar = (function() {
       '</div>';
   }
 
+  /**
+   * Sets the notification text in the bottom bar.
+   * @param {string} message The message to display.
+   */
   function notify(message) {
     var el = document.getElementById('bottombar-notif-text');
     if (el) el.textContent = message;

@@ -1,6 +1,12 @@
+/**
+ * Bridge between the panel UI and After Effects via CSInterface.evalScript.
+ * The ONLY module permitted to call csInterface.evalScript().
+ * Depends on: lib/CSInterface.js, data/uuidGenerator.js
+ * Exports: evalBridge object with init, onReady, dispatch, dispatchBatch
+ */
 // bridge/evalBridge.js
 // DEPENDS ON: lib/CSInterface.js, data/uuidGenerator.js
-// MUST LOAD BEFORE: graph/graphState.js, graph/engine.js, flush/dirtyFlusher.js, polling/poller.js
+// MUST LOAD BEFORE: graph/graphState.js, graph/engine/index.js, flush/dirtyFlusher.js, polling/poller.js
 //
 // THE ONLY FILE that calls csInterface.evalScript(). No other file may call it directly.
 // Exposes: evalBridge.init(cs), evalBridge.dispatch(commandObj), evalBridge.dispatchBatch(commandArr)
@@ -12,6 +18,10 @@ var evalBridge = (function() {
   var _preambleError = null;
   var _readyCallbacks = [];
 
+  /**
+   * Invokes all registered ready callbacks with the given success flag and clears the queue.
+   * @param {boolean} success - Whether the preamble loaded successfully
+   */
   function _flushReadyCallbacks(success) {
     for (var i = 0; i < _readyCallbacks.length; i++) {
       _readyCallbacks[i](success);
@@ -19,6 +29,11 @@ var evalBridge = (function() {
     _readyCallbacks = [];
   }
 
+  /**
+   * Registers a callback that fires once the JSX preamble has finished loading.
+   * If already loaded, the callback is invoked immediately.
+   * @param {function(boolean)} callback - Receives true on success, false on failure
+   */
   function onReady(callback) {
     if (typeof callback !== 'function') return;
     if (_preambleLoaded) {
@@ -32,12 +47,26 @@ var evalBridge = (function() {
     _readyCallbacks.push(callback);
   }
 
+  /**
+   * Initializes the bridge with a CSInterface instance and loads the JSX preamble
+   * (json.jsx, utils.jsx, action handlers, and dispatcher) into the host.
+   * @param {CSInterface} cs - An instance of CSInterface
+   */
   function init(cs) {
     _cs = cs;
     var extPath = _cs.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, '/');
     var script = [
       '$.evalFile("' + extPath + '/jsx/json.jsx");',
       '$.evalFile("' + extPath + '/jsx/utils.jsx");',
+      // Action handlers — loaded before dispatcher.jsx so _handlers map resolves
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_schema.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_comp.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_layer.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_property.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_park.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_effect.jsx");',
+      // Core dispatcher — must be last (defines _handlers + dispatch/dispatchBatch)
       '$.evalFile("' + extPath + '/jsx/dispatcher/dispatcher.jsx");'
     ].join('\n');
     _cs.evalScript(script, function(result) {
@@ -53,10 +82,20 @@ var evalBridge = (function() {
     });
   }
 
+  /**
+   * Checks whether the bridge is initialized and the preamble has been loaded.
+   * @returns {boolean}
+   */
   function _isBridgeAvailable() {
     return _cs !== null && _preambleLoaded;
   }
 
+  /**
+   * Sends a single command object to the host via evalScript.
+   * The command is JSON-serialized and passed to the ExtendScript dispatch() function.
+   * @param {Object} commandObj - Command with an `action` string and optional `params`
+   * @returns {Promise<Object>} Resolves with the parsed response from the host
+   */
   function dispatch(commandObj) {
     return new Promise(function(resolve, reject) {
       if (_cs === null) {
@@ -88,6 +127,11 @@ var evalBridge = (function() {
     });
   }
 
+  /**
+   * Sends an array of command objects to the host in a single evalScript call.
+   * @param {Object[]} commandArray - Array of command objects
+   * @returns {Promise<Object>} Resolves with the parsed batch response
+   */
   function dispatchBatch(commandArray) {
     return new Promise(function(resolve, reject) {
       if (_cs === null) {

@@ -1,9 +1,26 @@
+/**
+ * Wire connection validation.
+ * Checks port existence, direction, type compatibility, capacity,
+ * duplicate wires, cycles, parent-wire constraints, blending-node rules,
+ * and matte conditions.
+ * @module wireValidator
+ * @dependencies graph/graphState.js, graph/nodeRegistry.js, graph/cycleChecker.js
+ * @exports canConnect, filterPickerList
+ */
 // graph/wireValidator.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/cycleChecker.js
-// MUST LOAD BEFORE: graph/engine.js, graph/wire/wire.js
+// MUST LOAD BEFORE: graph/engine/index.js, graph/wire/wire.js
 
 var wireValidator = (function() {
 
+  /**
+   * Looks up a port definition by ID, first from the node type definition,
+   * then from the node's secondaryPorts.
+   * @param {Object} def - Node type definition (may have ports array)
+   * @param {Object} nodeData - Runtime node data (may have secondaryPorts)
+   * @param {string} portId - Port identifier to find
+   * @returns {Object|null} The port definition, or null if not found
+   */
   function _findPortDef(def, nodeData, portId) {
     if (def && def.ports) {
       for (var i = 0; i < def.ports.length; i++) {
@@ -18,14 +35,34 @@ var wireValidator = (function() {
     return null;
   }
 
+  /**
+   * Checks whether a port category is valid as a wire source.
+   * @param {string} category - Port category string
+   * @returns {boolean} True if category is 'output' or 'parent'
+   */
   function _isValidFromCategory(category) {
     return category === 'output' || category === 'parent';
   }
 
+  /**
+   * Checks whether a port category is valid as a wire target.
+   * @param {string} category - Port category string
+   * @returns {boolean} True if category is 'mainInput', 'secondaryInput', or 'parent'
+   */
   function _isValidToCategory(category) {
     return category === 'mainInput' || category === 'secondaryInput' || category === 'parent';
   }
 
+  /**
+   * Validates matte node constraints: both top_layer and matte_layer inputs
+   * must be connected, their upstream nodes must share the same first-level
+   * hosting comp, and the matte output must connect to that shared comp.
+   * @param {string} fromNodeId - Source node UUID
+   * @param {string} fromPort - Source port ID
+   * @param {string} toNodeId - Target node UUID
+   * @param {string} toPort - Target port ID
+   * @returns {string|null} Error message if conditions not met, or null
+   */
   function _validateMatteConditions(fromNodeId, fromPort, toNodeId, toPort) {
     var toNode = graphState.getNode(toNodeId);
     if (!toNode || toNode.nodeKind !== 'matte') return null;
@@ -83,6 +120,18 @@ var wireValidator = (function() {
     return null;
   }
 
+  /**
+   * Validates whether a wire can be created between the given ports.
+   * Checks: node existence, self-wire, port existence, direction, type match,
+   * single capacity, duplicate wires, cycles (for layer wires),
+   * parent comp sharing (for parent wires), blending-node rules, and matte conditions.
+   * @param {string} fromNodeId - Source node UUID
+   * @param {string} fromPort - Source port ID
+   * @param {string} toNodeId - Target node UUID
+   * @param {string} toPort - Target port ID
+   * @param {string} wireType - Wire type (e.g. 'layer', 'parent', 'value')
+   * @returns {{valid: boolean, reason?: string}} Result object
+   */
   function canConnect(fromNodeId, fromPort, toNodeId, toPort, wireType) {
     var fromNode = graphState.getNode(fromNodeId);
     var toNode = graphState.getNode(toNodeId);
@@ -187,6 +236,13 @@ var wireValidator = (function() {
     return { valid: true };
   }
 
+  /**
+   * Filters a list of nodes to only those that have a mainInput port
+   * matching the given wire type. Used for picker UI lists.
+   * @param {string} wireType - Wire type to filter by
+   * @param {Object[]} nodeList - Array of node data objects
+   * @returns {Object[]} Filtered array of matching nodes
+   */
   function filterPickerList(wireType, nodeList) {
     if (!nodeList || nodeList.length === 0) return [];
 

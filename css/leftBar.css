@@ -1,4 +1,5 @@
-/* leftBar.css */
+/* leftBar.css — Left sidebar styling
+   Search field, collapsible category tree, and draggable node list. */
 
 #left-bar {
   background: rgba(15,15,13,0.9);

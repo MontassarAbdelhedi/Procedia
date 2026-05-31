@@ -1,101 +1,30 @@
-// graph/cascadeAlgorithm.js
-// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js
-// MUST LOAD BEFORE: graph/engine.js
+/**
+ * graph/cascade/cascadeGhost.js
+ *
+ * Implements the cascade ghosting algorithm. When a layer wire is deleted, this
+ * module determines which upstream nodes lose their composition connection and
+ * transitions them to 'ghost' state, dispatching appropriate AE commands.
+ *
+ * Dependencies: graphState, nodeRegistry, evalBridge, cascade/utils.js
+ * Load before: cascade/index.js
+ *
+ * Exports: cascadeGhost
+ */
+// graph/cascade/cascadeGhost.js
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js,
+//             graph/cascade/utils.js
+// MUST LOAD BEFORE: graph/cascade/index.js
 
-var cascadeAlgorithm = (function() {
+var __c_ghost = (function() {
+  var util = __c_util;
 
-  function isCompNode(nodeId) {
-    var nodeData = graphState.getNode(nodeId);
-    if (!nodeData) return false;
-    return nodeData.nodeKind === 'affected'
-        && nodeData.dedicated === true
-        && nodeData.type === 'core/comp';
-  }
-
-  function _hasCompDownstreamExcluding(nodeId, excludeWireId, visited) {
-    if (visited[nodeId]) return [];
-    visited[nodeId] = true;
-
-    var result = [];
-    var wires = graphState.getAllWires();
-
-    for (var wireId in wires) {
-      if (!wires.hasOwnProperty(wireId)) continue;
-      var wire = wires[wireId];
-
-      if (excludeWireId !== null && wireId === excludeWireId) continue;
-      if (wire.type !== 'layer') continue;
-      if (wire.fromNode !== nodeId) continue;
-
-      if (isCompNode(wire.toNode)) {
-        if (wire._pathLayerUUID !== null) {
-          result.push(wire.toNode);
-        }
-      } else {
-        var downstream = _hasCompDownstreamExcluding(wire.toNode, excludeWireId, visited);
-        for (var di = 0; di < downstream.length; di++) {
-          result.push(downstream[di]);
-        }
-      }
-    }
-
-    return result;
-  }
-
-  function hasCompDownstream(nodeId) {
-    return _hasCompDownstreamExcluding(nodeId, null, {});
-  }
-
-  function collectPathUpstream(nodeId) {
-    var result = [];
-    var visited = {};
-
-    function traverse(id) {
-      if (visited[id]) return;
-      visited[id] = true;
-
-      var wires = graphState.getAllWires();
-      for (var wireId in wires) {
-        if (!wires.hasOwnProperty(wireId)) continue;
-        var wire = wires[wireId];
-
-        if (wire.type !== 'layer') continue;
-        if (wire.toNode !== id) continue;
-
-        var upstreamId = wire.fromNode;
-        if (isCompNode(upstreamId)) continue;
-
-        var nodeData = graphState.getNode(upstreamId);
-        if (nodeData) {
-          result.push(nodeData);
-          traverse(upstreamId);
-        }
-      }
-    }
-
-    traverse(nodeId);
-    return result;
-  }
-
-  function _resolvePathLayerUUID(startNodeId) {
-    var visited = {};
-    function traverse(nodeId) {
-      if (visited[nodeId]) return null;
-      visited[nodeId] = true;
-      var wires = graphState.getAllWires();
-      for (var wireId in wires) {
-        if (!wires.hasOwnProperty(wireId)) continue;
-        var wire = wires[wireId];
-        if (wire.fromNode !== nodeId || wire.type !== 'layer') continue;
-        if (wire._pathLayerUUID !== null) return wire._pathLayerUUID;
-        var found = traverse(wire.toNode);
-        if (found !== null) return found;
-      }
-      return null;
-    }
-    return traverse(startNodeId);
-  }
-
+  /**
+   * Cascade ghosting entry point. Called when a layer wire is deleted.
+   * Determines which upstream nodes lose their composition connection,
+   * transitions them to 'ghost' state, and dispatches AE ghost commands.
+   *
+   * @param {string} deletedWireId - ID of the deleted layer wire
+   */
   function cascadeGhost(deletedWireId) {
     // Step 1 — look up the deleted wire
     var wireData = graphState.getWire(deletedWireId);
@@ -113,7 +42,7 @@ var cascadeAlgorithm = (function() {
     if (!sourceNodeData) return;
 
     // Step 5 — check if source still has an active comp path after this deletion
-    var remainingForSource = _hasCompDownstreamExcluding(sourceNodeId, deletedWireId, {});
+    var remainingForSource = util._hasCompDownstreamExcluding(sourceNodeId, deletedWireId, {});
     if (remainingForSource.length > 0) return;
 
     // Step 6 — collect cascade set: source + upstream affected nodes
@@ -121,7 +50,7 @@ var cascadeAlgorithm = (function() {
     var effectors = [];
     var affected = [];
 
-    var upstreamNodes = collectPathUpstream(sourceNodeId);
+    var upstreamNodes = util.collectPathUpstream(sourceNodeId);
     var workingSet = [sourceNodeData];
     for (var ui = 0; ui < upstreamNodes.length; ui++) {
       workingSet.push(upstreamNodes[ui]);
@@ -132,7 +61,7 @@ var cascadeAlgorithm = (function() {
       if (visitedSet[nodeData.id]) continue;
       visitedSet[nodeData.id] = true;
 
-      if (isCompNode(nodeData.id)) continue;
+      if (util.isCompNode(nodeData.id)) continue;
       if (nodeData.state !== 'alive') continue;
       if (nodeData.nodeKind === 'data' ||
           nodeData.nodeKind === 'blending' ||
@@ -177,7 +106,7 @@ var cascadeAlgorithm = (function() {
 
     for (var ci = 0; ci < cascadeSet.length; ci++) {
       var cn = cascadeSet[ci];
-      var remainingComps = _hasCompDownstreamExcluding(cn.id, deletedWireId, {});
+      var remainingComps = util._hasCompDownstreamExcluding(cn.id, deletedWireId, {});
       remainingCompsPerNode[cn.id] = remainingComps;
 
       var losingComps = [];
@@ -205,7 +134,7 @@ var cascadeAlgorithm = (function() {
             if (!effWires.hasOwnProperty(mwId)) continue;
             var mw = effWires[mwId];
             if (mw.toNode === cn.id && mw.toPort === 'main_input') {
-              upstreamNodeUUID = _resolvePathLayerUUID(mw.fromNode);
+              upstreamNodeUUID = util._resolvePathLayerUUID(mw.fromNode);
               break;
             }
           }
@@ -215,7 +144,7 @@ var cascadeAlgorithm = (function() {
           // Inject layerUUID (terminal wire UUID) so dispatcher finds the AE layer
           // by its .comment (set to pathLayerUUID), not by nodeUUID
           if (cmd && cmd.params) {
-            cmd.params.layerUUID = _resolvePathLayerUUID(cn.id);
+            cmd.params.layerUUID = util._resolvePathLayerUUID(cn.id);
           }
         }
 
@@ -266,10 +195,6 @@ var cascadeAlgorithm = (function() {
   }
 
   return {
-    cascadeGhost:        cascadeGhost,
-    hasCompDownstream:   hasCompDownstream,
-    collectPathUpstream: collectPathUpstream,
-    isCompNode:          isCompNode
+    cascadeGhost: cascadeGhost
   };
-
 })();

@@ -1,4 +1,6 @@
-/* canvas.css */
+/* canvas.css — Canvas area styling
+   Dot-grid background, edge hover zones, sidebar toggle handles,
+   rubber-band selection, and minimap. */
 
 #canvas-wrap {
   background: #111110;

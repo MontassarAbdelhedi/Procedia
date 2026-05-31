@@ -1,3 +1,11 @@
+/**
+ * @file Comp node definition (core/comp).
+ * Represents a composition (comp) – the top-level container for layers.
+ * Ports: mainInput (layer, infinite), output (layer), child_of/parent_of (parent).
+ * Params: label, width, height, frameRate, duration.
+ * Dispatches: createComp, deleteComp, setCompProperty.
+ */
+
 // graph/nodes/categories/core/Comp.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -25,6 +33,7 @@ var CompNode = {
     { key: 'duration',  type: 'number', default: 10,     label: 'Duration (s)', min: 0.1, max: 3600 }
   ],
 
+  /** @return {Object} Action to create a new composition in the AE project. */
   onDrop: function(nodeData) {
     return {
       action: 'createComp',
@@ -39,6 +48,7 @@ var CompNode = {
     };
   },
 
+  /** @return {Object} Action to delete the composition identified by node UUID. */
   onDelete: function(nodeData) {
     return {
       action: 'deleteComp',
@@ -48,6 +58,13 @@ var CompNode = {
     };
   },
 
+  /**
+   * @param {string} key - The property key that changed.
+   * @param {*} value - The new property value.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to update a composition property in AE.
+   */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) {
     return {
       action: 'setCompProperty',

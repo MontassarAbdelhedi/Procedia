@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Persists graph state as text layers in the Reserved Comp.
+ * Data is chunked into multiple layers if it exceeds the per-layer character limit.
+ * Layer naming: __PROCEDIA_NODES__{chunkIndex}, __PROCEDIA_WIRES__{chunkIndex}. Chunk 0 has no index suffix.
+ * REQUIRES: json.jsx, utils.jsx
+ * Exports: PERSISTENCE.writeGraph, PERSISTENCE.readGraph
+ */
 // jsx/persistence.jsx — readGraph, writeGraph, chunking logic (ES3-safe)
 // REQUIRES: json.jsx, utils.jsx
 //
@@ -13,10 +20,20 @@ var PERSISTENCE = (function() {
 
   var CHUNK_MAX = 15000;
 
+  /**
+   * Gets the reserved composition.
+   * @return {CompItem|null}
+   */
   function _reservedComp() {
     return findReservedComp();
   }
 
+  /**
+   * Finds a layer by name in a composition.
+   * @param {CompItem} comp The composition.
+   * @param {string} name The layer name.
+   * @return {Layer|null}
+   */
   function _findLayerByName(comp, name) {
     var li;
     for (li = 1; li <= comp.numLayers; li++) {
@@ -26,6 +43,11 @@ var PERSISTENCE = (function() {
     return null;
   }
 
+  /**
+   * Removes all layers whose name starts with the given prefix.
+   * @param {CompItem} comp The composition.
+   * @param {string} prefix The layer name prefix.
+   */
   function _removeOldLayers(comp, prefix) {
     var toRemove = [];
     var li;
@@ -41,6 +63,12 @@ var PERSISTENCE = (function() {
     }
   }
 
+  /**
+   * Splits a JSON string into chunks and returns alternating [name, data] pairs.
+   * @param {string} jsonStr The JSON string to chunk.
+   * @param {string} prefix The layer name prefix.
+   * @return {Array} Flat array of [chunkName, chunkData, ...].
+   */
   function _chunkData(jsonStr, prefix) {
     var chunks = [];
     var len = jsonStr.length;
@@ -61,6 +89,11 @@ var PERSISTENCE = (function() {
     return chunks;
   }
 
+  /**
+   * Writes the full graph (nodes + wires) to the Reserved Comp as chunked text layers.
+   * @param {Object} graphData Object with .nodes and .wires properties.
+   * @return {Object} Result with .ok, .data, .error.
+   */
   function writeGraph(graphData) {
     var result = { ok: false, data: null, error: null };
     try {
@@ -103,6 +136,10 @@ var PERSISTENCE = (function() {
     return result;
   }
 
+  /**
+   * Reads the full graph (nodes + wires) from chunked text layers in the Reserved Comp.
+   * @return {Object} Result with .ok, .data (containing .nodes, .wires), .error.
+   */
   function readGraph() {
     var result = { ok: false, data: null, error: null };
     try {
@@ -136,6 +173,12 @@ var PERSISTENCE = (function() {
     return result;
   }
 
+  /**
+   * Reads and concatenates all chunks for a given prefix.
+   * @param {CompItem} comp The composition to read from.
+   * @param {string} prefix The chunk layer name prefix.
+   * @return {string|null} The concatenated data, or null if no chunks found.
+   */
   function _readChunks(comp, prefix) {
     var parts = [];
     var idx = 0;

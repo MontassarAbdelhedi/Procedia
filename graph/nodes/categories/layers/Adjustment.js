@@ -1,3 +1,11 @@
+/**
+ * @file Adjustment layer node definition (layers/adjustment).
+ * An adjustment layer that applies effects to layers below it in the stack.
+ * Ports: output (layer), child_of/parent_of (parent).
+ * Params: label, position, rotation, opacity, scale.
+ * Dispatches: createAdjustmentLayer, parkLayer, deleteParkedLayer, setLayerProperty.
+ */
+
 // graph/nodes/categories/layers/Adjustment.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -24,8 +32,15 @@ var AdjustmentNode = {
     { key: 'scale',    type: 'vector2', default: [100, 100],        label: 'Scale'                       }
   ],
 
+  /** @return {null} No AE action on initial drop — layer is created onAlive. */
   onDrop: function(nodeData) { return null; },
 
+  /**
+   * Creates the adjustment layer in the hosting composition.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to create an adjustment layer in AE.
+   */
   onAlive: function(nodeData, hostingCompUUID) {
     return {
       action: 'createAdjustmentLayer',
@@ -41,6 +56,12 @@ var AdjustmentNode = {
     };
   },
 
+  /**
+   * Parks (removes from comp but retains) the adjustment layer.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to park a layer in AE.
+   */
   onGhost: function(nodeData, hostingCompUUID) {
     return {
       action: 'parkLayer',
@@ -51,6 +72,11 @@ var AdjustmentNode = {
     };
   },
 
+  /**
+   * Deletes the previously parked adjustment layer.
+   * @param {Object} nodeData - The full node data object.
+   * @return {Object} Action to delete a parked layer in AE.
+   */
   onDelete: function(nodeData) {
     return {
       action: 'deleteParkedLayer',
@@ -60,6 +86,14 @@ var AdjustmentNode = {
     };
   },
 
+  /**
+   * Updates a property on the adjustment layer in AE.
+   * @param {string} key - The property key to update.
+   * @param {*} value - The new property value.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - UUID of the hosting composition.
+   * @return {Object} Action to set a layer property in AE.
+   */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) {
     return {
       action: 'setLayerProperty',

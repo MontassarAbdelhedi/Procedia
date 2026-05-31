@@ -1,5 +1,13 @@
+/**
+ * @fileoverview Drag interaction for the graph canvas.
+ * Provides hit-testing for wires and inserting nodes onto existing wires.
+ * @dependencies graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
+ *               graph/wire/wireRenderer.js, data/uuidGenerator.js
+ * @exports canvasDrag { findWireAt, hitTestWire, insertNodeOnWire }
+ */
+
 // graph/canvas/drag.js
-// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/engine.js,
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
 //             graph/wire/wireRenderer.js, data/uuidGenerator.js
 // MUST LOAD BEFORE: index.js
 
@@ -7,11 +15,30 @@ var canvasDrag = (function() {
 
   var HIT_THRESHOLD = 8;
 
+  /**
+   * Evaluates a cubic Bézier curve at parameter t.
+   * @param {number} t - Parameter in [0, 1].
+   * @param {number} p0 - Start control point coordinate.
+   * @param {number} p1 - First control point coordinate.
+   * @param {number} p2 - Second control point coordinate.
+   * @param {number} p3 - End control point coordinate.
+   * @returns {number} The interpolated value at t.
+   */
   function _bezierPoint(t, p0, p1, p2, p3) {
     var mt = 1 - t;
     return mt*mt*mt*p0 + 3*mt*mt*t*p1 + 3*mt*t*t*p2 + t*t*t*p3;
   }
 
+  /**
+   * Computes the squared distance from a point to a line segment.
+   * @param {number} px - Point x.
+   * @param {number} py - Point y.
+   * @param {number} ax - Segment start x.
+   * @param {number} ay - Segment start y.
+   * @param {number} bx - Segment end x.
+   * @param {number} by - Segment end y.
+   * @returns {number} Squared distance.
+   */
   function _distToSegmentSq(px, py, ax, ay, bx, by) {
     var dx = bx - ax, dy = by - ay;
     var lenSq = dx*dx + dy*dy;
@@ -26,6 +53,20 @@ var canvasDrag = (function() {
     return ex*ex + ey*ey;
   }
 
+  /**
+   * Samples a cubic Bézier curve at 13 points and returns the minimum squared distance to a point.
+   * @param {number} ax - Start x.
+   * @param {number} ay - Start y.
+   * @param {number} bx - Control point 1 x.
+   * @param {number} by - Control point 1 y.
+   * @param {number} cx - Control point 2 x.
+   * @param {number} cy - Control point 2 y.
+   * @param {number} dx - End x.
+   * @param {number} dy - End y.
+   * @param {number} px - Query point x.
+   * @param {number} py - Query point y.
+   * @returns {number} Minimum squared distance.
+   */
   function _sampleBezier(ax, ay, bx, by, cx, cy, dx, dy, px, py) {
     var minDist = Infinity;
     for (var i = 0; i <= 12; i++) {
@@ -39,6 +80,13 @@ var canvasDrag = (function() {
     return minDist;
   }
 
+  /**
+   * Tests whether a screen-space point hits a wire (bezier, direct, or stepped style).
+   * @param {number} canvasX - Canvas-space x.
+   * @param {number} canvasY - Canvas-space y.
+   * @param {object} wire - Wire object with fromNode, toNode.
+   * @returns {boolean} True if point is within hit threshold.
+   */
   function hitTestWire(canvasX, canvasY, wire) {
     var fromNodeData = graphState.getNode(wire.fromNode);
     var toNodeData = graphState.getNode(wire.toNode);
@@ -67,6 +115,12 @@ var canvasDrag = (function() {
     return distSq <= HIT_THRESHOLD * HIT_THRESHOLD;
   }
 
+  /**
+   * Finds the first wire under a given canvas point.
+   * @param {number} canvasX - Canvas-space x.
+   * @param {number} canvasY - Canvas-space y.
+   * @returns {object|null} The wire object or null.
+   */
   function findWireAt(canvasX, canvasY) {
     var wires = graphState.getAllWires();
     for (var wireId in wires) {
@@ -78,6 +132,15 @@ var canvasDrag = (function() {
     return null;
   }
 
+  /**
+   * Splits a wire by inserting a new node at the given canvas position.
+   * The original wire is removed and two new wires connect the new node.
+   * @param {string} wireId - ID of the wire to split.
+   * @param {object} def - Node definition from the registry.
+   * @param {number} canvasX - Canvas-space x for the new node.
+   * @param {number} canvasY - Canvas-space y for the new node.
+   * @returns {object|null} The created node data or null on failure.
+   */
   function insertNodeOnWire(wireId, def, canvasX, canvasY) {
     var wire = graphState.getWire(wireId);
     if (!wire) return null;

@@ -1,4 +1,5 @@
-/* rightBar.css */
+/* rightBar.css — Right sidebar / inspector styling
+   Selected node properties, parameters, and action buttons. */
 
 #right-bar {
   background: rgba(15,15,13,0.9);

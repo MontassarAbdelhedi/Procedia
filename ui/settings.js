@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Settings persistence module. Stores user preferences in localStorage.
+ * Exports: settings.get, settings.set, settings.getAll, settings.reset
+ */
 // ui/settings.js
 // DEPENDS ON: (none)
 // MUST LOAD BEFORE: ui/settingsModal.js, index.js
@@ -7,12 +11,19 @@ var settings = (function() {
   var STORAGE_KEY = 'procedia_settings';
 
   var _defaults = {
-    minimap:    true,
-    wireStyle:  'bezier'
+    minimap:          true,
+    wireStyle:        'bezier',
+    layoutDirection:  'LR',
+    layoutHSpacing:   80,
+    layoutVSpacing:   40
   };
 
   var _cache = null;
 
+  /**
+   * Loads settings from localStorage into the internal cache.
+   * @return {Object} The settings object.
+   */
   function _load() {
     if (_cache !== null) return _cache;
     try {
@@ -38,6 +49,9 @@ var settings = (function() {
     return _cache;
   }
 
+  /**
+   * Persists the internal cache to localStorage.
+   */
   function _save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(_cache));
@@ -46,17 +60,31 @@ var settings = (function() {
     }
   }
 
+  /**
+   * Returns a single setting value by key.
+   * @param {string} key The setting key.
+   * @return {*} The setting value.
+   */
   function get(key) {
     var store = _load();
     return store.hasOwnProperty(key) ? store[key] : _defaults[key];
   }
 
+  /**
+   * Sets a single setting value and persists.
+   * @param {string} key The setting key.
+   * @param {*} value The value to store.
+   */
   function set(key, value) {
     var store = _load();
     store[key] = value;
     _save();
   }
 
+  /**
+   * Returns a shallow copy of all settings.
+   * @return {Object} All settings key/value pairs.
+   */
   function getAll() {
     var store = _load();
     var copy = {};
@@ -66,6 +94,9 @@ var settings = (function() {
     return copy;
   }
 
+  /**
+   * Resets all settings to default values and persists.
+   */
   function reset() {
     _cache = {};
     for (var key in _defaults) {

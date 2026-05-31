@@ -1,3 +1,9 @@
+/**
+ * @fileoverview JSON polyfill for ExtendScript (ES3-safe).
+ * MUST be the FIRST file in the evalBridge preamble, every time, without exception.
+ * JSON is not a native global in ExtendScript on AE 2025.
+ * Exports: polyfills for JSON.stringify, JSON.parse
+ */
 // json.jsx — JSON polyfill for ExtendScript (ES3-safe)
 // MUST be the FIRST file in the evalBridge preamble, every time, without exception.
 // JSON is not a native global in ExtendScript on AE 2025.
@@ -7,6 +13,11 @@ if (typeof JSON === 'undefined') {
 }
 
 if (typeof JSON.stringify !== 'function') {
+  /**
+   * Serializes a value to a JSON string.
+   * @param {*} val The value to stringify.
+   * @return {string|undefined} JSON string or undefined for unsupported types.
+   */
   JSON.stringify = function stringify(val) {
     var type = typeof val;
     if (val === null)         return 'null';
@@ -52,6 +63,11 @@ if (typeof JSON.stringify !== 'function') {
 }
 
 if (typeof JSON.parse !== 'function') {
+  /**
+   * Parses a JSON string into an object using eval.
+   * @param {string} text The JSON string to parse.
+   * @return {*} The parsed object.
+   */
   JSON.parse = function parse(text) {
     return eval('(' + String(text) + ')');
   };

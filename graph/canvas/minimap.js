@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Minimap overlay for the graph canvas.
+ * Renders a scaled-down view of all nodes and the visible viewport rectangle.
+ * Supports panning via click/drag and a "fit all" button.
+ * @dependencies graph/graphState.js, graph/canvas/viewport.js, ui/settings.js
+ * @exports minimap { render, init, fitAll }
+ */
+
 // graph/canvas/minimap.js
 // DEPENDS ON: graph/graphState.js, graph/canvas/viewport.js, ui/settings.js
 // MUST LOAD BEFORE: index.js
@@ -14,6 +22,10 @@ var minimap = (function() {
   var _lastFrame = null;
   var _panning   = false;
 
+  /**
+   * Retrieves all nodes from graphState as a flat array.
+   * @returns {Array} Array of node data objects.
+   */
   function _getNodes() {
     if (typeof graphState === 'undefined' || typeof graphState.getAllNodes !== 'function') {
       return [];
@@ -28,7 +40,14 @@ var minimap = (function() {
     return arr;
   }
 
-  // Scale minimap to main-canvas zoom; cap viewport indicator at MAX_VIEW_FRAC of minimap.
+  /**
+   * Computes the minimap coordinate frame based on viewport transform and wrap size.
+   * Caps the viewport indicator rectangle at MAX_VIEW_FRAC of minimap dimensions.
+   * @param {object} t - Viewport transform with .scale, .x, .y.
+   * @param {number} wrapW - Canvas wrapper width.
+   * @param {number} wrapH - Canvas wrapper height.
+   * @returns {object} Frame object with bounds, scale, and viewport rect info.
+   */
   function _computeFrame(t, wrapW, wrapH) {
     var zoom = t.scale;
     var viewW = wrapW / zoom;
@@ -64,6 +83,13 @@ var minimap = (function() {
     };
   }
 
+  /**
+   * Converts a canvas-space coordinate to minimap pixel space.
+   * @param {number} cx - Canvas x.
+   * @param {number} cy - Canvas y.
+   * @param {object} frame - Frame from _computeFrame.
+   * @returns {object} { x, y } in minimap pixel coordinates.
+   */
   function _canvasToMinimap(cx, cy, frame) {
     return {
       x: (cx - frame.boundsX) * frame.scale,
@@ -71,6 +97,10 @@ var minimap = (function() {
     };
   }
 
+  /**
+   * Renders the minimap: draws node dots and the viewport indicator rectangle.
+   * Reads graph state and viewport transform each call.
+   */
   function render() {
     var canvas = document.getElementById('minimap-canvas');
     if (!canvas) return;
@@ -121,6 +151,10 @@ var minimap = (function() {
     ctx.strokeRect(frame.viewMmX, frame.viewMmY, frame.viewMmW, frame.viewMmH);
   }
 
+  /**
+   * Pans the main viewport to center on the minimap click location.
+   * @param {MouseEvent} e - Mouse event from the minimap canvas.
+   */
   function _panToMinimap(e) {
     if (!_lastFrame) return;
     var canvas = document.getElementById('minimap-canvas');
@@ -141,6 +175,9 @@ var minimap = (function() {
     canvasView.setPan(newX, newY);
   }
 
+  /**
+   * Adjusts zoom and pan to fit all nodes within the viewport.
+   */
   function _fitAll() {
     var nodes = _getNodes();
     if (nodes.length === 0) return;
@@ -173,6 +210,10 @@ var minimap = (function() {
     viewport.setTransform(zoom, wrapW / 2 - centerX * zoom, wrapH / 2 - centerY * zoom);
   }
 
+  /**
+   * Initialises the minimap: wraps the canvas in a container, adds a fit button,
+   * and binds mouse events for panning.
+   */
   function init() {
     var canvas = document.getElementById('minimap-canvas');
     if (!canvas) { console.warn('[minimap] canvas element not found'); return; }

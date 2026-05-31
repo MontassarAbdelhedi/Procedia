@@ -1,3 +1,11 @@
+/**
+ * @file Number data node definition (data/number).
+ * A simple data-only node that exposes a numeric value (0–100).
+ * Ports: output (data).
+ * Params: label, value.
+ * All lifecycle handlers return null — no AE actions are dispatched.
+ */
+
 // graph/nodes/categories/data/Number.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
@@ -19,10 +27,15 @@ var NumberNode = {
     { key: 'value',  type: 'number', default: 50,        label: 'Value', min: 0, max: 100 }
   ],
 
+  /** @return {null} Data node — no AE action on drop. */
   onDrop:           function(nodeData)                              { return null; },
+  /** @return {null} Data node — no AE action when alive. */
   onAlive:          function(nodeData, hostingCompUUID)             { return null; },
+  /** @return {null} Data node — no AE action when ghosted. */
   onGhost:          function(nodeData, hostingCompUUID)             { return null; },
+  /** @return {null} Data node — no AE action on delete. */
   onDelete:         function(nodeData)                              { return null; },
+  /** @return {null} Data node — no AE action on property change. */
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) { return null; }
 };
 

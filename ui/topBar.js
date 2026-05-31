@@ -1,9 +1,18 @@
+/**
+ * @fileoverview Top bar UI module. Renders the toolbar with logo, save/undo/redo,
+ * duplicate/delete, reset/reload/settings buttons. Updates selection-dependent controls.
+ * Depends on: engine, settingsModal (globals).
+ * Exports: topBar.init, topBar.refreshSelection, topBar.showSelection, topBar.clearSelection
+ */
 // ui/topBar.js
 // DEPENDS ON: (none)
 // MUST LOAD BEFORE: index.js
 
 var topBar = (function() {
 
+  /**
+   * Builds the top-bar DOM and wires all button event listeners.
+   */
   function init() {
     var el = document.getElementById('top-bar');
     el.innerHTML =
@@ -18,6 +27,7 @@ var topBar = (function() {
         '<button class="topbar-btn" title="Undo"><i class="ti ti-arrow-back-up"></i></button>' +
         '<button class="topbar-btn" title="Redo"><i class="ti ti-arrow-forward-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
+        '<button class="topbar-btn" id="topbar-autolayout" title="Auto Layout"><i class="ti ti-sitemap"></i></button>' +
         '<button class="topbar-btn" title="Fit View"><i class="ti ti-focus-2"></i></button>' +
       '</div>' +
       '<div class="topbar-right">' +
@@ -43,6 +53,16 @@ var topBar = (function() {
       delBtn.addEventListener('click', function() { engine.deleteSelectedNodes(); });
     }
 
+    var autoBtn = document.getElementById('topbar-autolayout');
+    if (autoBtn && typeof autoLayout !== 'undefined') {
+      autoBtn.addEventListener('click', function() {
+        autoLayout.run();
+        if (typeof minimap !== 'undefined' && minimap.fitAll) minimap.fitAll();
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+      });
+    }
+
     document.getElementById('topbar-reset').addEventListener('click', function() {
       if (typeof engine !== 'undefined' && engine.resetAll) {
         if (confirm('Reset graph? This will delete all Procedia objects in AE.')) {
@@ -61,6 +81,10 @@ var topBar = (function() {
     }
   }
 
+  /**
+   * Sets the opacity of the dynamic (selection-dependent) buttons based on selection.
+   * @param {Array} sel Array of selected node IDs.
+   */
   function refreshSelection(sel) {
     var el = document.getElementById('topbar-dynamic');
     if (!el) return;
@@ -73,6 +97,9 @@ var topBar = (function() {
     }
   }
 
+  /**
+   * Makes the dynamic section visible (selection present).
+   */
   function showSelection() {
     var el = document.getElementById('topbar-dynamic');
     if (!el) return;
@@ -80,6 +107,9 @@ var topBar = (function() {
     el.style.pointerEvents = 'auto';
   }
 
+  /**
+   * Hides the dynamic section (no selection).
+   */
   function clearSelection() {
     var el = document.getElementById('topbar-dynamic');
     if (!el) return;

@@ -773,19 +773,21 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/canvas/input.js"></script>
 <script src="graph/canvas/minimap.js"></script>
 <script src="graph/canvas/drag.js"></script>
-<script src="graph/canvas/layerOrderList.js"></script>
 <script src="graph/wire/wireRenderer.js"></script>
 <script src="graph/wire/wire.js"></script>
 
 <!-- 7. UI — depends on graphState, nodeRegistry, engine -->
 <script src="ui/nodeList.js"></script>
-<script src="ui/nodePicker.js"></script>
+<script src="ui/nodePicker/compatibility.js"></script>
+<script src="ui/nodePicker/render.js"></script>
+<script src="ui/nodePicker/filter.js"></script>
+<script src="ui/nodePicker/events.js"></script>
+<script src="ui/nodePicker/index.js"></script>
 <script src="ui/inspector.js"></script>
 <script src="ui/settingsModal.js"></script>
 
 <!-- 8. Infrastructure services -->
 <script src="polling/poller.js"></script>
-<script src="notifications/notificationBar.js"></script>
 
 <!-- 9. UI chrome — no graph dependencies -->
 <script src="ui/topBar.js"></script>
@@ -968,7 +970,6 @@ procedia/
 │   ├── canvas/
 │   │   ├── viewport.js, renderer.js, input.js, minimap.js (no selection highlight)
 │   │   ├── drag.js          ← onDrop handler + wire-insertion (drop on wire to insert mid-path)
-│   │   └── layerOrderList.js← Drag-to-reorder stub
 │   └── wire/
 │       ├── wire.js, wireRenderer.js
 │
@@ -988,7 +989,6 @@ procedia/
 │
 ├── flush/         dirtyFlusher.js
 ├── polling/       poller.js
-├── notifications/ notificationBar.js
 │
 ├── bridge/
 │   └── evalBridge.js                       ← ONLY file that calls csInterface.evalScript()
@@ -1007,7 +1007,6 @@ procedia/
     ├── utils.jsx                           ← findCompByUUID, findLayerByUUID, findReservedComp,
     │                                         findOrCreateReservedComp, getAEVersion
     ├── persistence.jsx                     ← readGraph, writeGraph, chunking
-    ├── polling.jsx                         ← pollAliveNodes — single multi-UUID check
     └── dispatcher/
         └── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER.
 ```

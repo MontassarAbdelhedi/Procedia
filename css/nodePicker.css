@@ -1,9 +1,13 @@
+/* nodePicker.css — Node picker popup
+   Overlay, searchable list popup for selecting a node type to add to the canvas. */
+
 .nodepicker-overlay {
   position: absolute;
   inset: 0;
   z-index: 500;
 }
 
+/* --- Popup container --- */
 .nodepicker-popup {
   position: absolute;
   background: #1a1a18;
@@ -14,6 +18,7 @@
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
 
+/* --- Header & search --- */
 .nodepicker-header {
   display: flex;
   align-items: center;
@@ -59,12 +64,14 @@
   color: #d4d2cc;
 }
 
+/* --- Items list --- */
 .nodepicker-list {
   max-height: 240px;
   overflow-y: auto;
   padding: 4px 0;
 }
 
+/* --- Item entries --- */
 .nodepicker-item {
   display: flex;
   align-items: center;
@@ -94,6 +101,7 @@
   letter-spacing: 0.04em;
 }
 
+/* --- Empty state --- */
 .nodepicker-empty {
   cursor: default;
   color: #5F5E5A;
