@@ -16,15 +16,153 @@
 var inputHandlers = (function() {
 
   /**
-   * Handles mousedown: initiates drag (node), pan (middle-button / space+left), or rubber-band.
+   * Clean up event listeners on the title input and exit editing mode.
+   */
+  function _exitTitleEdit() {
+    if (!_editingNodeId) return;
+    var nodeId = _editingNodeId;
+    _editingNodeId = null;
+    var nodeEl = renderer.getNodeElement(nodeId);
+    if (nodeEl) {
+      nodeEl.classList.remove('node--editing');
+      var input = nodeEl.querySelector('.node-title-input');
+      if (input) {
+        input.removeEventListener('keydown', _onTitleInputKeydown);
+        input.removeEventListener('blur', _onTitleInputBlur);
+      }
+    }
+  }
+
+  /**
+   * Commits the current inline title edit, saving the label to the node.
+   */
+  function _findInputWire(nodeId) {
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (wires.hasOwnProperty(wid) && wires[wid].toNode === nodeId) {
+        return wires[wid];
+      }
+    }
+    return null;
+  }
+
+  function _findOutputComp(nodeId) {
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (wires.hasOwnProperty(wid) && wires[wid].fromNode === nodeId && wires[wid].type === 'layer') {
+        return wires[wid].toNode;
+      }
+    }
+    return null;
+  }
+
+  function _findLayerUUID(nodeId, visited) {
+    if (!visited) visited = {};
+    if (visited[nodeId]) return null;
+    visited[nodeId] = true;
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid) || wires[wid].fromNode !== nodeId || wires[wid].type !== 'layer') continue;
+      if (wires[wid]._pathLayerUUID !== null) return wires[wid]._pathLayerUUID;
+      var found = _findLayerUUID(wires[wid].toNode, visited);
+      if (found !== null) return found;
+    }
+    return null;
+  }
+
+  function _renameDispatch(action, params) {
+    if (typeof evalBridge === 'undefined') return;
+    evalBridge.dispatch({ action: action, params: params }).then(function(res) {
+      if (!res.ok) {
+        console.warn('[handlers] ' + action + ' failed:', res.error);
+      }
+    }).catch(function(err) {
+      console.warn('[handlers] ' + action + ' error:', err);
+    });
+  }
+
+  function _commitTitleEdit() {
+    if (!_editingNodeId) return;
+    var input = document.querySelector('.node--editing .node-title-input');
+    if (!input) { _exitTitleEdit(); return; }
+    var newLabel = input.value.trim();
+    var nodeId = _editingNodeId;
+    _exitTitleEdit();
+    if (!newLabel) return;
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) return;
+    graphState.updateProp(nodeId, 'label', newLabel);
+    if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+    renderer.render();
+
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def) return;
+
+    if (nodeData.type === 'core/comp') {
+      _renameDispatch('setCompProperty', {
+        nodeUUID: nodeId, key: 'label', value: newLabel
+      });
+      return;
+    }
+
+    if (nodeData.nodeKind === 'data' || nodeData.nodeKind === 'blending') return;
+
+    var hostingCompUUID = (nodeData.hostingComps && nodeData.hostingComps.length > 0)
+      ? nodeData.hostingComps[0] : null;
+    if (!hostingCompUUID) {
+      var compNodeId = _findOutputComp(nodeId);
+      if (compNodeId) hostingCompUUID = compNodeId;
+    }
+    if (!hostingCompUUID) return;
+
+    var layerUUID = _findLayerUUID(nodeId);
+    if (!layerUUID) return;
+
+    if (nodeData.nodeKind === 'affected') {
+      _renameDispatch('renameNode', {
+        hostingCompUUID: hostingCompUUID, nodeUUID: nodeId, layerUUID: layerUUID, label: newLabel
+      });
+    } else if (nodeData.nodeKind === 'effector' && def.matchName) {
+      _renameDispatch('renameEffect', {
+        hostingCompUUID: hostingCompUUID,
+        layerUUID: layerUUID,
+        effectMatchName: def.matchName,
+        label: newLabel
+      });
+    }
+  }
+
+  /**
+   * Cancels the current inline title edit, restoring the original label.
+   */
+  function _cancelTitleEdit() {
+    if (!_editingNodeId) return;
+    _exitTitleEdit();
+    renderer.render();
+  }
+
+  /**
+   * Handles mousedown: initiates drag (node), wire selection, pan, or rubber-band.
    * Manages selection state (ctrl/shift toggle).
    * @param {MouseEvent} e
    */
   function onMouseDown(e) {
+    if (_editingNodeId) {
+      var clickNodeEl = e.target;
+      var boundary = document.getElementById('canvas-nodes');
+      while (clickNodeEl && clickNodeEl !== boundary) {
+        if (clickNodeEl.classList && clickNodeEl.classList.contains('node')) break;
+        clickNodeEl = clickNodeEl.parentElement;
+      }
+      if (!clickNodeEl || clickNodeEl.getAttribute('data-node-id') !== _editingNodeId) {
+        _commitTitleEdit();
+      }
+    }
+
     var target = e.target;
     var nodeEl = null;
     var portEl = null;
-    var boundary = document.getElementById('canvas-nodes');
+    boundary = document.getElementById('canvas-nodes');
 
     while (target && target !== boundary) {
       if (target.classList && target.classList.contains('port-dot')) { portEl = target; break; }
@@ -47,6 +185,7 @@ var inputHandlers = (function() {
     }
 
     if (nodeEl) {
+      _selectedWireId = null;
       var nodeId = nodeEl.getAttribute('data-node-id');
       if (!nodeId) return;
       var nodeData = graphState.getNode(nodeId);
@@ -84,6 +223,20 @@ var inputHandlers = (function() {
       }
       return;
     }
+
+    if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt) {
+      var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
+      if (hitWire) {
+        _selectedWireId = hitWire.id;
+        graphState.clearSelection();
+        renderer.render();
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        return;
+      }
+    }
+
+    _selectedWireId = null;
+    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
 
     var wp = inputUtils.clientToWrap(e.clientX, e.clientY);
     _inpRubber.active = true;
@@ -211,6 +364,45 @@ var inputHandlers = (function() {
     }
   }
 
+  var _pendingFocusTimer = null;
+
+  /**
+   * Handles click: fires autofocus for comp nodes (only on genuine clicks, not drags).
+   * Uses a short delay so it doesn't interfere with double-click title editing.
+   * More reliable than mouseup because click only fires when mousedown+target match.
+   * @param {MouseEvent} e
+   */
+  function onClick(e) {
+    if (e.button !== 0) return;
+    if (_pendingFocusTimer) {
+      clearTimeout(_pendingFocusTimer);
+      _pendingFocusTimer = null;
+    }
+    if (e.target.classList && e.target.classList.contains('port-dot')) return;
+    var target = e.target;
+    var nodeEl = null;
+    var boundary = document.getElementById('canvas-nodes');
+    while (target && target !== boundary) {
+      if (target.classList && target.classList.contains('node')) { nodeEl = target; break; }
+      target = target.parentElement;
+    }
+    if (!nodeEl) return;
+    var nodeId = nodeEl.getAttribute('data-node-id');
+    if (!nodeId) return;
+    var nodeData = graphState.getNode(nodeId);
+    if (nodeData && nodeData.type === 'core/comp' && typeof evalBridge !== 'undefined') {
+      _pendingFocusTimer = setTimeout(function() {
+        _pendingFocusTimer = null;
+        evalBridge.dispatch({
+          action: 'focusComp',
+          params: { nodeUUID: nodeId }
+        }).catch(function(err) {
+          console.warn('[handlers] click focusComp failed:', err);
+        });
+      }, 280);
+    }
+  }
+
   /**
    * Handles mouse wheel: zooms in/out centred on the cursor position.
    * @param {WheelEvent} e
@@ -228,6 +420,20 @@ var inputHandlers = (function() {
    * @param {KeyboardEvent} e
    */
   function onKeyDown(e) {
+    if (_editingNodeId) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        _commitTitleEdit();
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        _cancelTitleEdit();
+        return;
+      }
+      return;
+    }
+
     if (e.code === 'Space' && !inputUtils.isEditableTarget(e.target)) {
       _inpSpaceHeld = true;
       e.preventDefault();
@@ -237,11 +443,95 @@ var inputHandlers = (function() {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return;
     if (inputUtils.isEditableTarget(e.target)) return;
 
+    if (_selectedWireId) {
+      e.preventDefault();
+      var wireId = _selectedWireId;
+      _selectedWireId = null;
+      engine.disconnectWire(wireId);
+      if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+      return;
+    }
+
     var sel = graphState.getSelection();
     if (sel.length === 0) return;
 
     e.preventDefault();
     engine.deleteSelectedNodes();
+  }
+
+  /**
+   * Handles keydown on the title input during inline editing.
+   * Enter commits, Escape cancels.
+   */
+  function _onTitleInputKeydown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      _commitTitleEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      _cancelTitleEdit();
+    }
+  }
+
+  /**
+   * Handles blur on the title input during inline editing — commits the edit.
+   */
+  function _onTitleInputBlur() {
+    _commitTitleEdit();
+  }
+
+  /**
+   * Handles double-click: enters inline title editing mode on node headers.
+   * @param {MouseEvent} e
+   */
+  function onDblClick(e) {
+    if (e.button !== 0) return;
+    if (_pendingFocusTimer) {
+      clearTimeout(_pendingFocusTimer);
+      _pendingFocusTimer = null;
+    }
+    if (_editingNodeId) return;
+
+    if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt) {
+      var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
+      if (hitWire) {
+        e.preventDefault();
+        engine.disconnectWire(hitWire.id);
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        return;
+      }
+    }
+
+    var target = e.target;
+    var nodeEl = null;
+    var boundary = document.getElementById('canvas-nodes');
+    while (target && target !== boundary) {
+      if (target.classList && target.classList.contains('node')) { nodeEl = target; break; }
+      target = target.parentElement;
+    }
+    if (!nodeEl) return;
+    var nodeId = nodeEl.getAttribute('data-node-id');
+    if (!nodeId) return;
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) return;
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def) return;
+
+    var headerEl = nodeEl.querySelector('.node-header');
+    if (!headerEl || !headerEl.contains(e.target)) return;
+    if (e.target.classList && e.target.classList.contains('port-dot')) return;
+
+    e.preventDefault();
+    nodeEl.classList.add('node--editing');
+    _editingNodeId = nodeId;
+    var input = nodeEl.querySelector('.node-title-input');
+    if (input) {
+      input.value = (nodeData.props && nodeData.props.label) || def.label;
+      input.addEventListener('keydown', _onTitleInputKeydown);
+      input.addEventListener('blur', _onTitleInputBlur);
+      input.focus();
+      input.select();
+    }
   }
 
   /**
@@ -256,6 +546,8 @@ var inputHandlers = (function() {
     onMouseDown: onMouseDown,
     onMouseMove: onMouseMove,
     onMouseUp:   onMouseUp,
+    onClick:     onClick,
+    onDblClick:  onDblClick,
     onWheel:     onWheel,
     onKeyDown:   onKeyDown,
     onKeyUp:     onKeyUp

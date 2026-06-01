@@ -290,6 +290,30 @@
   transition: background 0.15s ease;
 }
 
+.node-title-input {
+  flex: 1;
+  display: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #d4d2cc;
+  background: #222220;
+  border: 1px solid #534AB7;
+  border-radius: 3px;
+  padding: 2px 5px;
+  outline: none;
+  min-width: 0;
+  pointer-events: all;
+}
+
+.node--editing .node-title-input {
+  display: block;
+}
+
+.node--editing .node-label {
+  display: none;
+}
+
 .node.alive  .node-state-dot { background: #4cbb6c; }
 .node.ghost  .node-state-dot { background: #444441; }
 .node.error  .node-state-dot { background: #e05555; }

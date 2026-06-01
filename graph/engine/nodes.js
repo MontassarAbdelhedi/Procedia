@@ -155,6 +155,9 @@ var __e_nodes = (function() {
           var affGhostCmd = null;
           if (nodeData.nodeKind === 'affected') {
             affGhostCmd = def ? def.onGhost(nodeData, affHostUUID) : null;
+            if (affGhostCmd && affGhostCmd.params) {
+              affGhostCmd.params.layerUUID = hlp.findPathLayerUUID(nodeData.id);
+            }
           } else {
             var effPathUUID = null;
             for (var ewId in delWireMap) {
@@ -183,6 +186,14 @@ var __e_nodes = (function() {
         }
         for (var ci = 0; ci < cascadeWireIds.length; ci++) {
           cascadeAlgorithm.cascadeGhost(cascadeWireIds[ci]);
+        }
+      } else if (cascadeAlgorithm && cascadeAlgorithm.cascadeGhost) {
+        for (var cwId in delWireMap) {
+          if (!delWireMap.hasOwnProperty(cwId)) continue;
+          var cw = delWireMap[cwId];
+          if (cw.toNode === nodeId && cw.type === 'layer') {
+            cascadeAlgorithm.cascadeGhost(cwId);
+          }
         }
       }
 
@@ -233,6 +244,10 @@ var __e_nodes = (function() {
       copy.x = src.x + 30;
       copy.y = src.y + 30;
       copy.dirty = false;
+      copy.hostingComps = [];
+      if (src.nodeKind !== 'data') {
+        copy.state = 'ghost';
+      }
       graphState.addNode(copy);
       newIds.push(copy.id);
     }
@@ -274,6 +289,22 @@ var __e_nodes = (function() {
     if (!def) return;
 
     var wireMap = graphState.getAllWires();
+
+    // comp nodes have no hostingComps — recreate directly
+    if (nodeData.type === 'core/comp') {
+      var cmd = def.onAlive(nodeData, null);
+      if (cmd) {
+        (function(nId, cCmd) {
+          evalBridge.dispatch(cCmd).then(function(res) {
+            if (res.ok) {
+              graphState.updateNode(nId, { state: 'alive' });
+              hlp.refreshNodeUI();
+            }
+          });
+        })(nodeId, cmd);
+      }
+      return;
+    }
 
     for (var c = 0; c < nodeData.hostingComps.length; c++) {
       var hostUUID = nodeData.hostingComps[c];

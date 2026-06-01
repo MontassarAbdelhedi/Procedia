@@ -185,6 +185,12 @@ var __r_bld = (function() {
     labelEl.textContent = (nodeData.props && nodeData.props.label) || def.label;
     header.appendChild(labelEl);
 
+    var titleInput = document.createElement('input');
+    titleInput.className = 'node-title-input';
+    titleInput.type = 'text';
+    titleInput.value = (nodeData.props && nodeData.props.label) || def.label;
+    header.appendChild(titleInput);
+
     var stateDot = document.createElement('div');
     stateDot.className = 'node-state-dot';
     header.appendChild(stateDot);

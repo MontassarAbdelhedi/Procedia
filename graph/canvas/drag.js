@@ -81,51 +81,80 @@ var canvasDrag = (function() {
   }
 
   /**
-   * Tests whether a screen-space point hits a wire (bezier, direct, or stepped style).
-   * @param {number} canvasX - Canvas-space x.
-   * @param {number} canvasY - Canvas-space y.
+   * Gets wrap-relative position of a port dot element.
+   * @param {string} nodeId
+   * @param {string} portId
+   * @returns {{x:number,y:number}|null}
+   */
+  function _portPosInWrap(nodeId, portId) {
+    var el = renderer.getNodeElement(nodeId);
+    if (!el) return null;
+    var dot = el.querySelector('[data-port-id="' + portId + '"]');
+    if (!dot) return null;
+    var dotRect = dot.getBoundingClientRect();
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return null;
+    var wr = wrap.getBoundingClientRect();
+    return {
+      x: dotRect.left + dotRect.width / 2 - wr.left,
+      y: dotRect.top + dotRect.height / 2 - wr.top
+    };
+  }
+
+  /**
+   * Tests whether a wrap-relative point hits a wire (bezier, direct, or stepped style).
+   * Uses actual port dot positions (same as the wire renderer).
+   * @param {number} wrapX - Wrap-relative x.
+   * @param {number} wrapY - Wrap-relative y.
    * @param {object} wire - Wire object with fromNode, toNode.
    * @returns {boolean} True if point is within hit threshold.
    */
-  function hitTestWire(canvasX, canvasY, wire) {
-    var fromNodeData = graphState.getNode(wire.fromNode);
-    var toNodeData = graphState.getNode(wire.toNode);
-    if (!fromNodeData || !toNodeData) return false;
+  function hitTestWire(wrapX, wrapY, wire) {
+    var from = _portPosInWrap(wire.fromNode, wire.fromPort);
+    var to   = _portPosInWrap(wire.toNode, wire.toPort);
+    if (!from || !to) return false;
 
-    var x1 = fromNodeData.x, y1 = fromNodeData.y;
-    var x2 = toNodeData.x, y2 = toNodeData.y;
+    var x1 = from.x, y1 = from.y;
+    var x2 = to.x, y2 = to.y;
 
     var style = (typeof settings !== 'undefined' && settings.get) ? settings.get('wireStyle') : 'bezier';
 
     if (style === 'direct') {
-      return _distToSegmentSq(canvasX, canvasY, x1, y1, x2, y2) <= HIT_THRESHOLD * HIT_THRESHOLD;
+      return _distToSegmentSq(wrapX, wrapY, x1, y1, x2, y2) <= HIT_THRESHOLD * HIT_THRESHOLD;
     }
 
     if (style === 'stepped') {
       var mx = (x1 + x2) / 2;
-      var d1 = _distToSegmentSq(canvasX, canvasY, x1, y1, mx, y1);
-      var d2 = _distToSegmentSq(canvasX, canvasY, mx, y1, mx, y2);
-      var d3 = _distToSegmentSq(canvasX, canvasY, mx, y2, x2, y2);
+      var d1 = _distToSegmentSq(wrapX, wrapY, x1, y1, mx, y1);
+      var d2 = _distToSegmentSq(wrapX, wrapY, mx, y1, mx, y2);
+      var d3 = _distToSegmentSq(wrapX, wrapY, mx, y2, x2, y2);
       var minD = Math.min(d1, d2, d3);
       return minD <= HIT_THRESHOLD * HIT_THRESHOLD;
     }
 
     var dx = Math.max(40, Math.abs(x2 - x1) * 0.5);
-    var distSq = _sampleBezier(x1, y1, x1 + dx, y1, x2 - dx, y2, x2, y2, canvasX, canvasY);
+    var distSq = _sampleBezier(x1, y1, x1 + dx, y1, x2 - dx, y2, x2, y2, wrapX, wrapY);
     return distSq <= HIT_THRESHOLD * HIT_THRESHOLD;
   }
 
   /**
-   * Finds the first wire under a given canvas point.
-   * @param {number} canvasX - Canvas-space x.
-   * @param {number} canvasY - Canvas-space y.
+   * Finds the first wire under a given screen point.
+   * Accepts client-coordinates and converts to wrap-relative internally.
+   * @param {number} clientX - Client/viewport x.
+   * @param {number} clientY - Client/viewport y.
    * @returns {object|null} The wire object or null.
    */
-  function findWireAt(canvasX, canvasY) {
+  function findWireAt(clientX, clientY) {
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return null;
+    var wr = wrap.getBoundingClientRect();
+    var wrapX = clientX - wr.left;
+    var wrapY = clientY - wr.top;
+
     var wires = graphState.getAllWires();
     for (var wireId in wires) {
       if (!wires.hasOwnProperty(wireId)) continue;
-      if (hitTestWire(canvasX, canvasY, wires[wireId])) {
+      if (hitTestWire(wrapX, wrapY, wires[wireId])) {
         return wires[wireId];
       }
     }

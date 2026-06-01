@@ -21,6 +21,8 @@ var canvasInput = (function() {
     wrap.addEventListener('mousedown', inputHandlers.onMouseDown);
     wrap.addEventListener('mousemove', inputHandlers.onMouseMove);
     wrap.addEventListener('mouseup',   inputHandlers.onMouseUp);
+    wrap.addEventListener('click',     inputHandlers.onClick);
+    wrap.addEventListener('dblclick',  inputHandlers.onDblClick);
     wrap.addEventListener('wheel',     inputHandlers.onWheel, { passive: false });
 
     document.addEventListener('keydown', inputHandlers.onKeyDown);

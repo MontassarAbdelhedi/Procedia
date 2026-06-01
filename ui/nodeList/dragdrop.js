@@ -85,7 +85,7 @@ var __nl_dragdrop = (function() {
       var pos = viewport.screenToCanvas(e.clientX, e.clientY);
 
       if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt) {
-        var hitWire = canvasDrag.findWireAt(pos.x, pos.y);
+        var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
         if (hitWire) {
           var insertNode = canvasDrag.insertNodeOnWire(hitWire.id, def, pos.x, pos.y);
           if (insertNode) {

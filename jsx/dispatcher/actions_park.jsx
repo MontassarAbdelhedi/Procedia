@@ -175,3 +175,31 @@ function _handlePollAliveNodes(cmd) {
   } catch (e) { result.error = e.toString(); }
   return result;
 }
+
+/**
+ * Checks which comp node UUIDs have had their AE CompItem deleted
+ * outside of Procedia (e.g. user deleted a comp directly in AE).
+ * Layer nodes are handled by pollAliveNodes (which matches wire path UUIDs).
+ * @param {Object} cmd Command with params: compNodeUUIDs.
+ * @return {Object} Result with .ok, .data (missingCompNodeUUIDs), .error.
+ */
+function _handlePollExternalDeletions(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var params = _cmdParams(cmd);
+    var compUUIDs = params.compNodeUUIDs || [];
+    var missingCompNodeUUIDs = [];
+    var i;
+
+    for (i = 0; i < compUUIDs.length; i++) {
+      var comp = findCompByUUID(compUUIDs[i]);
+      if (!comp) missingCompNodeUUIDs.push(compUUIDs[i]);
+    }
+
+    result.ok = true;
+    result.data = {
+      missingCompNodeUUIDs: missingCompNodeUUIDs
+    };
+  } catch (e) { result.error = e.toString(); }
+  return result;
+}

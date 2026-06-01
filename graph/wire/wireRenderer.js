@@ -149,13 +149,24 @@ var wireRenderer = (function() {
     var to   = _portPosInWrap(wire.toNode, wire.toPort);
     if (!from || !to) return;
 
-    var color = WIRE_COLORS[wire.type] || WIRE_COLORS.layer;
+    var isSelected = typeof _selectedWireId !== 'undefined' && _selectedWireId === wire.id;
+    var color = isSelected ? '#FFFFFF' : (WIRE_COLORS[wire.type] || WIRE_COLORS.layer);
     var style = _getStyle();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = isSelected ? 3 : 2;
     ctx.beginPath();
     _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
     ctx.stroke();
+
+    if (isSelected) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 6;
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath();
+      _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+    }
   }
 
   /**

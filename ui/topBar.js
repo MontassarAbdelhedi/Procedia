@@ -57,9 +57,9 @@ var topBar = (function() {
     if (autoBtn && typeof autoLayout !== 'undefined') {
       autoBtn.addEventListener('click', function() {
         autoLayout.run();
-        if (typeof minimap !== 'undefined' && minimap.fitAll) minimap.fitAll();
-        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
         if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        if (typeof minimap !== 'undefined' && minimap.fitAll) minimap.fitAll();
       });
     }
 

@@ -47,12 +47,7 @@ function init() {
     if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
     if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
-    if (sel.length === 1) {
-      var node = graphState.getNode(sel[0]);
-      if (node && node.type === 'core/comp' && typeof evalBridge !== 'undefined') {
-        evalBridge.dispatch({ action: 'focusComp', params: { nodeUUID: sel[0] } });
-      }
-    }
+
   });
   wireRenderer.init();
   wireTool.init();
@@ -61,6 +56,7 @@ function init() {
   nodeList.init();
   inspector.init();
   bottomBar.init();
+  notificationBar.init();
   statusBar.init();
   sidebarToggle.init();
   settingsModal.init();

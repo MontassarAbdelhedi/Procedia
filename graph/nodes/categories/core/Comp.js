@@ -59,6 +59,26 @@ var CompNode = {
   },
 
   /**
+   * Re-creates the composition in AE after an external deletion.
+   * @param {Object} nodeData - The full node data object.
+   * @param {string} hostingCompUUID - Unused for comps (comps are self-hosting).
+   * @return {Object} Action to create a new composition in the AE project.
+   */
+  onAlive: function(nodeData, hostingCompUUID) {
+    return {
+      action: 'createComp',
+      params: {
+        nodeUUID:  nodeData.id,
+        label:     nodeData.props.label,
+        width:     nodeData.props.width,
+        height:    nodeData.props.height,
+        frameRate: nodeData.props.frameRate,
+        duration:  nodeData.props.duration
+      }
+    };
+  },
+
+  /**
    * @param {string} key - The property key that changed.
    * @param {*} value - The new property value.
    * @param {Object} nodeData - The full node data object.

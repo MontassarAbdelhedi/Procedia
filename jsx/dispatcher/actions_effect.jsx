@@ -2,7 +2,7 @@
  * @fileoverview Effect-related action handlers (ES3-safe).
  * REQUIRES: json.jsx, utils.jsx
  * Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
- * Exports: _handleApplyDynamicEffect, _handleRemoveEffect, _handleSetEffectProperty, _handleIntrospectEffect
+ * Exports: _handleApplyDynamicEffect, _handleRemoveEffect, _handleSetEffectProperty, _handleRenameEffect, _handleIntrospectEffect
  */
 // actions_effect.jsx — Effect-related action handlers (ES3-safe)
 // REQUIRES: json.jsx, utils.jsx
@@ -94,6 +94,78 @@ function _handleSetEffectProperty(cmd) {
       }
     }
     result.ok = true;
+  } catch (e) { result.error = e.toString(); }
+  return result;
+}
+
+/**
+ * Renames an effect on a layer by matchName.
+ * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, effectMatchName, label.
+ * @return {Object} Result with .ok, .error.
+ */
+function _handleRenameEffect(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var params = _cmdParams(cmd);
+    var comp = findCompByUUID(params.hostingCompUUID);
+    if (!comp) { result.error = 'renameEffect: host comp not found'; return result; }
+    var layer = findLayerByUUID(comp, params.layerUUID);
+    if (!layer) { result.error = 'renameEffect: layer not found'; return result; }
+    var effects = layer.Effects;
+    var ei;
+    for (ei = 1; ei <= effects.numProperties; ei++) {
+      var fx = effects.property(ei);
+      if (fx.matchName === params.effectMatchName) {
+        fx.name = String(params.label);
+        break;
+      }
+    }
+    result.ok = true;
+  } catch (e) { result.error = e.toString(); }
+  return result;
+}
+
+/**
+ * Checks which effect nodes still have their AE effect existing on the host layer.
+ * Layers are identified by layer.comment matching layerNodeUUID (the path wire UUID).
+ * Effects are identified by matchName on the layer's Effects collection.
+ * @param {Object} cmd Command with params: entries (array of {nodeUUID, hostingCompUUID, layerNodeUUID, matchName}).
+ * @return {Object} Result with .ok, .data (missingEffectNodeUUIDs), .error.
+ */
+function _handlePollAliveEffects(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var params = _cmdParams(cmd);
+    var entries = params.entries || [];
+    var missingEffectNodeUUIDs = [];
+    var i;
+
+    for (i = 0; i < entries.length; i++) {
+      var entry = entries[i];
+      var comp = findCompByUUID(entry.hostingCompUUID);
+      if (!comp) {
+        missingEffectNodeUUIDs.push(entry.nodeUUID);
+        continue;
+      }
+      var layer = findLayerByUUID(comp, entry.layerNodeUUID);
+      if (!layer) {
+        missingEffectNodeUUIDs.push(entry.nodeUUID);
+        continue;
+      }
+      var found = false;
+      var ei;
+      for (ei = 1; ei <= layer.Effects.numProperties; ei++) {
+        var fx = layer.Effects.property(ei);
+        if (fx.matchName === entry.matchName) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) missingEffectNodeUUIDs.push(entry.nodeUUID);
+    }
+
+    result.ok = true;
+    result.data = { missingEffectNodeUUIDs: missingEffectNodeUUIDs };
   } catch (e) { result.error = e.toString(); }
   return result;
 }

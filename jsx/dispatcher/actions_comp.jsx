@@ -108,7 +108,8 @@ function _handleFocusComp(cmd) {
     var params = _cmdParams(cmd);
     var comp = findCompByUUID(params.nodeUUID);
     if (!comp) { result.error = 'focusComp: comp not found'; return result; }
-    app.project.activeItem = comp;
+    var viewer = comp.openInViewer();
+    if (!viewer) { result.error = 'focusComp: openInViewer returned null'; return result; }
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
   return result;
