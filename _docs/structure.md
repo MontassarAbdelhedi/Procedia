@@ -13,53 +13,89 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
  1. lib/CSInterface.js
  2. data/uuidGenerator.js
  3. bridge/evalBridge.js
- 4. graph/graphState.js
- 5. graph/nodeRegistry.js
- 6. ui/settings.js
- 7. graph/nodes/categories/core/Comp.js
- 8. graph/nodes/categories/layers/Text.js
- 9. graph/nodes/categories/layers/Null.js
-10. graph/nodes/categories/layers/Shape.js
-11. graph/nodes/categories/layers/Adjustment.js
-12. graph/nodes/categories/effects/FillEffect.js
-13. graph/nodes/categories/effects/GaussianBlur.js
-14. graph/nodes/categories/effects/DropShadow.js
-15. graph/nodes/categories/data/Color.js
-16. graph/nodes/categories/data/Number.js
-17. graph/nodes/categories/utility/Blending.js
-18. graph/nodes/categories/utility/MatteLuma.js
-19. graph/nodes/categories/utility/MatteAlpha.js
-20. graph/schemaCache.js                         ← after node defs, before engine
-21. graph/cycleChecker.js
-22. graph/wireValidator.js
-23. graph/cascadeAlgorithm.js
-24. flush/dirtyFlusher.js                        ← moved before engine
-25. graph/engine.js
-26. graph/canvas/viewport.js
-27. graph/canvas/renderer.js
-28. graph/canvas/input/state.js
-29. graph/canvas/input/utils.js
-30. graph/canvas/input/rubberband.js
-31. graph/canvas/input/handlers.js
-32. graph/canvas/input/index.js
-33. graph/canvas/minimap.js
-34. graph/canvas/drag.js
-35. graph/wire/wireRenderer.js
-36. graph/wire/wire.js
-37. ui/nodeList.js
-38. ui/nodePicker/compatibility.js
-39. ui/nodePicker/render.js
-40. ui/nodePicker/filter.js
-41. ui/nodePicker/events.js
-42. ui/nodePicker/index.js
-43. ui/inspector.js
-44. ui/settingsModal.js
-45. polling/poller.js
-46. ui/topBar.js
-47. ui/bottomBar.js
-48. ui/statusBar.js
-49. ui/sidebarToggle.js
-50. index.js
+  4. graph/graphState/state.js
+  5. graph/graphState/tempGraph.js
+  6. graph/graphState/nodes.js
+  7. graph/graphState/wires.js
+  8. graph/graphState/props.js
+  9. graph/graphState/selection.js
+ 10. graph/graphState/graphOps.js
+ 11. graph/graphState/index.js
+12. graph/nodeRegistry.js
+13. ui/settings.js
+14. graph/nodes/categories/core/Comp.js
+15. graph/nodes/categories/layers/Text.js
+16. graph/nodes/categories/layers/Null.js
+17. graph/nodes/categories/layers/Shape.js
+18. graph/nodes/categories/layers/Adjustment.js
+19. graph/nodes/categories/effects/FillEffect.js
+20. graph/nodes/categories/effects/GaussianBlur.js
+21. graph/nodes/categories/effects/DropShadow.js
+22. graph/nodes/categories/data/Color.js
+23. graph/nodes/categories/data/Number.js
+24. graph/nodes/categories/utility/Blending.js
+25. graph/nodes/categories/utility/MatteLuma.js
+26. graph/nodes/categories/utility/MatteAlpha.js
+27. graph/schemaCache/state.js                 ← schema cache internal state
+28. graph/schemaCache/persistence.js           ← schema cache disk persistence
+29. graph/schemaCache/diff.js                  ← schema cache version-diff logic
+30. graph/schemaCache/index.js                 ← schema cache public API (aggregator)
+31. graph/cycleChecker.js
+32. graph/wireValidator/portUtils.js
+33. graph/wireValidator/matteValidator.js
+34. graph/wireValidator/canConnect.js
+35. graph/wireValidator/filterPickerList.js
+36. graph/wireValidator/index.js
+37. graph/cascadeAlgorithm.js
+38. flush/dirtyFlusher.js                        ← moved before engine
+39. graph/engine/helpers.js
+40. graph/engine/propagate.js
+41. graph/engine/wires.js
+42. graph/engine/nodes/dropNode.js
+43. graph/engine/nodes/deleteNode.js
+44. graph/engine/nodes/duplicateNode.js
+45. graph/engine/nodes/lockNode.js
+46. graph/engine/nodes/recreateNode.js
+47. graph/engine/nodes/index.js
+48. graph/engine/state.js
+49. graph/engine/index.js
+50. graph/canvas/viewport.js
+51. graph/canvas/renderer.js
+52. graph/canvas/input/state.js
+53. graph/canvas/input/utils.js
+54. graph/canvas/input/rubberband.js
+55. graph/canvas/input/handlers/titleEdit.js
+56. graph/canvas/input/handlers/mouse.js
+57. graph/canvas/input/handlers/keyboard.js
+58. graph/canvas/input/handlers/wheel.js
+59. graph/canvas/input/handlers/index.js
+60. graph/canvas/input/index.js
+61. graph/canvas/minimap/constants.js
+62. graph/canvas/minimap/state.js
+63. graph/canvas/minimap/utils.js
+64. graph/canvas/minimap/renderer.js
+65. graph/canvas/minimap/interaction.js
+66. graph/canvas/minimap/index.js
+67. graph/canvas/drag.js
+68. graph/wire/wireRenderer.js
+69. graph/wire/wire.js
+70. ui/nodeList.js
+71. ui/nodePicker/compatibility.js
+72. ui/nodePicker/render.js
+73. ui/nodePicker/filter.js
+74. ui/nodePicker/events.js
+75. ui/nodePicker/index.js
+76. ui/inspector.js
+77. ui/settingsModal.js
+78. polling/missingNodes.js
+79. polling/notifications.js
+80. polling/externalDeletions.js
+81. polling/poller.js
+82. ui/topBar.js
+83. ui/bottomBar.js
+84. ui/statusBar.js
+85. ui/sidebarToggle.js
+86. index.js
 ```
 
 ---
@@ -90,7 +126,7 @@ procedia/
 │   │                                              uuidGenerator.generateWireId()
 │   │                                     Depends on: (none)
 │   └── effectSchemaCache.json          ← Disk-persisted effect schema cache
-│                                         Written by: schemaCache.js via writeSchemaCache action
+│                                         Written by: schemaCache/persistence.js via writeSchemaCache action
 │                                         Ships as: { "aeVersion": "", "schemas": {} }
 │
 ├── bridge/
@@ -104,14 +140,22 @@ procedia/
 │
 ├── graph/
 │   │
-│   ├── graphState.js                   ← nodeMap, wireMap, tempGraph — ONLY mutator of graph state
+│   ├── graphState/
+│   │   ├── state.js                    ← Shared internal state (nodeMap, wireMap, tempGraph, selection)
+│   │   ├── tempGraph.js                ← rebuildTempGraph — stripped snapshot for consumers
+│   │   ├── nodes.js                    ← Node CRUD: addNode, removeNode, updateNode, getNode, getAllNodes
+│   │   ├── wires.js                    ← Wire CRUD: addWire, removeWire, updateWire, getWire, getAllWires
+│   │   ├── props.js                    ← Property/dirty-flag: updateProp, clearDirty
+│   │   ├── selection.js                ← Multi-select: setSelection, getSelection, addToSelection, etc.
+│   │   ├── graphOps.js                 ← loadGraph, clearGraph — full state load/reset
+│   │   └── index.js                    ← Assembles graphState from sub-modules
 │   │                                     Exposes: addNode(), removeNode(), updateNode(),
 │   │                                              addWire(), removeWire(), updateWire(),
 │   │                                              updateProp(), clearDirty(),
 │   │                                              setSelection(uuid), getSelection(),
 │   │                                              onSelectionChange(fn),
-│   │                                              loadGraph(), clearGraph(), getTempGraph()
-│   │                                     Depends on: data/uuidGenerator.js
+│   │                                              loadGraph(), clearGraph(), rebuildTempGraph()
+│   │                                     Depends on: (none — all internal)
 │   │
 │   ├── nodeRegistry.js                 ← Node definition registry
 │   │                                     Exposes: nodeRegistry.register(def),
@@ -121,7 +165,11 @@ procedia/
 │   │                                              nodeRegistry.listTypes()
 │   │                                     Depends on: (none)
 │   │
-│   ├── schemaCache.js                  ← Dynamic effect schema cache (in-memory + disk)
+│   ├── schemaCache/                      ← Dynamic effect schema cache (in-memory + disk)
+│   │   ├── state.js                      ← Internal state & read accessors
+│   │   ├── persistence.js                ─ Disk persistence via evalBridge
+│   │   ├── diff.js                       ─ AE version-diff & schema comparison
+│   │   └── index.js                      ← Aggregates into schemaCache global
 │   │                                     Exposes: schemaCache.init() → Promise,
 │   │                                              schemaCache.hasSchema(matchName),
 │   │                                              schemaCache.getSchema(matchName),
@@ -133,15 +181,20 @@ procedia/
 │   │
 │   ├── cycleChecker.js                 ← Cycle detection (pure graph traversal)
 │   │                                     Exposes: cycleChecker.hasCycle(fromNodeId, toNodeId)
-│   │                                     Depends on: graph/graphState.js
+│   │                                     Depends on: graph/graphState/
 │   │
-│   ├── wireValidator.js                ← Wire type compatibility checks before connection
+│   ├── wireValidator/                   ← Wire type compatibility checks before connection
+│   │   ├── portUtils.js                 ← Port lookup & category validation
+│   │   ├── matteValidator.js            ← Matte three-condition validation
+│   │   ├── canConnect.js                ← Core connection validation
+│   │   ├── filterPickerList.js          ← Picker list filtering
+│   │   └── index.js                     ← Aggregates into wireValidator global
 │   │                                     Exposes: wireValidator.canConnect(fromNode, fromPort,
 │   │                                                                        toNode, toPort),
 │   │                                              wireValidator.filterPickerList(wireType, nodeList)
 │   │                                     Enforces: blending main_input ← affected only;
 │   │                                               matte three-condition validation
-│   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js
+│   │                                     Depends on: graph/graphState/, graph/nodeRegistry.js
 │   │
 │   ├── cascadeAlgorithm.js             ← Ghost cascade logic
 │   │                                     Exposes: cascadeAlgorithm.cascadeGhost(deletedWireId),
@@ -149,7 +202,7 @@ procedia/
 │   │                                              cascadeAlgorithm.collectPathUpstream(nodeId),
 │   │                                              cascadeAlgorithm.isCompNode(nodeId)
 │   │                                     Calls: evalBridge.dispatchBatch() (one crossing per cascade)
-│   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js,
+│   │                                     Depends on: graph/graphState/, graph/nodeRegistry.js,
 │   │                                                  bridge/evalBridge.js
 │   │
 │   ├── engine.js                       ← Dumb executor — zero node-type conditionals
@@ -167,9 +220,9 @@ procedia/
 │   │                                            cascadeAlgorithm.cascadeGhost(),
 │   │                                            schemaCache.hasSchema() / getSchema() / storeSchema(),
 │   │                                            dirtyFlusher.flush() (after _pathLayerUUID stamp)
-│   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js,
+│   │                                     Depends on: graph/graphState/, graph/nodeRegistry.js,
 │   │                                                  graph/cascadeAlgorithm.js,
-│   │                                                  graph/wireValidator.js, graph/schemaCache.js,
+│   │                                                  graph/wireValidator/index.js, graph/schemaCache/index.js,
 │   │                                                  bridge/evalBridge.js
 │   │
 │   ├── nodes/
@@ -213,28 +266,33 @@ procedia/
 │   │   │                                          canvasView.screenToWorld()
 │   │   │                                 Depends on: (none)
 │   │   ├── renderer.js                 ← Draw loop — nodes, wires, grid
-│   │   │                                 Depends on: graph/graphState.js, graph/nodeRegistry.js,
+│   │   │                                 Depends on: graph/graphState/, graph/nodeRegistry.js,
 │   │   │                                              graph/canvas/viewport.js
 │   │   ├── input/                       ← Mouse and keyboard events on canvas (split from input.js)
 │   │   │   ├── state.js                 ← Shared state variables
 │   │   │   ├── utils.js                 ← Utility helpers (wrapOffset, clientToWrap, isEditableTarget)
 │   │   │   ├── rubberband.js            ← Rubber-band selection logic
-│   │   │   ├── handlers.js              ← Event handlers (mouse, wheel, keyboard)
+│   │   │   ├── handlers/                  ← Event handlers split by category
+│   │   │   │   ├── index.js               ← Assemblies inputHandlers from sub-modules
+│   │   │   │   ├── titleEdit.js           ← Inline title editing + double-click
+│   │   │   │   ├── mouse.js               ← Mouse down/move/up/click handlers
+│   │   │   │   ├── keyboard.js            ← Keyboard down/up handlers
+│   │   │   │   └── wheel.js               ← Mouse wheel zoom handler
 │   │   │   └── index.js                 ← init() + public API
-│   │   │                                 Depends on: graph/graphState.js, graph/canvas/viewport.js,
+│   │   │                                 Depends on: graph/graphState/, graph/canvas/viewport.js,
 │   │   │                                              graph/canvas/renderer.js
 │   │   └── minimap.js                  ← Minimap canvas render
-│   │                                     Depends on: graph/graphState.js, graph/canvas/viewport.js
+│   │                                     Depends on: graph/graphState/, graph/canvas/viewport.js
 │   │
 │   └── wire/
 │       ├── wireRenderer.js             ← Bezier/direct/stepped wire drawing
 │       │                                 Exposes: wireRenderer.drawAll(), wireRenderer.drawWire()
 │       │                                 Reads: settings.get('wireStyle') per frame
-│       │                                 Depends on: graph/graphState.js
+│       │                                 Depends on: graph/graphState/
 │       └── wire.js                     ← Wire drag, commit, delete
 │                                         Calls: engine.connectWire(), engine.disconnectWire(),
 │                                                cascadeAlgorithm.cascadeGhost()
-│                                         Depends on: graph/graphState.js, graph/wireValidator.js,
+│                                         Depends on: graph/graphState/, graph/wireValidator/index.js,
 │                                                      graph/cycleChecker.js,
 │                                                      graph/cascadeAlgorithm.js
 │
@@ -249,10 +307,10 @@ procedia/
 │   │                                     Renders static params (params array) and dynamic
 │   │                                     (schema from nodeData.dynamicSchema)
 │   │                                     Calls: graphState.updateProp() on change
-│   │                                     Depends on: graph/graphState.js, graph/nodeRegistry.js
+│   │                                     Depends on: graph/graphState/, graph/nodeRegistry.js
 │   │
 │   ├── statusBar.js                    ← Status bar: node/wire/alive/ghost counts, zoom level
-│   │                                     Depends on: graph/graphState.js, graph/canvas/viewport.js
+│   │                                     Depends on: graph/graphState/, graph/canvas/viewport.js
 │   │
 │   ├── settingsModal.js                ← Gear-button modal: minimap toggle, wire style select
 │   │                                     Exposes: settingsModal.init(), settingsModal.open(),
@@ -280,15 +338,29 @@ procedia/
 │                                         Internal: _terminalWiresForSource(),
 │                                                   _terminalWiresForEffector()
 │                                         Calls: nodeRegistry.getDefinition(), evalBridge.dispatch()
-│                                         Depends on: graph/graphState.js, graph/nodeRegistry.js,
+│                                         Depends on: graph/graphState/, graph/nodeRegistry.js,
 │                                                      bridge/evalBridge.js
 │
 ├── polling/
-│   └── poller.js                       ← Adaptive AE polling (1s active / 5s idle)
+│   ├── missingNodes.js              ← Wire/node UUID lookup helpers
+│   │                                   Exposes: pollerHelpers.getAliveWireUUIDs(),
+│   │                                            pollerHelpers.findNodesByWireUUID()
+│   │                                   Depends on: graph/graphState.js
+│   ├── notifications.js            ← Missing-node notification with dedup cache
+│   │                                   Exposes: pollerNotifier.pushMissingNotification()
+│   │                                   Depends on: graph/graphState.js
+│   ├── externalDeletions.js        ← Checks for comps/effects deleted outside Procedia
+│   │                                   Exposes: pollerExternalDeletions.checkEffectDeletions(),
+│   │                                            pollerExternalDeletions.checkExternalDeletions()
+│   │                                   Depends on: bridge/evalBridge.js, graph/graphState.js,
+│   │                                               graph/nodeRegistry.js
+│   └── poller.js                    ← Adaptive AE polling (1s active / 5s idle)
 │                                         Exposes: poller.start(), poller.stop()
 │                                         Calls: evalBridge.dispatch({ action: 'pollAliveNodes' })
 │                                         Respects isWriting flag — skips tick if true
-│                                         Depends on: bridge/evalBridge.js
+│                                         Depends on: bridge/evalBridge.js, graph/graphState.js,
+│                                                     polling/missingNodes.js, polling/notifications.js,
+│                                                     polling/externalDeletions.js
 │
 ├── graph/canvas/                       ← Canvas interaction & node DOM layer
 │   ├── viewport.js, renderer.js, input/, minimap.js
@@ -296,7 +368,7 @@ procedia/
 │                                         Calls: engine.dropNode(), engine.connectWire(),
 │                                                engine.disconnectWire(), graphState.removeWire()
 │                                         Wire-insertion: stamps _transplantLayerUUID, re-wires
-│                                         Depends on: graph/graphState.js, graph/nodeRegistry.js
+│                                         Depends on: graph/graphState/, graph/nodeRegistry.js
 │
 ├── css/
 │   ├── tokens.css                      ← Design tokens (colors, spacing, typography)
@@ -479,7 +551,7 @@ index.js: init()
 | `css/nodePicker.css` | ✅ Exists | Styles for node picker |
 | `css/settingsModal.css` | ✅ Exists | Styles for settings modal |
 | `data/effectSchemaCache.json` | ✅ Exists | Ships as `{ "aeVersion": "", "schemas": {} }` — matches arch_specs §20c |
-| `graph/schemaCache.js` | ✅ Exists | Implementation exists on disk — resolved schema populates all secondary ports from drop (no spawning) |
+| `graph/schemaCache/` (4 files) | ✅ Exists | Split from schemaCache.js: state.js, persistence.js, diff.js, index.js — resolved schema populates all secondary ports from drop (no spawning) |
 
 ---
 

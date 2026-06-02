@@ -5,17 +5,19 @@
  * UI refresh utility, dynamic schema resolution/application, path layer UUID
  * lookup, and data value propagation.
  *
- * Dependencies: graphState, nodeRegistry, schemaCache, evalBridge, dirtyFlusher
- * Load before: engine/propagate.js, engine/wires.js, engine/nodes.js,
+ * Dependencies: graphState, nodeRegistry, schemaCache/index.js, evalBridge, dirtyFlusher
+ * Load before: engine/propagate.js, engine/wires.js, engine/nodes/index.js,
  *              engine/state.js, engine/index.js
  *
  * Exports: buildInitialProps, refreshNodeUI, resolveDynamicSchema,
  *          applyDynamicSchema, findPathLayerUUID, propagateDataValue
  */
 // graph/engine/helpers.js
-// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/schemaCache.js,
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
+//             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
+//             graph/schemaCache/diff.js, graph/schemaCache/index.js,
 //             bridge/evalBridge.js, flush/dirtyFlusher.js
-// MUST LOAD BEFORE: engine/propagate.js, engine/wires.js, engine/nodes.js, engine/state.js, engine/index.js
+// MUST LOAD BEFORE: engine/propagate.js, engine/wires.js, engine/nodes/index.js, engine/state.js, engine/index.js
 
 var __e_hlp = (function() {
 

@@ -7,7 +7,10 @@
 
 // graph/canvas/input/utils.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: input/rubberband.js, input/handlers.js, input/index.js
+// MUST LOAD BEFORE: input/rubberband.js,
+//                   input/handlers/titleEdit.js, input/handlers/mouse.js,
+//                   input/handlers/keyboard.js, input/handlers/wheel.js,
+//                   input/handlers/index.js, input/index.js
 
 var inputUtils = (function() {
 

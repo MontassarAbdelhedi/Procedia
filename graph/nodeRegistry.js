@@ -7,7 +7,7 @@
  */
 // graph/nodeRegistry.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: all node category files, graph/schemaCache.js, graph/engine/index.js
+// MUST LOAD BEFORE: all node category files, graph/schemaCache/state.js, graph/schemaCache/persistence.js, graph/schemaCache/diff.js, graph/schemaCache/index.js, graph/engine/index.js
 
 var nodeRegistry = (function() {
 

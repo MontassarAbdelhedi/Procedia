@@ -13,7 +13,7 @@
  * Exports: connectWire, disconnectWire
  */
 // graph/engine/wires.js
-// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/wireValidator.js,
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/wireValidator/index.js,
 //             graph/cascade/index.js, bridge/evalBridge.js,
 //             data/uuidGenerator.js, flush/dirtyFlusher.js,
 //             graph/engine/helpers.js, graph/engine/propagate.js

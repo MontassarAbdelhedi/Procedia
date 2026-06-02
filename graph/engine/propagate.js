@@ -7,14 +7,14 @@
  *
  * Dependencies: graphState, nodeRegistry, cascade/index.js, evalBridge,
  *               dirtyFlusher, engine/helpers.js
- * Load before: engine/wires.js, engine/nodes.js, engine/index.js
+ * Load before: engine/wires.js, engine/nodes/index.js, engine/index.js
  *
  * Exports: propagateAlive, checkMatteActivation, firePathCreation
  */
 // graph/engine/propagate.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/cascade/index.js,
 //             bridge/evalBridge.js, flush/dirtyFlusher.js, graph/engine/helpers.js
-// MUST LOAD BEFORE: engine/wires.js, engine/nodes.js, engine/index.js
+// MUST LOAD BEFORE: engine/wires.js, engine/nodes/index.js, engine/index.js
 
 var __e_prop = (function() {
   var hlp = __e_hlp;

@@ -10,7 +10,7 @@
 
 // graph/canvas/viewport.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: graph/canvas/renderer/index.js, graph/canvas/input.js, graph/canvas/minimap.js, canvas/node.js
+// MUST LOAD BEFORE: graph/canvas/renderer/index.js, graph/canvas/input.js, graph/canvas/minimap/index.js, canvas/node.js
 
 var viewport = (function() {
 

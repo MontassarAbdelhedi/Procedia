@@ -6,7 +6,7 @@
  */
 // bridge/evalBridge.js
 // DEPENDS ON: lib/CSInterface.js, data/uuidGenerator.js
-// MUST LOAD BEFORE: graph/graphState.js, graph/engine/index.js, flush/dirtyFlusher.js, polling/poller.js
+// MUST LOAD BEFORE: graph/graphState.js, graph/engine/index.js, flush/dirtyFlusher.js, polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js, polling/poller.js
 //
 // THE ONLY FILE that calls csInterface.evalScript(). No other file may call it directly.
 // Exposes: evalBridge.init(cs), evalBridge.dispatch(commandObj), evalBridge.dispatchBatch(commandArr)

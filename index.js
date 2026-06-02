@@ -5,7 +5,9 @@
  *             graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
  *             graph/canvas/viewport.js, ui/inspector/*, ui/nodeList/*, ui/statusBar.js,
  *             ui/topBar.js, ui/bottomBar.js, ui/sidebarToggle.js,
- *             graph/schemaCache.js, flush/dirtyFlusher.js
+ *             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
+ *             graph/schemaCache/diff.js, graph/schemaCache/index.js,
+ *             flush/dirtyFlusher.js
  * Exports: (none — side-effect module)
  */
 // index.js
@@ -16,7 +18,9 @@
 //             ui/nodeList/categories.js, ui/nodeList/render.js, ui/nodeList/search.js,
 //             ui/nodeList/dragdrop.js, ui/nodeList/index.js, ui/statusBar.js,
 //             ui/topBar.js, ui/bottomBar.js, ui/sidebarToggle.js,
-//             graph/schemaCache.js, flush/dirtyFlusher.js
+//             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
+//             graph/schemaCache/diff.js, graph/schemaCache/index.js,
+//             flush/dirtyFlusher.js
 // MUST LOAD BEFORE: nothing (this is the entry point)
 
 var csInterface = new CSInterface();
@@ -33,7 +37,7 @@ function init() {
     : '[browser preview — no CEP context]';
   console.log('[Procedia] Panel loaded. Path: ' + _extPath);
   if (typeof wireValidator === 'undefined') {
-    console.error('[Procedia] wireValidator.js did not load — check Network tab for graph/wireValidator.js');
+    console.error('[Procedia] wireValidator did not load — check Network tab for graph/wireValidator/index.js');
   }
   if (typeof dirtyFlusher === 'undefined') {
     console.error('[Procedia] dirtyFlusher.js did not load — check Network tab for flush/dirtyFlusher.js');

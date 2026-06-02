@@ -44,7 +44,14 @@
   <!-- 2. Infrastructure — no dependencies -->
   <script src="data/uuidGenerator.js"></script>
   <script src="bridge/evalBridge.js"></script>
-  <script src="graph/graphState.js"></script>
+  <script src="graph/graphState/state.js"></script>
+  <script src="graph/graphState/tempGraph.js"></script>
+  <script src="graph/graphState/nodes.js"></script>
+  <script src="graph/graphState/wires.js"></script>
+  <script src="graph/graphState/props.js"></script>
+  <script src="graph/graphState/selection.js"></script>
+  <script src="graph/graphState/graphOps.js"></script>
+  <script src="graph/graphState/index.js"></script>
   <script src="graph/nodeRegistry.js"></script>
   <script src="ui/settings.js"></script>
 
@@ -64,11 +71,18 @@
   <script src="graph/nodes/categories/utility/MatteAlpha.js"></script>
 
   <!-- 4. Schema cache — after nodeRegistry, before engine -->
-  <script src="graph/schemaCache.js"></script>
+  <script src="graph/schemaCache/state.js"></script>
+  <script src="graph/schemaCache/persistence.js"></script>
+  <script src="graph/schemaCache/diff.js"></script>
+  <script src="graph/schemaCache/index.js"></script>
 
   <!-- 5. Graph engine — depends on graphState, nodeRegistry, all nodes, schemaCache -->
   <script src="graph/cycleChecker.js"></script>
-  <script src="graph/wireValidator.js"></script>
+  <script src="graph/wireValidator/portUtils.js"></script>
+  <script src="graph/wireValidator/matteValidator.js"></script>
+  <script src="graph/wireValidator/canConnect.js"></script>
+  <script src="graph/wireValidator/filterPickerList.js"></script>
+  <script src="graph/wireValidator/index.js"></script>
   <script src="graph/cascade/utils.js"></script>
   <script src="graph/cascade/cascadeGhost.js"></script>
   <script src="graph/cascade/index.js"></script>
@@ -76,7 +90,12 @@
   <script src="graph/engine/helpers.js"></script>
   <script src="graph/engine/propagate.js"></script>
   <script src="graph/engine/wires.js"></script>
-  <script src="graph/engine/nodes.js"></script>
+  <script src="graph/engine/nodes/dropNode.js"></script>
+  <script src="graph/engine/nodes/deleteNode.js"></script>
+  <script src="graph/engine/nodes/duplicateNode.js"></script>
+  <script src="graph/engine/nodes/lockNode.js"></script>
+  <script src="graph/engine/nodes/recreateNode.js"></script>
+  <script src="graph/engine/nodes/index.js"></script>
   <script src="graph/engine/state.js"></script>
   <script src="graph/engine/index.js"></script>
 
@@ -89,15 +108,30 @@
   <script src="graph/canvas/input/state.js"></script>
   <script src="graph/canvas/input/utils.js"></script>
   <script src="graph/canvas/input/rubberband.js"></script>
-  <script src="graph/canvas/input/handlers.js"></script>
+  <script src="graph/canvas/input/handlers/titleEdit.js"></script>
+  <script src="graph/canvas/input/handlers/mouse.js"></script>
+  <script src="graph/canvas/input/handlers/keyboard.js"></script>
+  <script src="graph/canvas/input/handlers/wheel.js"></script>
+  <script src="graph/canvas/input/handlers/index.js"></script>
   <script src="graph/canvas/input/index.js"></script>
-  <script src="graph/canvas/minimap.js"></script>
+  <script src="graph/canvas/minimap/constants.js"></script>
+  <script src="graph/canvas/minimap/state.js"></script>
+  <script src="graph/canvas/minimap/utils.js"></script>
+  <script src="graph/canvas/minimap/renderer.js"></script>
+  <script src="graph/canvas/minimap/interaction.js"></script>
+  <script src="graph/canvas/minimap/index.js"></script>
   <script src="graph/canvas/drag.js"></script>
   <script src="graph/wire/wireRenderer.js"></script>
   <script src="graph/wire/wire.js"></script>
 
   <!-- 7. Auto layout — depends on graphState, nodeRegistry, engine -->
-  <script src="graph/autoLayout.js"></script>
+  <script src="graph/autoLayout/constants.js"></script>
+  <script src="graph/autoLayout/estimateHeight.js"></script>
+  <script src="graph/autoLayout/graphBuilder.js"></script>
+  <script src="graph/autoLayout/layerAssignment.js"></script>
+  <script src="graph/autoLayout/crossingReduction.js"></script>
+  <script src="graph/autoLayout/positioning.js"></script>
+  <script src="graph/autoLayout/index.js"></script>
 
   <!-- 8. UI — depends on graphState, nodeRegistry, engine -->
   <script src="ui/nodeList/categories.js"></script>
@@ -117,6 +151,9 @@
   <script src="ui/settingsModal.js"></script>
 
   <!-- 10. Infrastructure services -->
+  <script src="polling/missingNodes.js"></script>
+  <script src="polling/notifications.js"></script>
+  <script src="polling/externalDeletions.js"></script>
   <script src="polling/poller.js"></script>
   <script src="notifications/notificationBar.js"></script>
 

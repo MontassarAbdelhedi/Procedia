@@ -882,7 +882,7 @@ A special comp created by Procedia: `"DO NOT DELETE — Procedia Reserved"`, sto
 
 BlendingNode is a `nodeKind: 'blending'` node. It applies an AE blending mode to the AE layer of the affected node wired directly into its `main_input` port. It does not create an AE layer.
 
-**Port constraint (enforced by `wireValidator.js`):** The `main_input` port of a blending node only accepts wires from an affected node's output port. Wires from effector outputs are rejected. The blending node's `output` port passes the upstream layer reference through unchanged.
+**Port constraint (enforced by `wireValidator`):** The `main_input` port of a blending node only accepts wires from an affected node's output port. Wires from effector outputs are rejected. The blending node's `output` port passes the upstream layer reference through unchanged.
 
 **Always alive:** Yes. BlendingNode is alive from drop until delete — no ghost/park cycle.
 
@@ -913,7 +913,7 @@ Each matte node has two input ports (`top_layer`, `matte_layer`) and one output 
 
 **Always alive:** Yes.
 
-### 13b. Wiring Validity Rules (enforced by `wireValidator.js`)
+### 13b. Wiring Validity Rules (enforced by `wireValidator`)
 
 Before the engine activates a matte node (goes alive), all three of the following must be true:
 
@@ -1066,7 +1066,7 @@ Effect nodes (FillEffect, GaussianBlur, DropShadow, etc.) declare only their `ma
 
 On first drop, Procedia queries AE for the effect's full property schema at runtime. The schema is cached to `effectSchemaCache.json` inside the plugin directory. Every subsequent drop of the same node type reads from cache — zero bridge calls. When AE updates and a new version is detected on panel load, only changed schemas are re-introspected — unchanged schemas are preserved.
 
-This feature touches: `schemaCache.js` (new file), `jsx/utils.jsx` (one new function), `jsx/dispatcher.jsx` (new actions), `engine.js` (one new hook call), all effect node definitions (simplified to `matchName` + `params: 'dynamic'` + two ports). It does not touch `cascadeAlgorithm.js`, `graphState.js`, `wireValidator.js`, or any non-effect node.
+This feature touches: `schemaCache/` (4 files split from `schemaCache.js`), `jsx/utils.jsx` (one new function), `jsx/dispatcher.jsx` (new actions), `engine.js` (one new hook call), all effect node definitions (simplified to `matchName` + `params: 'dynamic'` + two ports). It does not touch `cascadeAlgorithm.js`, `graphState.js`, `wireValidator`, or any non-effect node.
 
 ### 20b. Port Resolution — All Ports Visible from Drop
 
@@ -1083,128 +1083,35 @@ All secondary input ports behave identically to static `secondaryInput` ports fo
 
 ### 20c. Deliverables
 
-- `graph/schemaCache.js` — in-memory cache + disk read/write + diff logic
+- `graph/schemaCache/` (state.js, persistence.js, diff.js, index.js) — in-memory cache + disk read/write + diff logic
 - `jsx/utils.jsx` — new function: `getAEVersion()`
 - `jsx/dispatcher.jsx` — new actions: `introspectEffect`, `readSchemaCache`, `writeSchemaCache`, `getAEVersion`
 - `engine.js` — call `schemaCache.getSchema()` on node drop when `params: 'dynamic'`; store schema on node instance, all ports visible immediately
 - `data/effectSchemaCache.json` — ships empty, never created at runtime
-- `index.html` — `<script>` tag for `schemaCache.js` after `nodeRegistry.js`, before `engine.js`
+- `index.html` — `<script>` tags for `schemaCache/state.js`, `schemaCache/persistence.js`, `schemaCache/diff.js`, `schemaCache/index.js` after `nodeRegistry.js`, before `engine.js`
 - Effect node definitions — simplified (`matchName` + `params: 'dynamic'` + two ports only)
 
-### 20d. `schemaCache.js` — Full Specification
+### 20d. `schemaCache/` — Split Module Specification
 
+The original `schemaCache.js` has been split into four files under `graph/schemaCache/`, following the same IIFE sub-module pattern used by `graph/engine/` and `graph/cascade/`:
+
+| File | Internal Global | Responsibility |
+|---|---|---|
+| `state.js` | `__sc_state` | In-memory cache (`_memoryCache`, `_aeVersion`, `_ready`), getter/setter accessors, public read API (`hasSchema`, `getSchema`, `isReady`, `memoryKeys`) |
+| `persistence.js` | `__sc_persist` | `writeToDisk()` — persists cache to disk via `evalBridge.dispatch({ action: 'writeSchemaCache' })` |
+| `diff.js` | `__sc_diff` | `schemasAreDifferent()` — property-level comparison; `runVersionDiff()` — re-introspects all known schemas when AE version changes |
+| `index.js` | `schemaCache` | Aggregates sub-modules; exposes `init()`, `storeSchema()`, `fetchSchema()`; forwards `hasSchema`, `getSchema`, `isReady` from `__sc_state` |
+
+**Load order:** `state.js` → `persistence.js` → `diff.js` → `index.js`
+
+**Public API (same as before):**
 ```javascript
-// graph/schemaCache.js
-// Dependency: evalBridge.js, nodeRegistry.js
-// Loaded after: nodeRegistry.js
-// Loaded before: engine.js
-
-var schemaCache = (function() {
-
-  var _memoryCache = {};   // { [matchName]: { matchName, properties: [...] } }
-  var _aeVersion   = '';
-  var _ready       = false;
-
-  function init() {
-    return evalBridge.dispatch({ action: 'readSchemaCache' })
-      .then(function(res) {
-        if (!res.ok) {
-          console.warn('[schemaCache] Could not read cache file:', res.error);
-          _ready = true;
-          return;
-        }
-        var cached = res.data;
-        _aeVersion   = cached.aeVersion || '';
-        _memoryCache = cached.schemas   || {};
-        return evalBridge.dispatch({ action: 'getAEVersion' });
-      })
-      .then(function(res) {
-        if (!res || !res.ok) {
-          console.warn('[schemaCache] Could not get AE version');
-          _ready = true;
-          return;
-        }
-        var currentVersion = res.data.version;
-        if (currentVersion === _aeVersion) {
-          _ready = true;
-          return;
-        }
-        console.log('[schemaCache] AE version changed from "' + _aeVersion + '" to "' + currentVersion + '" — running schema diff');
-        return _runVersionDiff(currentVersion);
-      })
-      .catch(function(err) {
-        console.error('[schemaCache] init error:', err);
-        _ready = true;
-      });
-  }
-
-  function hasSchema(matchName) { return !!_memoryCache[matchName]; }
-  function getSchema(matchName)  { return _memoryCache[matchName] || null; }
-  function isReady()             { return _ready; }
-
-  function storeSchema(matchName, schemaData) {
-    _memoryCache[matchName] = schemaData;
-    _writeToDisk();
-  }
-
-  function _runVersionDiff(newVersion) {
-    var knownMatchNames = Object.keys(_memoryCache);
-    if (knownMatchNames.length === 0) {
-      _aeVersion = newVersion;
-      _ready = true;
-      _writeToDisk();
-      return;
-    }
-    var introspectPromises = knownMatchNames.map(function(matchName) {
-      return evalBridge.dispatch({ action: 'introspectEffect', params: { matchName: matchName } })
-        .then(function(res) { return { matchName: matchName, res: res }; });
-    });
-    return Promise.all(introspectPromises).then(function(results) {
-      var changed = 0;
-      for (var i = 0; i < results.length; i++) {
-        var matchName = results[i].matchName;
-        var res       = results[i].res;
-        if (!res.ok) {
-          console.warn('[schemaCache] Effect removed in new AE version:', matchName);
-          delete _memoryCache[matchName];
-          changed++;
-          continue;
-        }
-        if (_schemasAreDifferent(_memoryCache[matchName], res.data)) {
-          console.log('[schemaCache] Schema changed for:', matchName);
-          _memoryCache[matchName] = res.data;
-          changed++;
-        }
-      }
-      _aeVersion = newVersion;
-      _ready     = true;
-      console.log('[schemaCache] Diff complete — ' + changed + ' schema(s) updated');
-      _writeToDisk();
-    });
-  }
-
-  function _schemasAreDifferent(cachedSchema, newSchema) {
-    var cached = cachedSchema.properties || [];
-    var fresh  = newSchema.properties    || [];
-    if (cached.length !== fresh.length) return true;
-    var cachedIndex = {};
-    for (var i = 0; i < cached.length; i++) { cachedIndex[cached[i].matchName] = cached[i]; }
-    for (var j = 0; j < fresh.length; j++) {
-      var prop = fresh[j];
-      if (!cachedIndex[prop.matchName]) return true;
-      if (cachedIndex[prop.matchName].type !== prop.type) return true;
-    }
-    return false;
-  }
-
-  function _writeToDisk() {
-    evalBridge.dispatch({ action: 'writeSchemaCache', params: { cache: { aeVersion: _aeVersion, schemas: _memoryCache } } })
-      .then(function(res) { if (!res.ok) console.error('[schemaCache] Failed to write cache:', res.error); });
-  }
-
-  return { init: init, hasSchema: hasSchema, getSchema: getSchema, storeSchema: storeSchema, isReady: isReady };
-
-})();
+schemaCache.init()        // → Promise — reads cache, checks AE version, diffs if changed
+schemaCache.hasSchema(mn) // → boolean
+schemaCache.getSchema(mn) // → Object|null
+schemaCache.storeSchema(mn, data) // → void (memory + disk)
+schemaCache.fetchSchema(mn) // → Promise — cached or introspect-on-miss
+schemaCache.isReady()     // → boolean
 ```
 
 **`Object.keys` note:** This is panel JS (Chromium). `Object.keys` is valid here. Never use it in `.jsx` files.
@@ -1354,7 +1261,7 @@ Read and report on the following before touching any file:
 2. Open `jsx/dispatcher.jsx` — list all existing action handler function names. Report the exact line number where a new action handler should be inserted.
 3. Open `jsx/utils.jsx` — confirm whether `getAEVersion` already exists. Report the exact line number where it should be added if absent.
 4. Open `engine.js` — find the function that fires on node drop. Report its exact name and line number.
-5. Open `index.html` — find where `graph/` panel JS files are loaded. Report the exact line number where the `schemaCache.js` script tag should be inserted (after `nodeRegistry.js`, before `engine.js`).
+5. Open `index.html` — find where `graph/` panel JS files are loaded. Report the exact line numbers where the `schemaCache/state.js`, `schemaCache/persistence.js`, `schemaCache/diff.js`, `schemaCache/index.js` script tags should be inserted (after `nodeRegistry.js`, before `engine.js`).
 6. Confirm that `data/effectSchemaCache.json` does NOT already exist.
 7. Open `graph/nodes/categories/effects/FillEffect.js` if it exists and report its current contents.
 
@@ -1365,7 +1272,7 @@ File tree discrepancies: [list or 'none']
 dispatcher.jsx — new action insertion line: [N]
 utils.jsx — getAEVersion exists: [yes/no] — insertion line if no: [N]
 engine.js — onDrop function name: [name] — line: [N]
-index.html — schemaCache.js insertion line: [N]
+index.html — schemaCache/state.js insertion line: [N], schemaCache/persistence.js: [N+1], schemaCache/diff.js: [N+2], schemaCache/index.js: [N+3]
 effectSchemaCache.json — exists: [yes/no]
 FillEffect.js — exists: [yes/no]
 ```
@@ -1400,9 +1307,9 @@ STOP. Wait for confirmation.
 
 ---
 
-### PHASE 5 — Create `graph/schemaCache.js`
+### PHASE 5 — Create `graph/schemaCache/` (4 files)
 
-Write the full file from §20d. Public API: `init`, `hasSchema`, `getSchema`, `storeSchema`, `isReady`. `init()` returns a Promise. No AE API calls in this file.
+Create `graph/schemaCache/state.js`, `graph/schemaCache/persistence.js`, `graph/schemaCache/diff.js`, and `graph/schemaCache/index.js` following the split specification in §20d. Public API: `init`, `hasSchema`, `getSchema`, `storeSchema`, `fetchSchema`, `isReady`. `init()` returns a Promise. No AE API calls in this file.
 
 STOP. Wait for confirmation.
 
@@ -1442,13 +1349,16 @@ STOP. Wait for confirmation.
 
 ---
 
-### PHASE 10 — Add `schemaCache.js` to `index.html`
+### PHASE 10 — Add `schemaCache/` files to `index.html`
 
 ```html
-<script src="graph/schemaCache.js"></script>
+<script src="graph/schemaCache/state.js"></script>
+<script src="graph/schemaCache/persistence.js"></script>
+<script src="graph/schemaCache/diff.js"></script>
+<script src="graph/schemaCache/index.js"></script>
 ```
 
-Insert at the exact line from Phase 1 audit. Must load after `nodeRegistry.js`, before `engine.js`.
+Insert at the exact lines from Phase 1 audit. Must load after `nodeRegistry.js`, before `engine.js`. Order matters: state → persistence → diff → index.
 
 STOP. Wait for confirmation.
 
@@ -1569,7 +1479,7 @@ These rules apply to every phase without exception. Do not rationalize exception
 17. **`evalScript` callbacks only fire when AE has window focus.** In testing: trigger the call, click the AE window, then switch back to the browser console to see the result.
 18. **Layer stacking in AE is 1-based. `layerOrder` in panel is 0-based.** Index 0 = AE layer 1 (top). Reorder using `moveToBeginning()` from bottom to top.
 19. **Effect opacity values stored as 0–100 must be divided by 100** before setting AE properties that expect a 0–1 range (e.g. `ADBE Fill-0006`). This normalization happens inside the dispatcher action handler, not in the node definition.
-20. **Blending node `main_input` only accepts wires from affected nodes.** `wireValidator.js` must reject wires from effector outputs into a blending node's `main_input`. This check is type-level — it applies regardless of what is upstream of the effector.
+20. **Blending node `main_input` only accepts wires from affected nodes.** `wireValidator` must reject wires from effector outputs into a blending node's `main_input`. This check is type-level — it applies regardless of what is upstream of the effector.
 21. **Matte node activation requires three simultaneous conditions.** Both input wires connected, both upstream layers sharing the same first-level hosting comp, and the output wired to that same comp. If any condition is unmet, the matte node stays ghost and no AE action fires.
 
 ---
