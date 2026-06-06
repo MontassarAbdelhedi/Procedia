@@ -13,6 +13,7 @@ var settings = (function() {
   var _defaults = {
     minimap:          true,
     wireStyle:        'bezier',
+    animatedDash:     false,
     layoutDirection:  'LR',
     layoutHSpacing:   80,
     layoutVSpacing:   40

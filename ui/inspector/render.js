@@ -82,6 +82,13 @@ var __ins_render = (function() {
       inputHtml =
         '<input type="checkbox" class="inspector-param-input" data-node-id="' + nodeId + '" ' +
         'data-param-key="' + param.key + '" data-param-type="boolean"' + checked + '>';
+    } else if (param.type === 'color') {
+      var hex = __ins_vm.rgbaToHex(param.value);
+      inputHtml =
+        '<button class="cp-trigger" data-node-id="' + nodeId + '" data-param-key="' + param.key + '">' +
+          '<span class="cp-trigger-swatch" style="background:' + param.display + '"></span>' +
+          '<span class="cp-trigger-hex">' + hex + '</span>' +
+        '</button>';
     } else if (param.type === 'enum') {
       inputHtml =
         '<input type="text" class="inspector-param-input" data-node-id="' + nodeId + '" ' +

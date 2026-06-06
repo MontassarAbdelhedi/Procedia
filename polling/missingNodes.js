@@ -14,7 +14,25 @@ var pollerHelpers = (function() {
     var uuids = [];
     for (var id in wires) {
       if (!wires.hasOwnProperty(id)) continue;
-      if (wires[id]._pathLayerUUID) uuids.push(wires[id]._pathLayerUUID);
+      if (!wires[id]._pathLayerUUID) continue;
+
+      // Skip stale _pathLayerUUID from effectors whose main_input was
+      // cascaded away — the layer they pointed to was parked.
+      var fromNode = graphState.getNode(wires[id].fromNode);
+      if (fromNode && fromNode.nodeKind === 'effector') {
+        var hasMainInput = false;
+        for (var wid2 in wires) {
+          if (!wires.hasOwnProperty(wid2)) continue;
+          var w = wires[wid2];
+          if (w.toNode === fromNode.id && w.toPort === 'main_input') {
+            hasMainInput = true;
+            break;
+          }
+        }
+        if (!hasMainInput) continue;
+      }
+
+      uuids.push(wires[id]._pathLayerUUID);
     }
     return uuids;
   }

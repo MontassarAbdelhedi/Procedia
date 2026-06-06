@@ -18,6 +18,7 @@ window.__gs = {
   tempGraph: { version: '4.0', nodes: {}, wires: {} },
   selection: [],
   _onSelectionChangeCb: null,
+  _graphChangeListeners: [],
 
   _strippedNodeFields: {
     dirty:                true,

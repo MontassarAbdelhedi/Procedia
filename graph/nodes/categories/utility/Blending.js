@@ -28,6 +28,10 @@ var BlendingNode = {
     { key: 'mode',  type: 'enum',   default: 'NORMAL',   label: 'Mode' }
   ],
 
+  getParams: function(nodeData) {
+    return this.params;
+  },
+
   /** @return {null} Blending handled natively — no AE action on drop. */
   onDrop:           function() { return null; },
   /** @return {null} Blending handled natively — no AE action when alive. */

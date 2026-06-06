@@ -160,6 +160,9 @@ var __r_bld = (function() {
     card.className = hlp.getStateClasses(nodeData);
     card.style.left = (nodeData.x || 0) + 'px';
     card.style.top  = (nodeData.y || 0) + 'px';
+    if (nodeData.nodeColor) {
+      card.style.borderColor = nodeData.nodeColor;
+    }
 
     var header = document.createElement('div');
     header.className = 'node-header';
@@ -221,6 +224,11 @@ var __r_bld = (function() {
     el.style.left = (nodeData.x || 0) + 'px';
     el.style.top  = (nodeData.y || 0) + 'px';
     el.className = hlp.getStateClasses(nodeData);
+    if (nodeData.nodeColor) {
+      el.style.borderColor = nodeData.nodeColor;
+    } else {
+      el.style.borderColor = '';
+    }
 
     var labelEl = el.querySelector('.node-label');
     if (labelEl) {

@@ -95,6 +95,17 @@ var __e_hlp = (function() {
       dynamicSchema:  schema,
       props:          initialProps
     });
+
+    var allNodes = graphState.getAllNodes();
+    for (var id in allNodes) {
+      if (allNodes[id]._cloneMasterId === nodeId) {
+        graphState.updateNode(id, {
+          secondaryPorts: JSON.parse(JSON.stringify(secondaryPorts)),
+          dynamicSchema:  schema,
+          props:          JSON.parse(JSON.stringify(initialProps))
+        });
+      }
+    }
   }
 
   /**

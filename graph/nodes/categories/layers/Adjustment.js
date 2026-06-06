@@ -32,6 +32,10 @@ var AdjustmentNode = {
     { key: 'scale',    type: 'vector2', default: [100, 100],        label: 'Scale'                       }
   ],
 
+  getParams: function(nodeData) {
+    return this.params;
+  },
+
   /** @return {null} No AE action on initial drop — layer is created onAlive. */
   onDrop: function(nodeData) { return null; },
 

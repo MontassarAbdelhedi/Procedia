@@ -25,6 +25,9 @@ var wireRenderer = (function() {
     parent: '#E07B39'
   };
 
+  var _animOffset = 0;
+  var _animFrameId = null;
+
   /**
    * Resizes the canvas element to match the canvas-wrap dimensions.
    */
@@ -74,6 +77,18 @@ var wireRenderer = (function() {
       return settings.get('wireStyle');
     }
     return 'bezier';
+  }
+
+  /**
+   * Gets the animated dash toggle from settings.
+   *
+   * @returns {boolean} Whether animated dash is enabled
+   */
+  function _getAnimDash() {
+    if (typeof settings !== 'undefined' && settings.get) {
+      return settings.get('animatedDash') === true;
+    }
+    return false;
   }
 
   /**
@@ -154,6 +169,13 @@ var wireRenderer = (function() {
     var style = _getStyle();
     ctx.strokeStyle = color;
     ctx.lineWidth = isSelected ? 3 : 2;
+
+    var useDash = _getAnimDash();
+    if (useDash) {
+      ctx.setLineDash([6, 4]);
+      ctx.lineDashOffset = -_animOffset;
+    }
+
     ctx.beginPath();
     _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
     ctx.stroke();
@@ -162,10 +184,65 @@ var wireRenderer = (function() {
       ctx.strokeStyle = color;
       ctx.lineWidth = 6;
       ctx.globalAlpha = 0.2;
+      if (useDash) {
+        ctx.setLineDash([12, 8]);
+        ctx.lineDashOffset = -_animOffset;
+      }
       ctx.beginPath();
       _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
       ctx.stroke();
       ctx.globalAlpha = 1.0;
+    }
+
+    if (useDash) {
+      ctx.setLineDash([]);
+    }
+  }
+
+  /**
+   * Gets the center position of a node card relative to the canvas wrap.
+   *
+   * @param {string} nodeId - Node ID
+   * @returns {Object|null} Position object with x, y, or null
+   */
+  function _nodeCenterInWrap(nodeId) {
+    var el = renderer.getNodeElement(nodeId);
+    if (!el) return null;
+
+    var rect = el.getBoundingClientRect();
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return null;
+    var wr = wrap.getBoundingClientRect();
+
+    return {
+      x: rect.left + rect.width / 2 - wr.left,
+      y: rect.top + rect.height / 2 - wr.top
+    };
+  }
+
+  /**
+   * Draws gray clone wires from master nodes to their clones.
+   *
+   * @param {CanvasRenderingContext2D} ctx - Canvas context
+   */
+  function _drawCloneWires(ctx) {
+    var nodes = graphState.getAllNodes();
+    for (var nodeId in nodes) {
+      if (!nodes.hasOwnProperty(nodeId)) continue;
+      var node = nodes[nodeId];
+      if (node._cloneMasterId) {
+        var from = _nodeCenterInWrap(node._cloneMasterId);
+        var to   = _nodeCenterInWrap(nodeId);
+        if (!from || !to) continue;
+
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        _drawBezier(ctx, from.x, from.y, to.x, to.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
   }
 
@@ -188,15 +265,22 @@ var wireRenderer = (function() {
   }
 
   /**
-   * Main render function. Clears the canvas, draws all wires, and optionally
-   * draws a drag preview line.
+   * Stops the animation loop and resets state.
+   */
+  function _stopAnim() {
+    if (_animFrameId) {
+      cancelAnimationFrame(_animFrameId);
+      _animFrameId = null;
+      _animOffset = 0;
+    }
+  }
+
+  /**
+   * Clears the canvas and draws all wires (and optional preview line).
    *
    * @param {Object|null} preview - Preview data with from/to positions, or null
    */
-  function render(preview) {
-    if (!_ctx) return;
-    _resize();
-
+  function _drawAll(preview) {
     var w = _canvas.width;
     var h = _canvas.height;
     _ctx.clearRect(0, 0, w, h);
@@ -207,9 +291,60 @@ var wireRenderer = (function() {
       _drawWire(_ctx, wires[wireId]);
     }
 
+    _drawCloneWires(_ctx);
+
     if (preview && preview.from && preview.to) {
       _drawPreview(_ctx, preview.from, preview.to);
     }
+  }
+
+  /**
+   * Main render function. Clears the canvas, draws all wires, and optionally
+   * draws a drag preview line. For animated dash style, starts a continuous
+   * requestAnimationFrame loop to animate the dash offset.
+   *
+   * @param {Object|null} preview - Preview data with from/to positions, or null
+   */
+  function render(preview) {
+    if (!_ctx) return;
+    _resize();
+
+    var style = _getStyle();
+
+    // If a drag preview is active, draw immediately and stop any animation loop
+    if (preview) {
+      if (_animFrameId) {
+        cancelAnimationFrame(_animFrameId);
+        _animFrameId = null;
+        _animOffset = 0;
+      }
+      _drawAll(preview);
+      return;
+    }
+
+    // Manage animation loop for animated dash
+    if (_getAnimDash()) {
+      if (!_animFrameId) {
+        _drawAll(null);
+        function _tick() {
+          if (!_getAnimDash()) {
+            _stopAnim();
+            return;
+          }
+          _animOffset += 0.3;
+          if (_animOffset > 200) _animOffset = 0;
+          _drawAll(null);
+          _animFrameId = requestAnimationFrame(_tick);
+        }
+        _animFrameId = requestAnimationFrame(_tick);
+      }
+      return;
+    }
+
+    // Stop animation loop if running and toggle is off
+    _stopAnim();
+
+    _drawAll(preview);
   }
 
   /**

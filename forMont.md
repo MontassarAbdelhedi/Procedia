@@ -7,8 +7,8 @@
 [ ] new node: footage item: video
 [ ] new node: footage item: image
 [ ] new node: footage item: audio
-[ ]
-[ ]
+[ ] rework inspector logic; each node export proper inspector in node definition.
+[ ] unwiring an affected from an effector wrongly trigger alert: effect is deleted outside of procedia.
 [ ]
 [ ]
 [ ]

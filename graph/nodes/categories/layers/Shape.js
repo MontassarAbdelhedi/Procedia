@@ -33,6 +33,10 @@ var ShapeNode = {
     { key: 'fillColor',type: 'color',   default: [1, 0, 1, 1],     label: 'Fill Color'                  }
   ],
 
+  getParams: function(nodeData) {
+    return this.params;
+  },
+
   /** @return {null} No AE action on initial drop — layer is created onAlive. */
   onDrop: function(nodeData) { return null; },
 

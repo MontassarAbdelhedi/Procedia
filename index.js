@@ -51,7 +51,7 @@ function init() {
     if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
     if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
-
+    if (typeof nodeToolbar !== 'undefined' && nodeToolbar.refresh) nodeToolbar.refresh();
   });
   wireRenderer.init();
   wireTool.init();
@@ -61,6 +61,8 @@ function init() {
   inspector.init();
   bottomBar.init();
   notificationBar.init();
+  if (typeof nodeToolbar !== 'undefined' && nodeToolbar.init) nodeToolbar.init();
+  if (typeof graphExporter !== 'undefined' && graphExporter.init) graphExporter.init();
   statusBar.init();
   sidebarToggle.init();
   settingsModal.init();

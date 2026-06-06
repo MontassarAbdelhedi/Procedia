@@ -28,6 +28,10 @@ var MatteLumaNode = {
     { key: 'invert', type: 'boolean', default: false,          label: 'Invert' }
   ],
 
+  getParams: function(nodeData) {
+    return this.params;
+  },
+
   /** @return {null} No AE action on initial drop — matte is applied onAlive. */
   onDrop: function(nodeData) { return null; },
 

@@ -55,7 +55,12 @@
 
     rebuildTempGraph:     gs.rebuildTempGraph,
     loadGraph:            gs.loadGraph,
-    clearGraph:           gs.clearGraph
+    clearGraph:           gs.clearGraph,
+    onGraphChange:        gs._graphChangeListeners.push.bind(gs._graphChangeListeners),
+    offGraphChange:       function(cb) {
+      var idx = gs._graphChangeListeners.indexOf(cb);
+      if (idx !== -1) gs._graphChangeListeners.splice(idx, 1);
+    }
   };
 
   window.graphState = graphState;

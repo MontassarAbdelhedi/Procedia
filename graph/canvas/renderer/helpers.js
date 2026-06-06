@@ -91,6 +91,7 @@ var __r_hlp = (function() {
     var classes = ['node', nodeData.nodeKind];
     classes.push(nodeData.state || 'ghost');
     if (graphState.isSelected(nodeData.id)) classes.push('selected');
+    if (nodeData.collapsed) classes.push('node--collapsed');
     return classes.join(' ');
   }
 

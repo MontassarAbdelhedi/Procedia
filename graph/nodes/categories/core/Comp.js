@@ -30,8 +30,13 @@ var CompNode = {
     { key: 'width',     type: 'number', default: 1920,   label: 'Width',  min: 4, max: 16384 },
     { key: 'height',    type: 'number', default: 1080,   label: 'Height', min: 4, max: 16384 },
     { key: 'frameRate', type: 'number', default: 30,     label: 'Frame Rate', min: 1, max: 999 },
-    { key: 'duration',  type: 'number', default: 10,     label: 'Duration (s)', min: 0.1, max: 3600 }
+    { key: 'duration',  type: 'number', default: 10,     label: 'Duration (s)', min: 0.1, max: 3600 },
+    { key: 'testParam', type: 'string', default: 'testValue', label: 'Test Param' }
   ],
+
+  getParams: function(nodeData) {
+    return this.params;
+  },
 
   /** @return {Object} Action to create a new composition in the AE project. */
   onDrop: function(nodeData) {
@@ -43,7 +48,8 @@ var CompNode = {
         width:     nodeData.props.width,
         height:    nodeData.props.height,
         frameRate: nodeData.props.frameRate,
-        duration:  nodeData.props.duration
+        duration:  nodeData.props.duration,
+        testParam: nodeData.props.testParam
       }
     };
   },
@@ -73,7 +79,8 @@ var CompNode = {
         width:     nodeData.props.width,
         height:    nodeData.props.height,
         frameRate: nodeData.props.frameRate,
-        duration:  nodeData.props.duration
+        duration:  nodeData.props.duration,
+        testParam: nodeData.props.testParam
       }
     };
   },

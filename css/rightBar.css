@@ -160,6 +160,36 @@
   border-color: rgba(83,74,183,0.45);
 }
 
+.inspector-color-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inspector-color-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #2a2a28;
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.inspector-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.inspector-color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.inspector-color-input {
+  max-width: 180px;
+}
+
 .inspector-state-dot.error {
   background: #E74C3C;
 }

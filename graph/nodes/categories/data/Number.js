@@ -27,6 +27,10 @@ var NumberNode = {
     { key: 'value',  type: 'number', default: 50,        label: 'Value', min: 0, max: 100 }
   ],
 
+  getParams: function(nodeData) {
+    return this.params;
+  },
+
   /** @return {null} Data node — no AE action on drop. */
   onDrop:           function(nodeData)                              { return null; },
   /** @return {null} Data node — no AE action when alive. */

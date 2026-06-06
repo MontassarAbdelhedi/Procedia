@@ -53,7 +53,7 @@ function _handleParkLayer(cmd) {
     var lk;
     for (lk = 1; lk <= reserved.numLayers; lk++) {
       var RL = reserved.layer(lk);
-      if (RL.comment === savedComment) { RL.comment = params.nodeUUID; break; }
+      if (RL.comment === savedComment) { RL.name = params.nodeUUID; break; }
     }
     layer.remove();
     result.ok = true;
@@ -78,14 +78,20 @@ function _handleUnparkLayer(cmd) {
     var hostComp = findCompByUUID(params.hostingCompUUID);
     if (!hostComp) { result.error = 'unparkLayer: host comp not found'; return result; }
     var layer = null;
+    var lj;
     if (params.layerUUID) {
       layer = findLayerByUUID(reserved, params.layerUUID);
+    }
+    if (!layer && params.nodeUUID) {
+      for (lj = 1; lj <= reserved.numLayers; lj++) {
+        var LN = reserved.layer(lj);
+        if (LN.name === params.nodeUUID) { layer = LN; break; }
+      }
     }
     if (!layer && params.nodeUUID) {
       layer = findLayerByUUID(reserved, params.nodeUUID);
     }
     if (!layer) {
-      var lj;
       for (lj = 1; lj <= reserved.numLayers; lj++) {
         var L = reserved.layer(lj);
         if (params.layerUUID && L.comment === params.layerUUID) { layer = L; break; }
@@ -96,7 +102,11 @@ function _handleUnparkLayer(cmd) {
     layer.copyToComp(hostComp);
     layer.remove();
     if (params.layerUUID) {
-      var hostLayer = findLayerByUUID(hostComp, params.nodeUUID);
+      var hostLayer = null;
+      for (lj = 1; lj <= hostComp.numLayers; lj++) {
+        var HL = hostComp.layer(lj);
+        if (HL.name === params.nodeUUID) { hostLayer = HL; break; }
+      }
       if (!hostLayer) hostLayer = findLayerByUUID(hostComp, params.layerUUID);
       if (hostLayer) hostLayer.comment = params.layerUUID;
     }
@@ -121,20 +131,17 @@ function _handleDeleteParkedLayer(cmd) {
       result.data = { deleted: false };
       return result;
     }
-    var layer = findLayerByUUID(reserved, params.nodeUUID);
-    if (!layer) {
-      var lj;
-      for (lj = 1; lj <= reserved.numLayers; lj++) {
-        var L2 = reserved.layer(lj);
-        if (L2.comment === params.nodeUUID) {
-          layer = L2;
-          break;
-        }
+    var found = false;
+    var lj;
+    for (lj = reserved.numLayers; lj >= 1; lj--) {
+      var L2 = reserved.layer(lj);
+      if (L2.name === params.nodeUUID || L2.comment === params.nodeUUID) {
+        L2.remove();
+        found = true;
       }
     }
-    if (layer) layer.remove();
     result.ok = true;
-    result.data = { deleted: !!layer };
+    result.data = { deleted: found };
   } catch (e) {
     result.error = e.toString();
   }
@@ -161,6 +168,7 @@ function _handlePollAliveNodes(cmd) {
       for (ci = 1; ci <= proj.numItems; ci++) {
         var item = proj.item(ci);
         if (!(item instanceof CompItem)) continue;
+        if (item.name.indexOf('DO NOT DELETE') === 0) continue;
         var li;
         for (li = 1; li <= item.numLayers; li++) {
           var layer = item.layer(li);

@@ -43,7 +43,6 @@ var __c_ghost = (function() {
 
     // Step 5 — check if source still has an active comp path after this deletion
     var remainingForSource = util._hasCompDownstreamExcluding(sourceNodeId, deletedWireId, {});
-    if (remainingForSource.length > 0) return;
 
     // Step 6 — collect cascade set: source + upstream affected nodes
     var visitedSet = {};
@@ -122,21 +121,21 @@ var __c_ghost = (function() {
       var def = nodeRegistry.getDefinition(cn.type);
       if (!def) continue;
 
+      // Only ghost when ALL comps are lost (full ghost). If the node stays alive
+      // for some comps, the layer should NOT be parked in any reserved comp.
+      if (losingComps.length === 0 || losingComps.length < cn.hostingComps.length) continue;
+
       for (var lci = 0; lci < losingComps.length; lci++) {
         var losingCompId = losingComps[lci];
         var cmd = null;
 
         if (cn.nodeKind === 'effector') {
-          // Resolve upstreamNodeUUID (terminal wire UUID) from main_input wire
+          // Resolve upstreamNodeUUID (terminal wire UUID) to identify the AE layer
           var upstreamNodeUUID = null;
-          var effWires = graphState.getAllWires();
-          for (var mwId in effWires) {
-            if (!effWires.hasOwnProperty(mwId)) continue;
-            var mw = effWires[mwId];
-            if (mw.toNode === cn.id && mw.toPort === 'main_input') {
-              upstreamNodeUUID = util._resolvePathLayerUUID(mw.fromNode);
-              break;
-            }
+          if (wireData._pathLayerUUID !== null) {
+            upstreamNodeUUID = wireData._pathLayerUUID;
+          } else {
+            upstreamNodeUUID = util._resolvePathLayerUUID(wireData.toNode);
           }
           cmd = def.onGhost(cn, losingCompId, upstreamNodeUUID);
         } else {
@@ -144,7 +143,11 @@ var __c_ghost = (function() {
           // Inject layerUUID (terminal wire UUID) so dispatcher finds the AE layer
           // by its .comment (set to pathLayerUUID), not by nodeUUID
           if (cmd && cmd.params) {
-            cmd.params.layerUUID = util._resolvePathLayerUUID(cn.id);
+            if (wireData._pathLayerUUID !== null) {
+              cmd.params.layerUUID = wireData._pathLayerUUID;
+            } else {
+              cmd.params.layerUUID = util._resolvePathLayerUUID(wireData.toNode);
+            }
           }
         }
 
@@ -168,6 +171,7 @@ var __c_ghost = (function() {
       }
       var newState = newHostingComps.length === 0 ? 'ghost' : 'alive';
       var newHasParkedLayer = newHostingComps.length === 0 ? true : sn.hasParkedLayer;
+      console.log('[cascadeGhost] updating node ' + sn.id + ' state=' + newState + ' hasParkedLayer=' + newHasParkedLayer + ' hostingComps=' + JSON.stringify(newHostingComps));
       graphState.updateNode(sn.id, {
         state:          newState,
         hostingComps:   newHostingComps,

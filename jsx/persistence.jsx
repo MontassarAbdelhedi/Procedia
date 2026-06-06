@@ -165,8 +165,16 @@ var PERSISTENCE = (function() {
         if (parsed && typeof parsed === 'object') wires = parsed;
       }
 
+      var parkedNodeUUIDs = [];
+      for (var pi = 1; pi <= comp.numLayers; pi++) {
+        var PL = comp.layer(pi);
+        if (PL.name.indexOf('__PROCEDIA_') !== 0) {
+          parkedNodeUUIDs.push(PL.name);
+        }
+      }
+
       result.ok = true;
-      result.data = { nodes: nodes, wires: wires };
+      result.data = { nodes: nodes, wires: wires, parkedNodeUUIDs: parkedNodeUUIDs };
     } catch (e) {
       result.error = e.toString();
     }

@@ -18,6 +18,8 @@ var __ins_vm = (function() {
    * @return {boolean} True if wired.
    */
   function _isParamWired(nodeId, paramKey) {
+    var nodeData = graphState.getNode(nodeId);
+    if (nodeData && nodeData._cloneMasterId) return true;
     var wires = graphState.getAllWires();
     for (var wireId in wires) {
       if (!wires.hasOwnProperty(wireId)) continue;
@@ -41,31 +43,18 @@ var __ins_vm = (function() {
   }
 
   /**
-   * Extracts the parameter list from a node's definition or dynamic schema.
+   * Extracts the parameter list from a node's definition.
+   * Delegates to the definition's getParams method so each node
+   * controls what it exports to the inspector.
    * @param {Object} nodeData The node data.
    * @param {Object} def The node definition.
    * @return {Array|null} Array of param objects, or null if loading.
    */
   function _paramList(nodeData, def) {
-    if (def.params === 'dynamic') {
-      if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) return null;
-      var dyn = [];
-      var props = nodeData.dynamicSchema.properties;
-      for (var i = 0; i < props.length; i++) {
-        dyn.push({
-          key:   props[i].matchName,
-          label: props[i].label || props[i].matchName,
-          type:  props[i].type
-        });
-      }
-      return dyn;
+    if (typeof def.getParams === 'function') {
+      return def.getParams(nodeData);
     }
-    if (!def.params || !def.params.length) return [];
-    var list = [];
-    for (var j = 0; j < def.params.length; j++) {
-      list.push(def.params[j]);
-    }
-    return list;
+    return null;
   }
 
   /**
@@ -80,7 +69,11 @@ var __ins_vm = (function() {
       return '';
     }
     if (param.type === 'color' && Array.isArray(value)) {
-      return value.join(', ');
+      var r = Math.round(Math.max(0, Math.min(1, value[0])) * 255);
+      var g = Math.round(Math.max(0, Math.min(1, value[1])) * 255);
+      var b = Math.round(Math.max(0, Math.min(1, value[2])) * 255);
+      var a = value[3] !== undefined ? value[3] : 1;
+      return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')';
     }
     if ((param.type === 'vector2' || param.type === 'vector3') && Array.isArray(value)) {
       return value.join(', ');
@@ -99,11 +92,19 @@ var __ins_vm = (function() {
     if (param.type === 'number') return parseFloat(raw);
     if (param.type === 'boolean') return raw === 'true' || raw === true;
     if (param.type === 'color' || param.type === 'vector2' || param.type === 'vector3') {
-      var parts = String(raw).split(',');
+      var str = String(raw).replace(/^rgba?\(|\)/g, '');
+      var parts = str.split(',');
       var out = [];
       for (var i = 0; i < parts.length; i++) {
         var n = parseFloat(parts[i]);
         out.push(isNaN(n) ? 0 : n);
+      }
+      if (param.type === 'color' && out.length >= 3) {
+        if (out[0] > 1 || out[1] > 1 || out[2] > 1) {
+          out[0] = out[0] / 255;
+          out[1] = out[1] / 255;
+          out[2] = out[2] / 255;
+        }
       }
       return out;
     }
@@ -152,13 +153,46 @@ var __ins_vm = (function() {
     };
   }
 
+  /**
+   * Converts an RGBA float array to a hex color string (#rrggbb).
+   * @param {Array} rgba RGBA float array (0-1).
+   * @return {string} Hex color string.
+   */
+  function _rgbaToHex(rgba) {
+    if (!Array.isArray(rgba) || rgba.length < 3) return '#ffffff';
+    var r = Math.round(Math.max(0, Math.min(1, rgba[0])) * 255);
+    var g = Math.round(Math.max(0, Math.min(1, rgba[1])) * 255);
+    var b = Math.round(Math.max(0, Math.min(1, rgba[2])) * 255);
+    return '#' + (256 + r).toString(16).slice(1) + (256 + g).toString(16).slice(1) + (256 + b).toString(16).slice(1);
+  }
+
+  /**
+   * Converts a hex color string (#rrggbb or #rgb) to an RGBA float array.
+   * @param {string} hex Hex color string.
+   * @param {number} alpha Alpha value (default 1).
+   * @return {Array} RGBA float array.
+   */
+  function _hexToRgba(hex, alpha) {
+    if (typeof hex !== 'string') return [1, 1, 1, alpha !== undefined ? alpha : 1];
+    if (hex.charAt(0) === '#') hex = hex.slice(1);
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    var r = parseInt(hex.slice(0, 2), 16) / 255;
+    var g = parseInt(hex.slice(2, 4), 16) / 255;
+    var b = parseInt(hex.slice(4, 6), 16) / 255;
+    return [r, g, b, alpha !== undefined ? alpha : 1];
+  }
+
   return {
     isParamWired:     _isParamWired,
     stateLabel:       _stateLabel,
     paramList:        _paramList,
     formatValueForInput: _formatValueForInput,
     parseInputValue:  _parseInputValue,
-    buildViewModel:   _buildViewModel
+    buildViewModel:   _buildViewModel,
+    rgbaToHex:        _rgbaToHex,
+    hexToRgba:        _hexToRgba
   };
 
 })();

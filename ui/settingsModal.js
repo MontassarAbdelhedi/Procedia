@@ -14,6 +14,7 @@ var settingsModal = (function() {
 
   var _minimapCheckbox = null;
   var _wireStyleSelect = null;
+  var _animatedDashCheckbox = null;
 
   /**
    * Creates the settings modal DOM and appends it to the body.
@@ -52,6 +53,17 @@ var settingsModal = (function() {
               '</select>' +
             '</div>' +
             '<div class="settings-hint">Appearance of connection wires between nodes</div>' +
+          '</div>' +
+
+          '<div class="settings-group">' +
+            '<div class="settings-row">' +
+              '<span class="settings-label">Animated Dash</span>' +
+              '<label class="settings-toggle">' +
+                '<input type="checkbox" id="settings-animated-dash">' +
+                '<span class="settings-toggle-slider"></span>' +
+              '</label>' +
+            '</div>' +
+            '<div class="settings-hint">Dash animation flows along wires (applies to any wire style)</div>' +
           '</div>' +
 
           '<div class="settings-group">' +
@@ -100,6 +112,7 @@ var settingsModal = (function() {
 
     _minimapCheckbox = document.getElementById('settings-minimap');
     _wireStyleSelect = document.getElementById('settings-wire-style');
+    _animatedDashCheckbox = document.getElementById('settings-animated-dash');
 
     _minimapCheckbox.addEventListener('change', function() {
       settings.set('minimap', _minimapCheckbox.checked);
@@ -108,6 +121,11 @@ var settingsModal = (function() {
 
     _wireStyleSelect.addEventListener('change', function() {
       settings.set('wireStyle', _wireStyleSelect.value);
+      _applySettings();
+    });
+
+    _animatedDashCheckbox.addEventListener('change', function() {
+      settings.set('animatedDash', _animatedDashCheckbox.checked);
       _applySettings();
     });
 
@@ -144,6 +162,7 @@ var settingsModal = (function() {
     var prefs = settings.getAll();
     _minimapCheckbox.checked = prefs.minimap !== false;
     _wireStyleSelect.value = prefs.wireStyle || 'bezier';
+    _animatedDashCheckbox.checked = prefs.animatedDash === true;
 
     var layoutDir = document.getElementById('settings-layout-direction');
     if (layoutDir) layoutDir.value = prefs.layoutDirection || 'LR';

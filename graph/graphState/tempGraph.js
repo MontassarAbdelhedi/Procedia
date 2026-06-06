@@ -13,6 +13,22 @@
 
 (function(gs) {
 
+  gs._fireGraphChange = function _fireGraphChange() {
+    var listeners = gs._graphChangeListeners;
+    if (!listeners) {
+      console.log('[graphState] _fireGraphChange: no listeners');
+      return;
+    }
+    console.log('[graphState] _fireGraphChange: ' + listeners.length + ' listeners');
+    for (var i = 0; i < listeners.length; i++) {
+      try {
+        listeners[i]();
+      } catch (e) {
+        console.error('[graphState] _fireGraphChange listener error:', e);
+      }
+    }
+  };
+
   gs.rebuildTempGraph = function rebuildTempGraph() {
     var newNodes = {};
     var newWires = {};
@@ -39,6 +55,7 @@
 
     gs.tempGraph.nodes = newNodes;
     gs.tempGraph.wires = newWires;
+    gs._fireGraphChange();
   };
 
 })(window.__gs);

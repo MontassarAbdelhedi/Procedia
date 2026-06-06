@@ -36,6 +36,7 @@ var engine = (function() {
     deleteNode:            __e_nodes.deleteNode,
     deleteSelectedNodes:   __e_nodes.deleteSelectedNodes,
     duplicateSelectedNodes: __e_nodes.duplicateSelectedNodes,
+    cloneNode:             __e_nodes.cloneNode,
     recreateNode:          __e_nodes.recreateNode,
     resetAll:              __e_state.resetAll,
     toggleLockSelectedNodes: __e_nodes.toggleLockSelectedNodes,

@@ -58,6 +58,7 @@ var evalBridge = (function() {
     var script = [
       '$.evalFile("' + extPath + '/jsx/json.jsx");',
       '$.evalFile("' + extPath + '/jsx/utils.jsx");',
+      '$.evalFile("' + extPath + '/jsx/persistence.jsx");',
       // Action handlers — loaded before dispatcher.jsx so _handlers map resolves
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_schema.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_comp.jsx");',
@@ -66,6 +67,7 @@ var evalBridge = (function() {
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_park.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_effect.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_graphExport.jsx");',
       // Core dispatcher — must be last (defines _handlers + dispatch/dispatchBatch)
       '$.evalFile("' + extPath + '/jsx/dispatcher/dispatcher.jsx");'
     ].join('\n');

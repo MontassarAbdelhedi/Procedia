@@ -25,6 +25,20 @@ var GaussianBlurNode = {
     { id: 'output',     category: 'output',    type: 'layer', capacity: 'single' }
   ],
 
+  getParams: function(nodeData) {
+    if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) return null;
+    var dyn = [];
+    var props = nodeData.dynamicSchema.properties;
+    for (var i = 0; i < props.length; i++) {
+      dyn.push({
+        key:   props[i].matchName,
+        label: props[i].label || props[i].matchName,
+        type:  props[i].type
+      });
+    }
+    return dyn;
+  },
+
   /** @return {null} No AE action on initial drop — effect is applied onAlive. */
   onDrop: function(nodeData) { return null; },
 

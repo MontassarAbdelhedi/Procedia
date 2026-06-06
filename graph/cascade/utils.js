@@ -56,9 +56,7 @@ var __c_util = (function() {
       if (wire.fromNode !== nodeId) continue;
 
       if (isCompNode(wire.toNode)) {
-        if (wire._pathLayerUUID !== null) {
-          result.push(wire.toNode);
-        }
+        result.push(wire.toNode);
       } else {
         var downstream = _hasCompDownstreamExcluding(wire.toNode, excludeWireId, visited);
         for (var di = 0; di < downstream.length; di++) {

@@ -74,6 +74,7 @@ var _handlers = {
   'introspectEffect':     _handleIntrospectEffect,
   'readGraph':            _handleReadGraph,
   'writeGraph':           _handleWriteGraph,
+  'writeGraphExport':     _handleWriteGraphExport,
   'ensureReservedComp':   _handleEnsureReservedComp
 };
 

@@ -29,14 +29,20 @@ var pollerExternalDeletions = (function() {
 
       var wires = graphState.getAllWires();
       var layerNodeUUID = null;
+      var hasMainInput = false;
       for (var wId in wires) {
         if (!wires.hasOwnProperty(wId)) continue;
         var w = wires[wId];
+        if (w.toNode === id && w.toPort === 'main_input') {
+          hasMainInput = true;
+        }
         if (w.fromNode === id && w.type === 'layer' && w._pathLayerUUID) {
           layerNodeUUID = w._pathLayerUUID;
-          break;
         }
       }
+      // Skip if the effector has no main_input wire — the effect was
+      // cascaded away (layer parked) or never applied.
+      if (!hasMainInput) continue;
       if (!layerNodeUUID) continue;
 
       entries.push({

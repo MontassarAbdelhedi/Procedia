@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -15,7 +16,9 @@
   <link rel="stylesheet" href="css/settingsModal.css">
   <link rel="stylesheet" href="css/nodePicker.css">
   <link rel="stylesheet" href="css/notificationBar.css">
+  <link rel="stylesheet" href="css/colorPicker.css">
 </head>
+
 <body>
 
   <!-- TOP BAR -->
@@ -53,6 +56,7 @@
   <script src="graph/graphState/graphOps.js"></script>
   <script src="graph/graphState/index.js"></script>
   <script src="graph/nodeRegistry.js"></script>
+  <script src="graph/graphExporter.js"></script>
   <script src="ui/settings.js"></script>
 
   <!-- 3. Node definitions — depend on nodeRegistry -->
@@ -94,6 +98,7 @@
   <script src="graph/engine/nodes/deleteNode.js"></script>
   <script src="graph/engine/nodes/duplicateNode.js"></script>
   <script src="graph/engine/nodes/lockNode.js"></script>
+  <script src="graph/engine/nodes/cloneNode.js"></script>
   <script src="graph/engine/nodes/recreateNode.js"></script>
   <script src="graph/engine/nodes/index.js"></script>
   <script src="graph/engine/state.js"></script>
@@ -105,6 +110,7 @@
   <script src="graph/canvas/renderer/helpers.js"></script>
   <script src="graph/canvas/renderer/builder.js"></script>
   <script src="graph/canvas/renderer/index.js"></script>
+  <script src="graph/canvas/renderer/nodeToolbar.js"></script>
   <script src="graph/canvas/input/state.js"></script>
   <script src="graph/canvas/input/utils.js"></script>
   <script src="graph/canvas/input/rubberband.js"></script>
@@ -146,6 +152,7 @@
   <script src="ui/nodePicker/index.js"></script>
   <script src="ui/inspector/viewModel.js"></script>
   <script src="ui/inspector/render.js"></script>
+  <script src="ui/inspector/colorPicker.js"></script>
   <script src="ui/inspector/events.js"></script>
   <script src="ui/inspector/index.js"></script>
   <script src="ui/settingsModal.js"></script>
@@ -166,9 +173,6 @@
   <!-- 12. Entry point — depends on everything -->
   <script src="index.js"></script>
 
-  <!-- 13. Test runner (optional — removed for production) -->
-  <script src="_tests/testRunner.js"></script>
-
-
 </body>
+
 </html>

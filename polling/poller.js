@@ -22,6 +22,21 @@ var poller = (function() {
   function _handleMissingNode(uuid) {
     var nd = graphState.getNode(uuid);
     if (!nd || nd.state !== 'alive') return false;
+    // Skip effectors whose main_input was cascaded away — the effect was
+    // intentionally removed as part of a ghost operation, not by the user.
+    if (nd.nodeKind === 'effector') {
+      var allWires = graphState.getAllWires();
+      var hasMainInput = false;
+      for (var wId in allWires) {
+        if (!allWires.hasOwnProperty(wId)) continue;
+        var w = allWires[wId];
+        if (w.toNode === uuid && w.toPort === 'main_input') {
+          hasMainInput = true;
+          break;
+        }
+      }
+      if (!hasMainInput) return false;
+    }
     graphState.updateNode(uuid, { state: 'error' });
     pollerNotifier.pushMissingNotification(uuid);
     return true;

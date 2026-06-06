@@ -16,6 +16,14 @@
     if (!node.props) node.props = {};
     node.props[key] = value;
     node.dirty = true;
+
+    for (var id in gs.nodeMap) {
+      if (gs.nodeMap[id]._cloneMasterId === uuid) {
+        if (!gs.nodeMap[id].props) gs.nodeMap[id].props = {};
+        gs.nodeMap[id].props[key] = value;
+        gs.nodeMap[id].dirty = true;
+      }
+    }
   }
 
   function clearDirty(uuid) {

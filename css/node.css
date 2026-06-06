@@ -220,6 +220,48 @@
   border-color: #161614;
 }
 
+/* Collapsed state for renderer class names */
+.node--collapsed .node-body {
+  display: none;
+}
+
+.node--collapsed .node-header {
+  border-radius: 8px;
+}
+
+/* ── Node toolbar color picker ─────────────────────────── */
+
+.node-toolbar-colorpicker {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  display: flex;
+  gap: 3px;
+  padding: 4px 6px;
+  background: #1e1e1c;
+  border: 1px solid #3a3a38;
+  border-radius: 6px;
+  z-index: 61;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+
+.node-toolbar-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.1s ease, transform 0.1s ease;
+}
+
+.node-toolbar-color:hover {
+  border-color: rgba(255,255,255,0.5);
+  transform: scale(1.2);
+}
+
 /* ── Secondary ports — gray, left edge of body ── */
 
 .node__port--secondary {
@@ -475,4 +517,64 @@
 
 .port-dot.data.empty {
   border-color: #4a4a48;
+}
+
+/* ── Node floating toolbar ────────────────────────────────── */
+
+.node-toolbar {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  bottom: 100%;
+  margin-bottom: 12px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: #1e1e1c;
+  border: 1px solid #3a3a38;
+  border-radius: 6px;
+  padding: 4px 0;
+  z-index: 60;
+  pointer-events: all;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+
+.node-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #888780;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.node-toolbar-btn:hover {
+  color: #d4d2cc;
+  background: rgba(255,255,255,0.07);
+}
+
+.node-toolbar-btn--delete:hover {
+  color: #e05555;
+  background: rgba(224,85,85,0.12);
+}
+
+.node-toolbar-btn .ti {
+  font-size: 14px;
+  display: block;
+}
+
+.node-toolbar-sep {
+  display: block;
+  width: 1px;
+  height: 16px;
+  background: #3a3a38;
+  margin: 0 4px;
+  flex-shrink: 0;
 }

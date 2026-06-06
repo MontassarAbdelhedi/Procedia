@@ -64,6 +64,14 @@ var __e_state = (function() {
     if (nodeData.nodeKind === 'data' && key !== 'label') {
       hlp.propagateDataValue(nodeId, key, value);
     }
+
+    var allNodes = graphState.getAllNodes();
+    for (var id in allNodes) {
+      if (allNodes[id]._cloneMasterId === nodeId && allNodes[id].nodeKind === 'data' && key !== 'label') {
+        hlp.propagateDataValue(id, key, value);
+      }
+    }
+
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
   }
 

@@ -33,6 +33,22 @@
       }
     }
 
+    if (graphData && graphData.parkedNodeUUIDs) {
+      var parkedSet = {};
+      for (var pi = 0; pi < graphData.parkedNodeUUIDs.length; pi++) {
+        var puid = graphData.parkedNodeUUIDs[pi];
+        parkedSet[puid] = true;
+        if (gs.nodeMap[puid]) {
+          gs.nodeMap[puid].hasParkedLayer = true;
+        }
+      }
+      for (var nid in gs.nodeMap) {
+        if (gs.nodeMap.hasOwnProperty(nid) && gs.nodeMap[nid].hasParkedLayer && !parkedSet[nid]) {
+          gs.nodeMap[nid].hasParkedLayer = false;
+        }
+      }
+    }
+
     gs.rebuildTempGraph();
   }
 
@@ -41,6 +57,7 @@
     gs.wireMap   = {};
     gs.tempGraph = { version: '4.0', nodes: {}, wires: {} };
     gs.selection = [];
+    gs._fireGraphChange();
   }
 
   gs.loadGraph  = loadGraph;
