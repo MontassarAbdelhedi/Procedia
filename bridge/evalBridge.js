@@ -63,6 +63,7 @@ var evalBridge = (function() {
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_schema.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_comp.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_layer.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_footage.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_property.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_park.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',

@@ -14,6 +14,7 @@ var __nl_cat = (function() {
     'Text':     'layers/text',
     'Null':     'layers/null',
     'Comp':     'core/comp',
+    'Footage':  'core/footage',
     'Fill':     'effects/fill',
     'Color':    'data/color',
     'Number':   'data/number',
@@ -26,7 +27,7 @@ var __nl_cat = (function() {
       name: 'Comps',
       color: '#534AB7',
       open: true,
-      nodes: ['Comp']
+      nodes: ['Comp', 'Footage']
     },
     {
       id: 'data',

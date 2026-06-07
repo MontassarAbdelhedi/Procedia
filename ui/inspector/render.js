@@ -128,6 +128,30 @@ var __ins_render = (function() {
   }
 
   /**
+   * Renders the footage browse/import action button and status.
+   * @param {Object} view The node view model.
+   * @return {string} HTML string.
+   */
+  function renderFootageActions(view) {
+    var nodeData = graphState.getNode(view.nodeId);
+    var hasFootage = nodeData && nodeData.props && nodeData.props.filePath;
+    var statusHtml = hasFootage
+      ? '<span class="inspector-filename">' + _escapeAttr(nodeData.props.filePath.split('\\').pop().split('/').pop()) + '</span>'
+      : '<span class="inspector-filename muted">no file selected</span>';
+    return (
+      '<div class="inspector-group">' +
+        '<div class="inspector-group-label">Footage Import</div>' +
+        '<div class="inspector-param-row">' +
+          statusHtml +
+        '</div>' +
+        '<button class="inspector-footage-btn" data-node-id="' + view.nodeId + '">' +
+          '<i class="ti ti-folder-open"></i> Browse &amp; Import' +
+        '</button>' +
+      '</div>'
+    );
+  }
+
+  /**
    * Renders the complete inspector content for a node.
    * @param {Object} view The view model from __ins_vm.buildViewModel().
    * @return {string} HTML string.
@@ -161,6 +185,11 @@ var __ins_render = (function() {
       layerActionsHtml = renderLayerActions(view);
     }
 
+    var footageActionsHtml = '';
+    if (view.nodeType === 'core/footage') {
+      footageActionsHtml = renderFootageActions(view);
+    }
+
     var groupsHtml = '';
     for (var i = 0; i < view.groups.length; i++) {
       groupsHtml += renderGroup(view.nodeId, view.groups[i]);
@@ -176,6 +205,7 @@ var __ins_render = (function() {
       '</div>' +
       errorActionsHtml +
       layerActionsHtml +
+      footageActionsHtml +
       groupsHtml
     );
   }
@@ -183,6 +213,7 @@ var __ins_render = (function() {
   return {
     renderLayerActions: renderLayerActions,
     renderErrorActions: renderErrorActions,
+    renderFootageActions: renderFootageActions,
     renderParam:        renderParam,
     renderGroup:        renderGroup,
     renderNodeContent:  renderNodeContent

@@ -75,7 +75,10 @@ var _handlers = {
   'readGraph':            _handleReadGraph,
   'writeGraph':           _handleWriteGraph,
   'writeGraphExport':     _handleWriteGraphExport,
-  'ensureReservedComp':   _handleEnsureReservedComp
+  'ensureReservedComp':    _handleEnsureReservedComp,
+  'browseAndImportFootage': _handleBrowseAndImportFootage,
+  'createFootageLayer':    _handleCreateFootageLayer,
+  'deleteFootageItem':     _handleDeleteFootageItem
 };
 
 /**

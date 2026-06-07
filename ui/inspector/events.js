@@ -164,12 +164,50 @@ var __ins_events = (function() {
     __ins_colorPicker.open(btn, nodeId, key, nodeData.props[key].slice());
   }
 
+  /**
+   * Handles clicks on the footage browse/import button.
+   * Opens a file dialog via ExtendScript and imports the selected footage.
+   * @param {Event} e The click event.
+   */
+  function _onFootageBrowseClick(e) {
+    var btn = e.target;
+    if (!btn || !btn.classList || !btn.classList.contains('inspector-footage-btn')) return;
+    if (btn.classList.contains('loading')) return;
+
+    var nodeId = btn.getAttribute('data-node-id');
+    if (!nodeId) return;
+
+    btn.classList.add('loading');
+    btn.innerHTML = '<i class="ti ti-loader"></i> Importing\u2026';
+
+    evalBridge.dispatch({
+      action: 'browseAndImportFootage',
+      params: { nodeUUID: nodeId }
+    }).then(function(res) {
+      btn.classList.remove('loading');
+      if (res.ok && res.data && !res.data.cancelled) {
+        var nodeData = graphState.getNode(nodeId);
+        if (nodeData) {
+          nodeData.props.filePath = res.data.filePath;
+          nodeData.props.label = res.data.itemName;
+          graphState.updateNode(nodeId, { props: nodeData.props, state: 'alive' });
+        }
+      }
+      if (res.ok && res.data && res.data.cancelled) {
+        btn.innerHTML = '<i class="ti ti-folder-open"></i> Browse &amp; Import';
+      }
+      renderer.render();
+      if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+    });
+  }
+
   return {
     onInspectorChange:   _onInspectorChange,
     onInspectorInput:    _onInspectorInput,
     onRecoverClick:      _onRecoverClick,
     onLayerActionClick:  _onLayerActionClick,
-    onColorTriggerClick: _onColorTriggerClick
+    onColorTriggerClick: _onColorTriggerClick,
+    onFootageBrowseClick: _onFootageBrowseClick
   };
 
 })();

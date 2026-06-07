@@ -32,6 +32,7 @@ var inspector = (function() {
       _contentEl.addEventListener('click', __ins_events.onRecoverClick);
       _contentEl.addEventListener('click', __ins_events.onLayerActionClick);
       _contentEl.addEventListener('click', __ins_events.onColorTriggerClick);
+      _contentEl.addEventListener('click', __ins_events.onFootageBrowseClick);
     }
 
     refresh();
