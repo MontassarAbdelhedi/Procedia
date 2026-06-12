@@ -21,7 +21,7 @@ var CompNode = {
   ports: [
     { id: 'main_input', category: 'mainInput', type: 'layer', capacity: 'infinite' },
     { id: 'output',    category: 'output',    type: 'layer', capacity: 'single' },
-    { id: 'child_of',  category: 'parent',    role: 'child',  type: 'parent'  },
+    { id: 'child_of',  category: 'parent',    role: 'child',  type: 'parent', capacity: 'single'  },
     { id: 'parent_of', category: 'parent',    role: 'parent', type: 'parent'  }
   ],
 
@@ -49,7 +49,6 @@ var CompNode = {
         height:    nodeData.props.height,
         frameRate: nodeData.props.frameRate,
         duration:  nodeData.props.duration,
-        testParam: nodeData.props.testParam
       }
     };
   },
@@ -71,6 +70,15 @@ var CompNode = {
    * @return {Object} Action to create a new composition in the AE project.
    */
   onAlive: function(nodeData, hostingCompUUID) {
+    if (hostingCompUUID) {
+      return {
+        action: 'addCompAsLayer',
+        params: {
+          nodeUUID:        nodeData.id,
+          hostingCompUUID: hostingCompUUID
+        }
+      };
+    }
     return {
       action: 'createComp',
       params: {
@@ -80,7 +88,6 @@ var CompNode = {
         height:    nodeData.props.height,
         frameRate: nodeData.props.frameRate,
         duration:  nodeData.props.duration,
-        testParam: nodeData.props.testParam
       }
     };
   },

@@ -120,6 +120,7 @@ var _handlersTitleEdit = (function() {
       _renameDispatch('renameEffect', {
         hostingCompUUID: hostingCompUUID,
         layerUUID: layerUUID,
+        nodeUUID: nodeId,
         effectMatchName: def.matchName,
         label: newLabel
       });

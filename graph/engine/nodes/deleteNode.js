@@ -128,6 +128,39 @@ var __e_ndel = (function() {
       if (affDeleteCmd) evalBridge.dispatch(affDeleteCmd);
     }
 
+    var parentCleanupBatch = [];
+    var parentDelWires = graphState.getAllWires();
+    for (var pwId in parentDelWires) {
+      if (!parentDelWires.hasOwnProperty(pwId)) continue;
+      var pw = parentDelWires[pwId];
+      if (pw.type !== 'parent') continue;
+      if (pw.fromNode === nodeId || pw.toNode === nodeId) {
+        var childData = graphState.getNode(pw.fromNode);
+        var childLayerUUID = hlp.findPathLayerUUID(pw.fromNode);
+        var hostCompUUID = null;
+        if (childData && childData.hostingComps.length > 0) {
+          hostCompUUID = childData.hostingComps[0];
+        } else {
+          var parentData = graphState.getNode(pw.toNode);
+          if (parentData && parentData.hostingComps.length > 0) {
+            hostCompUUID = parentData.hostingComps[0];
+          }
+        }
+        if (childLayerUUID && hostCompUUID) {
+          parentCleanupBatch.push({
+            action: 'clearLayerParent',
+            params: {
+              hostingCompUUID: hostCompUUID,
+              layerUUID:       childLayerUUID
+            }
+          });
+        }
+      }
+    }
+    if (parentCleanupBatch.length > 0) {
+      evalBridge.dispatchBatch(parentCleanupBatch);
+    }
+
     graphState.removeNode(nodeId);
     hlp.refreshNodeUI();
 

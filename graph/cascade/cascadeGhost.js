@@ -121,9 +121,30 @@ var __c_ghost = (function() {
       var def = nodeRegistry.getDefinition(cn.type);
       if (!def) continue;
 
-      // Only ghost when ALL comps are lost (full ghost). If the node stays alive
-      // for some comps, the layer should NOT be parked in any reserved comp.
-      if (losingComps.length === 0 || losingComps.length < cn.hostingComps.length) continue;
+      // No comps lost — skip
+      if (losingComps.length === 0) continue;
+
+      // Some comps lost but not all (partial loss). The node stays alive in
+      // remaining comps, so delete layers from lost comps instead of parking.
+      if (losingComps.length < cn.hostingComps.length) {
+        for (var li = 0; li < losingComps.length; li++) {
+          var lostCompId = losingComps[li];
+          var partialUUID = null;
+          if (wireData._pathLayerUUID !== null) {
+            partialUUID = wireData._pathLayerUUID;
+          } else {
+            partialUUID = util._resolvePathLayerUUID(wireData.toNode);
+          }
+          batchCommands.push({
+            action: 'deletePathLayer',
+            params: {
+              hostingCompUUID: lostCompId,
+              layerUUID:       partialUUID
+            }
+          });
+        }
+        continue;
+      }
 
       for (var lci = 0; lci < losingComps.length; lci++) {
         var losingCompId = losingComps[lci];
@@ -179,13 +200,69 @@ var __c_ghost = (function() {
       });
     }
 
-    // Step 11 — clear _pathLayerUUID if this was the terminal wire, then remove it
+    // Step 11 — clean up parent wires connected to ghosted or disaggregated nodes
+    var parentCleanups = [];
+    var allWiresAfter = graphState.getAllWires();
+    for (var pId in allWiresAfter) {
+      if (!allWiresAfter.hasOwnProperty(pId)) continue;
+      var pWire = allWiresAfter[pId];
+      if (pWire.type !== 'parent') continue;
+      var pChild = graphState.getNode(pWire.fromNode);
+      var pParent = graphState.getNode(pWire.toNode);
+      var shouldRemove = false;
+      if (!pChild || !pParent) {
+        shouldRemove = true;
+      } else if (pChild.state === 'ghost' || pParent.state === 'ghost') {
+        shouldRemove = true;
+      } else {
+        var pShared = false;
+        for (var pc = 0; pc < pChild.hostingComps.length; pc++) {
+          for (var pp = 0; pp < pParent.hostingComps.length; pp++) {
+            if (pChild.hostingComps[pc] === pParent.hostingComps[pp]) {
+              pShared = true; break;
+            }
+          }
+          if (pShared) break;
+        }
+        if (!pShared) shouldRemove = true;
+      }
+      if (shouldRemove) {
+        var pChildUUID = util._resolvePathLayerUUID(pWire.fromNode);
+        var pHostComp = null;
+        if (pChild && pChild.hostingComps.length > 0) {
+          pHostComp = pChild.hostingComps[0];
+        } else if (pParent && pParent.hostingComps.length > 0) {
+          pHostComp = pParent.hostingComps[0];
+        }
+        if (pChildUUID && pHostComp) {
+          parentCleanups.push({ wireId: pId, childUUID: pChildUUID, hostComp: pHostComp });
+        }
+      }
+    }
+    if (parentCleanups.length > 0) {
+      var parentBatch = [];
+      for (var pci = 0; pci < parentCleanups.length; pci++) {
+        parentBatch.push({
+          action: 'clearLayerParent',
+          params: {
+            hostingCompUUID: parentCleanups[pci].hostComp,
+            layerUUID:       parentCleanups[pci].childUUID
+          }
+        });
+      }
+      evalBridge.dispatchBatch(parentBatch);
+      for (var pci = 0; pci < parentCleanups.length; pci++) {
+        delete allWiresAfter[parentCleanups[pci].wireId];
+      }
+    }
+
+    // Step 12 — clear _pathLayerUUID if this was the terminal wire, then remove it
     if (wireData._pathLayerUUID !== null) {
       graphState.updateWire(deletedWireId, { _pathLayerUUID: null });
     }
     graphState.removeWire(deletedWireId);
 
-    // Step 12 — dispatch batch
+    // Step 13 — dispatch batch
     if (batchCommands.length > 0) {
       evalBridge.dispatchBatch(batchCommands).then(function(res) {
         if (!res.ok) {
@@ -194,7 +271,7 @@ var __c_ghost = (function() {
       });
     }
 
-    // Step 13 — rebuild temp graph
+    // Step 14 — rebuild temp graph
     graphState.rebuildTempGraph();
   }
 

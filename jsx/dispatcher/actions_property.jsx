@@ -31,38 +31,21 @@ function _handleSetLayerProperty(cmd) {
 }
 
 /**
- * Clears the parent of a layer across all comps.
- * @param {Object} cmd Command with params: nodeUUID.
+ * Clears the parent of a child layer in the given comp.
+ * @param {Object} cmd Command with params: hostingCompUUID, layerUUID.
  * @return {Object} Result with .ok, .data (cleared), .error.
  */
 function _handleClearLayerParent(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
     var params = _cmdParams(cmd);
-    var nodeUUID = params.nodeUUID;
-    var cleared = false;
-    var proj = app.project;
-    var ci;
-    for (ci = 1; ci <= proj.numItems; ci++) {
-      var item = proj.item(ci);
-      if (!(item instanceof CompItem)) continue;
-      var li;
-      for (li = 1; li <= item.numLayers; li++) {
-        var layer = item.layer(li);
-        if (layer.comment === nodeUUID) {
-          layer.parent = null;
-          cleared = true;
-          break;
-        }
-      }
-      if (cleared) break;
-    }
-    if (!cleared) {
-      result.error = 'clearLayerParent: layer not found: ' + nodeUUID;
-      return result;
-    }
+    var comp = findCompByUUID(params.hostingCompUUID);
+    if (!comp) { result.error = 'clearLayerParent: comp not found'; return result; }
+    var layer = findLayerByUUID(comp, params.layerUUID);
+    if (!layer) { result.error = 'clearLayerParent: layer not found: ' + params.layerUUID; return result; }
+    layer.parent = null;
     result.ok = true;
-    result.data = { cleared: nodeUUID };
+    result.data = { cleared: params.layerUUID };
   } catch (e) {
     result.error = e.toString();
   }
@@ -70,8 +53,8 @@ function _handleClearLayerParent(cmd) {
 }
 
 /**
- * Sets or clears the parent of a child layer.
- * @param {Object} cmd Command with params: hostingCompUUID, childNodeUUID, parentNodeUUID.
+ * Sets the parent of a child layer in the given comp.
+ * @param {Object} cmd Command with params: hostingCompUUID, childLayerUUID, parentLayerUUID.
  * @return {Object} Result with .ok, .error.
  */
 function _handleSetLayerParent(cmd) {
@@ -80,10 +63,10 @@ function _handleSetLayerParent(cmd) {
     var params = _cmdParams(cmd);
     var comp = findCompByUUID(params.hostingCompUUID);
     if (!comp) { result.error = 'setLayerParent: host comp not found'; return result; }
-    var childLayer = findLayerByUUID(comp, params.childNodeUUID);
+    var childLayer = findLayerByUUID(comp, params.childLayerUUID);
     if (!childLayer) { result.error = 'setLayerParent: child layer not found'; return result; }
-    if (params.parentNodeUUID) {
-      var parentLayer = findLayerByUUID(comp, params.parentNodeUUID);
+    if (params.parentLayerUUID) {
+      var parentLayer = findLayerByUUID(comp, params.parentLayerUUID);
       if (!parentLayer) { result.error = 'setLayerParent: parent layer not found'; return result; }
       childLayer.parent = parentLayer;
     } else {

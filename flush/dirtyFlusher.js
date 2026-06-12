@@ -60,7 +60,7 @@ var dirtyFlusher = (function() {
         if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
           return wire._pathLayerUUID;
         }
-        return _findPathLayerUUID(wire.fromNode);
+        return _findPathLayerUUID(nodeId);
       }
     }
     return null;

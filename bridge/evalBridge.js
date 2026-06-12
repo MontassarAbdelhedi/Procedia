@@ -68,6 +68,7 @@ var evalBridge = (function() {
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_park.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_effect.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_import.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_graphExport.jsx");',
       // Core dispatcher — must be last (defines _handlers + dispatch/dispatchBatch)
       '$.evalFile("' + extPath + '/jsx/dispatcher/dispatcher.jsx");'

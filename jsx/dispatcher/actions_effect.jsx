@@ -24,6 +24,9 @@ function _handleApplyDynamicEffect(cmd) {
     var layer = findLayerByUUID(comp, layerUUID);
     if (!layer) { result.error = 'applyDynamicEffect: layer not found'; return result; }
     var effect = layer.Effects.addProperty(params.matchName);
+    if (params.nodeUUID) {
+      effect.name = params.matchName + '__' + params.nodeUUID;
+    }
     if (params.props) {
       for (var pk in params.props) {
         if (!params.props.hasOwnProperty(pk)) continue;
@@ -54,15 +57,28 @@ function _handleRemoveEffect(cmd) {
     if (!layerUUID) { result.error = 'removeEffect: layerUUID required'; return result; }
     var layer = findLayerByUUID(comp, layerUUID);
     if (!layer) { result.error = 'removeEffect: layer not found'; return result; }
+    var targetEffectName = params.matchName + '__' + params.nodeUUID;
     var effects = layer.Effects;
     var ei;
+    var fx;
+    var found = false;
     for (ei = 1; ei <= effects.numProperties; ei++) {
-      var fx = effects.property(ei);
-      if (fx.matchName === params.matchName) {
-        fx.remove();
+      fx = effects.property(ei);
+      if (fx.name === targetEffectName) {
+        found = true;
         break;
       }
     }
+    if (!found) {
+      for (ei = 1; ei <= effects.numProperties; ei++) {
+        fx = effects.property(ei);
+        if (fx.matchName === params.matchName) {
+          found = true;
+          break;
+        }
+      }
+    }
+    if (found) fx.remove();
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
   return result;
@@ -83,15 +99,30 @@ function _handleSetEffectProperty(cmd) {
     if (!layerUUID) { result.error = 'setEffectProperty: layerUUID required'; return result; }
     var layer = findLayerByUUID(comp, layerUUID);
     if (!layer) { result.error = 'setEffectProperty: layer not found'; return result; }
+    var targetEffectName = params.effectMatchName + '__' + params.nodeUUID;
     var effects = layer.Effects;
     var ei;
+    var fx;
+    var found = false;
     for (ei = 1; ei <= effects.numProperties; ei++) {
-      var fx = effects.property(ei);
-      if (fx.matchName === params.effectMatchName) {
-        var prop = fx.property(params.propMatchName);
-        if (prop && typeof prop.setValue === 'function') prop.setValue(params.value);
+      fx = effects.property(ei);
+      if (fx.name === targetEffectName) {
+        found = true;
         break;
       }
+    }
+    if (!found) {
+      for (ei = 1; ei <= effects.numProperties; ei++) {
+        fx = effects.property(ei);
+        if (fx.matchName === params.effectMatchName) {
+          found = true;
+          break;
+        }
+      }
+    }
+    if (found) {
+      var prop = fx.property(params.propMatchName);
+      if (prop && typeof prop.setValue === 'function') prop.setValue(params.value);
     }
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
@@ -111,13 +142,25 @@ function _handleRenameEffect(cmd) {
     if (!comp) { result.error = 'renameEffect: host comp not found'; return result; }
     var layer = findLayerByUUID(comp, params.layerUUID);
     if (!layer) { result.error = 'renameEffect: layer not found'; return result; }
+    var targetEffectName = params.effectMatchName + '__' + params.nodeUUID;
     var effects = layer.Effects;
     var ei;
+    var fx;
+    var found = false;
     for (ei = 1; ei <= effects.numProperties; ei++) {
-      var fx = effects.property(ei);
-      if (fx.matchName === params.effectMatchName) {
-        fx.name = String(params.label);
+      fx = effects.property(ei);
+      if (fx.name === targetEffectName) {
+        found = true;
         break;
+      }
+    }
+    if (!found && params.nodeUUID) {
+      for (ei = 1; ei <= effects.numProperties; ei++) {
+        fx = effects.property(ei);
+        if (fx.matchName === params.effectMatchName) {
+          found = true;
+          break;
+        }
       }
     }
     result.ok = true;
@@ -152,13 +195,24 @@ function _handlePollAliveEffects(cmd) {
         missingEffectNodeUUIDs.push(entry.nodeUUID);
         continue;
       }
+      var targetEffectName = entry.matchName + '__' + entry.nodeUUID;
       var found = false;
       var ei;
+      var fx;
       for (ei = 1; ei <= layer.Effects.numProperties; ei++) {
-        var fx = layer.Effects.property(ei);
-        if (fx.matchName === entry.matchName) {
+        fx = layer.Effects.property(ei);
+        if (fx.name === targetEffectName) {
           found = true;
           break;
+        }
+      }
+      if (!found) {
+        for (ei = 1; ei <= layer.Effects.numProperties; ei++) {
+          fx = layer.Effects.property(ei);
+          if (fx.matchName === entry.matchName) {
+            found = true;
+            break;
+          }
         }
       }
       if (!found) missingEffectNodeUUIDs.push(entry.nodeUUID);

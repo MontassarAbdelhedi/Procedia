@@ -54,6 +54,18 @@ var wireRenderer = (function() {
     if (!el) return null;
 
     var dot = el.querySelector('[data-port-id="' + portId + '"]');
+
+    if (dot) {
+      var nodeData = graphState.getNode(nodeId);
+      if (nodeData && nodeData.collapsed) {
+        var corePorts = ['main_input', 'output', 'child_of', 'parent_of'];
+        if (corePorts.indexOf(portId) === -1) {
+          var mainDot = el.querySelector('[data-port-id="main_input"]');
+          if (mainDot) dot = mainDot;
+        }
+      }
+    }
+
     if (!dot) return null;
 
     var dotRect = dot.getBoundingClientRect();
@@ -173,7 +185,7 @@ var wireRenderer = (function() {
     var useDash = _getAnimDash();
     if (useDash) {
       ctx.setLineDash([6, 4]);
-      ctx.lineDashOffset = -_animOffset;
+      ctx.lineDashOffset = wire.type === 'parent' ? _animOffset : -_animOffset;
     }
 
     ctx.beginPath();
@@ -186,7 +198,7 @@ var wireRenderer = (function() {
       ctx.globalAlpha = 0.2;
       if (useDash) {
         ctx.setLineDash([12, 8]);
-        ctx.lineDashOffset = -_animOffset;
+        ctx.lineDashOffset = wire.type === 'parent' ? _animOffset : -_animOffset;
       }
       ctx.beginPath();
       _drawSegment(ctx, from.x, from.y, to.x, to.y, style);
@@ -362,9 +374,64 @@ var wireRenderer = (function() {
     render(null);
   }
 
+  /**
+   * Renders the current graph wires plus a split-wire preview showing two
+   * dashed segments (from→insert and insert→to) at reduced opacity.
+   * @param {object|null} previewState - { fromPos, toPos, insertPos } or null.
+   */
+  function renderSplitPreview(previewState) {
+    if (!_ctx) return;
+    _resize();
+
+    if (_animFrameId) {
+      cancelAnimationFrame(_animFrameId);
+      _animFrameId = null;
+      _animOffset = 0;
+    }
+
+    _drawAll(null);
+
+    if (!previewState) return;
+
+    var style = _getStyle();
+
+    _ctx.save();
+    _ctx.globalAlpha = 0.55;
+    _ctx.strokeStyle = '#06D6A0';
+    _ctx.lineWidth = 2.5;
+    _ctx.setLineDash([6, 4]);
+
+    var fp = previewState.fromPos;
+    var tp = previewState.toPos;
+    var ip = previewState.insertPos;
+
+    _ctx.beginPath();
+    _drawSegment(_ctx, fp.x, fp.y, ip.x, ip.y, style);
+    _ctx.stroke();
+
+    _ctx.beginPath();
+    _drawSegment(_ctx, ip.x, ip.y, tp.x, tp.y, style);
+    _ctx.stroke();
+
+    _ctx.setLineDash([]);
+
+    _ctx.globalAlpha = 0.25;
+    _ctx.strokeStyle = '#06D6A0';
+    _ctx.lineWidth = 8;
+    _ctx.beginPath();
+    _drawSegment(_ctx, fp.x, fp.y, ip.x, ip.y, style);
+    _ctx.stroke();
+    _ctx.beginPath();
+    _drawSegment(_ctx, ip.x, ip.y, tp.x, tp.y, style);
+    _ctx.stroke();
+
+    _ctx.restore();
+  }
+
   return {
-    init:   init,
-    render: render
+    init:               init,
+    render:             render,
+    renderSplitPreview: renderSplitPreview
   };
 
 })();

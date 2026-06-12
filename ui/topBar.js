@@ -29,6 +29,8 @@ var topBar = (function() {
         '<div class="topbar-divider"></div>' +
         '<button class="topbar-btn" id="topbar-autolayout" title="Auto Layout"><i class="ti ti-sitemap"></i></button>' +
         '<button class="topbar-btn" title="Fit View"><i class="ti ti-focus-2"></i></button>' +
+        '<div class="topbar-divider"></div>' +
+        '<button class="topbar-btn" id="topbar-import" title="Import AE Project"><i class="ti ti-file-import"></i></button>' +
       '</div>' +
       '<div class="topbar-right">' +
         '<div class="topbar-dynamic" id="topbar-dynamic">' +

@@ -78,7 +78,8 @@ var _handlers = {
   'ensureReservedComp':    _handleEnsureReservedComp,
   'browseAndImportFootage': _handleBrowseAndImportFootage,
   'createFootageLayer':    _handleCreateFootageLayer,
-  'deleteFootageItem':     _handleDeleteFootageItem
+  'deleteFootageItem':     _handleDeleteFootageItem,
+  'importProject':         _handleImportProject
 };
 
 /**

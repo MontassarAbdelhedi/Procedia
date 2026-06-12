@@ -4,7 +4,7 @@
 [x] Renaming layers update in timeline
 [x] double click on wite to remove it
 [x] notification system
-[ ] new node: footage item: video
+[x] new node: footage item: video
 [ ] new node: footage item: image
 [ ] new node: footage item: audio
 [ ] rework inspector logic; each node export proper inspector in node definition.
@@ -32,4 +32,4 @@
 [ ]
 [ ]
 [ ]
-[ ]
+[ ] test import: an unessessary blending node

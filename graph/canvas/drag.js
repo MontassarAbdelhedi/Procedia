@@ -1,9 +1,11 @@
 /**
  * @fileoverview Drag interaction for the graph canvas.
  * Provides hit-testing for wires and inserting nodes onto existing wires.
+ * Also manages preview state for dragging nodes over wires.
  * @dependencies graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
  *               graph/wire/wireRenderer.js, data/uuidGenerator.js
- * @exports canvasDrag { findWireAt, hitTestWire, insertNodeOnWire }
+ * @exports canvasDrag { findWireAt, hitTestWire, insertNodeOnWire,
+ *                       canInsertOnWire, setWirePreview, getWirePreview, clearWirePreview }
  */
 
 // graph/canvas/drag.js
@@ -14,6 +16,7 @@
 var canvasDrag = (function() {
 
   var HIT_THRESHOLD = 8;
+  var _previewState = null;
 
   /**
    * Evaluates a cubic Bézier curve at parameter t.
@@ -69,13 +72,16 @@ var canvasDrag = (function() {
    */
   function _sampleBezier(ax, ay, bx, by, cx, cy, dx, dy, px, py) {
     var minDist = Infinity;
-    for (var i = 0; i <= 12; i++) {
+    var prevX = _bezierPoint(0, ax, bx, cx, dx);
+    var prevY = _bezierPoint(0, ay, by, cy, dy);
+    for (var i = 1; i <= 12; i++) {
       var t = i / 12;
-      var bx_ = _bezierPoint(t, ax, bx, cx, dx);
-      var by_ = _bezierPoint(t, ay, by, cy, dy);
-      var ddx = px - bx_, ddy = py - by_;
-      var d = ddx*ddx + ddy*ddy;
+      var curX = _bezierPoint(t, ax, bx, cx, dx);
+      var curY = _bezierPoint(t, ay, by, cy, dy);
+      var d = _distToSegmentSq(px, py, prevX, prevY, curX, curY);
       if (d < minDist) minDist = d;
+      prevX = curX;
+      prevY = curY;
     }
     return minDist;
   }
@@ -222,10 +228,71 @@ var canvasDrag = (function() {
     return nodeData;
   }
 
+  /**
+   * Checks whether a node definition can be inserted onto a wire.
+   * Requires both 'main_input' and 'output' ports of type 'layer'.
+   * @param {string} wireId - ID of the wire to test.
+   * @param {object} def - Node definition to check.
+   * @returns {boolean} True if the node can be inserted.
+   */
+  function canInsertOnWire(wireId, def) {
+    if (!def || !def.ports) return false;
+    var hasMainInput = false;
+    var hasOutput = false;
+    for (var i = 0; i < def.ports.length; i++) {
+      if (def.ports[i].id === 'main_input') hasMainInput = true;
+      if (def.ports[i].id === 'output')     hasOutput = true;
+    }
+    return hasMainInput && hasOutput;
+  }
+
+  /**
+   * Sets the preview state for dragging a node over a wire.
+   * Stores the wire's port positions and the cursor insertion point.
+   * @param {string} wireId - The wire being hovered.
+   * @param {number} clientX - Cursor client x.
+   * @param {number} clientY - Cursor client y.
+   */
+  function setWirePreview(wireId, clientX, clientY) {
+    var wire = graphState.getWire(wireId);
+    if (!wire) { clearWirePreview(); return; }
+    var from = _portPosInWrap(wire.fromNode, wire.fromPort);
+    var to   = _portPosInWrap(wire.toNode, wire.toPort);
+    if (!from || !to) { clearWirePreview(); return; }
+    var wrap = document.getElementById('canvas-wrap');
+    if (!wrap) { clearWirePreview(); return; }
+    var wr = wrap.getBoundingClientRect();
+    _previewState = {
+      wireId:     wireId,
+      fromPos:    from,
+      toPos:      to,
+      insertPos:  { x: clientX - wr.left, y: clientY - wr.top }
+    };
+  }
+
+  /**
+   * Returns the current wire preview state, or null.
+   * @returns {object|null} { wireId, fromPos, toPos, insertPos }
+   */
+  function getWirePreview() {
+    return _previewState;
+  }
+
+  /**
+   * Clears the current wire preview state.
+   */
+  function clearWirePreview() {
+    _previewState = null;
+  }
+
   return {
-    findWireAt:      findWireAt,
-    hitTestWire:     hitTestWire,
-    insertNodeOnWire: insertNodeOnWire
+    findWireAt:       findWireAt,
+    hitTestWire:      hitTestWire,
+    insertNodeOnWire: insertNodeOnWire,
+    canInsertOnWire:  canInsertOnWire,
+    setWirePreview:   setWirePreview,
+    getWirePreview:   getWirePreview,
+    clearWirePreview: clearWirePreview
   };
 
 })();

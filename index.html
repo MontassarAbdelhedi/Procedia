@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.29.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/tabler-icons.min.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/topBar.css">
@@ -69,6 +69,7 @@
   <script src="graph/nodes/categories/effects/FillEffect.js"></script>
   <script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
   <script src="graph/nodes/categories/effects/DropShadow.js"></script>
+  <script src="graph/nodes/categories/effects/UnknownEffect.js"></script>
   <script src="graph/nodes/categories/data/Color.js"></script>
   <script src="graph/nodes/categories/data/Number.js"></script>
   <script src="graph/nodes/categories/utility/Blending.js"></script>
@@ -139,6 +140,13 @@
   <script src="graph/autoLayout/crossingReduction.js"></script>
   <script src="graph/autoLayout/positioning.js"></script>
   <script src="graph/autoLayout/index.js"></script>
+
+  <!-- 7b. Import module — depends on graphState, nodeRegistry, engine, uuidGenerator, evalBridge -->
+  <script src="graph/import/mapNodes.js"></script>
+  <script src="graph/import/mapWires.js"></script>
+  <script src="graph/import/stampUUIDs.js"></script>
+  <script src="graph/import/builder.js"></script>
+  <script src="graph/import/index.js"></script>
 
   <!-- 8. UI — depends on graphState, nodeRegistry, engine -->
   <script src="ui/nodeList/categories.js"></script>

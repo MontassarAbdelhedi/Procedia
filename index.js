@@ -96,6 +96,51 @@ function init() {
     });
   });
 
+  var importBtn = document.getElementById('topbar-import');
+  if (importBtn) {
+    importBtn.addEventListener('click', function() {
+      if (typeof evalBridge === 'undefined' || typeof graphImport === 'undefined') return;
+      var existingNodes = (typeof graphState !== 'undefined') ? graphState.getAllNodes() : {};
+      var hasExisting = false;
+      for (var _k in existingNodes) { hasExisting = true; break; }
+      if (hasExisting && !confirm('Merge imported project into the current graph? Imported nodes will be added alongside existing ones.')) {
+        return;
+      }
+      importBtn.disabled = true;
+      importBtn.innerHTML = '<i class="ti ti-loader"></i>';
+      evalBridge.dispatch({ action: 'importProject' }).then(function(res) {
+        if (!res.ok) {
+          console.error('[Procedia] Import failed: ' + (res.error || 'unknown error'));
+          if (typeof bottomBar !== 'undefined' && bottomBar.notify) bottomBar.notify('Import failed: ' + (res.error || 'unknown error'));
+          importBtn.disabled = false;
+          importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+          return;
+        }
+        return graphImport.importProject(res.data).then(function(summary) {
+          console.log('[Procedia] Import complete:', summary);
+          if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+          if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+          if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
+          if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+          if (typeof bottomBar !== 'undefined' && bottomBar.notify) {
+            var msg = 'Imported: ' + summary.comps + ' comps, ' + summary.layers + ' layers, ' + summary.effects + ' effects';
+            if (summary.footage > 0) msg += ', ' + summary.footage + ' footage';
+            if (summary.unknowns > 0) msg += ', ' + summary.unknowns + ' unknown effects';
+            if (summary.errors && summary.errors.length > 0) msg += ', ' + summary.errors.length + ' warnings';
+            bottomBar.notify(msg);
+          }
+          importBtn.disabled = false;
+          importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+        });
+      }).catch(function(err) {
+        console.error('[Procedia] Import error:', err);
+        if (typeof bottomBar !== 'undefined' && bottomBar.notify) bottomBar.notify('Import error: ' + err.message);
+        importBtn.disabled = false;
+        importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+      });
+    });
+  }
+
   window.addEventListener('beforeunload', function() {
     if (typeof graphState === 'undefined') return;
     var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };

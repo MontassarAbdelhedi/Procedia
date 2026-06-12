@@ -20,7 +20,7 @@ var AdjustmentNode = {
 
   ports: [
     { id: 'output',    category: 'output', type: 'layer', capacity: 'single' },
-    { id: 'child_of',  category: 'parent', role: 'child',  type: 'parent'  },
+    { id: 'child_of',  category: 'parent', role: 'child',  type: 'parent', capacity: 'single'  },
     { id: 'parent_of', category: 'parent', role: 'parent', type: 'parent'  }
   ],
 

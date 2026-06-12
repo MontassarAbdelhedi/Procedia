@@ -13,6 +13,7 @@ var __nl_dragdrop = (function() {
 
   var _dragLabel = null;
   var _ghostEl = null;
+  var _previewWireId = null;
 
   /**
    * Wires mousedown/mousemove/mouseup for drag-from-list onto the canvas.
@@ -56,12 +57,48 @@ var __nl_dragdrop = (function() {
       if (!_ghostEl) return;
       _ghostEl.style.left = (e.clientX + 12) + 'px';
       _ghostEl.style.top = (e.clientY - 8) + 'px';
+
+      if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt && _dragLabel) {
+        var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
+        var def = __nl_cat.resolveDefByLabel(_dragLabel);
+        if (hitWire && def && canvasDrag.canInsertOnWire(hitWire.id, def)) {
+          if (_previewWireId !== hitWire.id) {
+            _previewWireId = hitWire.id;
+            canvasDrag.setWirePreview(hitWire.id, e.clientX, e.clientY);
+            if (typeof wireRenderer !== 'undefined' && wireRenderer.renderSplitPreview) {
+              wireRenderer.renderSplitPreview(canvasDrag.getWirePreview());
+            }
+          } else {
+            canvasDrag.setWirePreview(hitWire.id, e.clientX, e.clientY);
+            if (typeof wireRenderer !== 'undefined' && wireRenderer.renderSplitPreview) {
+              wireRenderer.renderSplitPreview(canvasDrag.getWirePreview());
+            }
+          }
+        } else {
+          if (_previewWireId !== null) {
+            _previewWireId = null;
+            canvasDrag.clearWirePreview();
+            if (typeof wireRenderer !== 'undefined' && wireRenderer.render) {
+              wireRenderer.render(null);
+            }
+          }
+        }
+      }
     });
 
     document.addEventListener('mouseup', function(e) {
       if (_ghostEl) {
         _ghostEl.parentNode.removeChild(_ghostEl);
         _ghostEl = null;
+      }
+      if (_previewWireId !== null) {
+        _previewWireId = null;
+        if (typeof canvasDrag !== 'undefined' && canvasDrag.clearWirePreview) {
+          canvasDrag.clearWirePreview();
+        }
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) {
+          wireRenderer.render(null);
+        }
       }
       if (!_dragLabel) return;
 
@@ -84,9 +121,9 @@ var __nl_dragdrop = (function() {
 
       var pos = viewport.screenToCanvas(e.clientX, e.clientY);
 
-      if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt) {
+      if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt && canvasDrag.canInsertOnWire) {
         var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
-        if (hitWire) {
+        if (hitWire && canvasDrag.canInsertOnWire(hitWire.id, def)) {
           var insertNode = canvasDrag.insertNodeOnWire(hitWire.id, def, pos.x, pos.y);
           if (insertNode) {
             graphState.setSelection(insertNode.id);

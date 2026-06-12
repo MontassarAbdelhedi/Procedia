@@ -45,7 +45,7 @@ var __e_prop = (function() {
         params: {
           hostingCompUUID: hostingCompUUID,
           oldUUID:         nodeData._transplantLayerUUID,
-          newUUID:         nodeData.id
+          newUUID:         pathLayerUUID
         }
       };
       evalBridge.dispatch(restampCmd);
@@ -73,6 +73,20 @@ var __e_prop = (function() {
         }
         if (alreadyAlive) continue;
         _propagateAlive(tw.fromNode, hostingCompUUID, nodeData.id);
+      }
+
+      if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending') {
+        var txCmd = def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
+        if (txCmd !== null) {
+          (function(nId, cmd) {
+            evalBridge.dispatch(cmd).then(function(res) {
+              if (!res.ok) {
+                console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
+                graphState.updateNode(nId, { state: 'error' });
+              }
+            });
+          }(nodeId, txCmd));
+        }
       }
 
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
@@ -112,6 +126,21 @@ var __e_prop = (function() {
       hostingComps:   updatedHostingComps,
       hasParkedLayer: false
     });
+
+    if (cascadeAlgorithm.isCompNode(nodeId)) {
+      if (command !== null) {
+        (function(nId, cmd) {
+          evalBridge.dispatch(cmd).then(function(res) {
+            if (!res.ok) {
+              console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
+              graphState.updateNode(nId, { state: 'error' });
+            }
+          });
+        }(nodeId, command));
+      }
+      if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
+      return;
+    }
 
     var wireMap = graphState.getAllWires();
     for (var wireId in wireMap) {
@@ -211,8 +240,7 @@ var __e_prop = (function() {
 
     graphState.updateWire(terminalWireId, { _pathLayerUUID: terminalWireId });
 
-    var compNodeData = graphState.getNode(wireData.toNode);
-    var hostingCompUUID = (compNodeData && compNodeData.hostingComps && compNodeData.hostingComps[0]) || wireData.toNode;
+    var hostingCompUUID = wireData.toNode;
 
     _propagateAlive(wireData.fromNode, hostingCompUUID, terminalWireId);
 

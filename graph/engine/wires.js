@@ -85,14 +85,18 @@ var __e_wires = (function() {
 
     if (wireType === 'parent') {
       if (fromNodeData.state === 'alive' && toNodeData.state === 'alive') {
-        evalBridge.dispatch({
-          action: 'setLayerParent',
-          params: {
-            hostingCompUUID: toNodeData.hostingComps[0],
-            childNodeUUID:  fromNodeData.id,
-            parentNodeUUID: toNodeData.id
-          }
-        });
+        var childLayerUUID = hlp.findPathLayerUUID(fromNodeData.id);
+        var parentLayerUUID = hlp.findPathLayerUUID(toNodeData.id);
+        if (childLayerUUID && parentLayerUUID) {
+          evalBridge.dispatch({
+            action: 'setLayerParent',
+            params: {
+              hostingCompUUID: toNodeData.hostingComps[0],
+              childLayerUUID:  childLayerUUID,
+              parentLayerUUID: parentLayerUUID
+            }
+          });
+        }
       }
       return true;
     }
@@ -154,10 +158,20 @@ var __e_wires = (function() {
     }
 
     if (wireData.type === 'parent') {
-      evalBridge.dispatch({
-        action: 'clearLayerParent',
-        params: { nodeUUID: wireData.fromNode }
-      });
+      var childNodeId = wireData.fromNode;
+      var childNodeData = graphState.getNode(childNodeId);
+      if (childNodeData && childNodeData.hostingComps.length > 0) {
+        var childLayerUUID = hlp.findPathLayerUUID(childNodeId);
+        if (childLayerUUID) {
+          evalBridge.dispatch({
+            action: 'clearLayerParent',
+            params: {
+              hostingCompUUID: childNodeData.hostingComps[0],
+              layerUUID:       childLayerUUID
+            }
+          });
+        }
+      }
       graphState.removeWire(wireId);
       hlp.refreshNodeUI();
       return;
