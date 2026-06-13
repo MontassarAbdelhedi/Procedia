@@ -725,7 +725,7 @@ Before confirming any wire from Node A output → Node B input:
 
 ### 8a. `nodeMap` — In-Session Source of Truth
 
-Lives in `graphState.js`. Only `graphState.js` mutates it.
+Lives in `graph/graphState/`. Only `graph/graphState/` mutates it.
 
 ```javascript
 var nodeMap = {
@@ -796,9 +796,9 @@ var wireMap = {
 
 - Only terminal wires carry this field (wires where `toNode` is a CompNode)
 - All other wires have `_pathLayerUUID === null`
-- The field is stamped by `_firePathCreation` in `engine.js`
+- The field is stamped by `_firePathCreation` in `engine/propagate.js`
 - The field is cleared when a non-terminal upstream wire is removed (dormant state) — this also triggers `onGhost` and parks the layer
-- `hasCompDownstream()` in `cascadeAlgorithm.js` only counts wires where `_pathLayerUUID !== null`
+- `hasCompDownstream()` in `cascade/utils.js` only counts wires where `_pathLayerUUID !== null`
 - `dirtyFlusher._terminalWiresForEffector()` skips any terminal wire where `_pathLayerUUID` is null
 
 ### 8c. `tempGraph` — In-Memory JSON Mirror
@@ -1066,11 +1066,11 @@ Effect nodes (FillEffect, GaussianBlur, DropShadow, etc.) declare only their `ma
 
 On first drop, Procedia queries AE for the effect's full property schema at runtime. The schema is cached to `effectSchemaCache.json` inside the plugin directory. Every subsequent drop of the same node type reads from cache — zero bridge calls. When AE updates and a new version is detected on panel load, only changed schemas are re-introspected — unchanged schemas are preserved.
 
-This feature touches: `schemaCache/` (4 files split from `schemaCache.js`), `jsx/utils.jsx` (one new function), `jsx/dispatcher.jsx` (new actions), `engine.js` (one new hook call), all effect node definitions (simplified to `matchName` + `params: 'dynamic'` + two ports). It does not touch `cascadeAlgorithm.js`, `graphState.js`, `wireValidator`, or any non-effect node.
+This feature touches: `schemaCache/` (4 files split from `schemaCache.js`), `jsx/utils.jsx` (one new function), `jsx/dispatcher.jsx` (new actions), `engine/index.js` (one new hook call), all effect node definitions (simplified to `matchName` + `params: 'dynamic'` + two ports). It does not touch `cascade/`, `graphState/`, `wireValidator/`, or any non-effect node.
 
 ### 20b. Port Resolution — All Ports Visible from Drop
 
-When `engine.js` calls `schemaCache.getSchema(matchName)` on node drop, the resolved schema populates the node's secondary input ports immediately:
+When the engine calls `schemaCache.getSchema(matchName)` on node drop, the resolved schema populates the node's secondary input ports immediately:
 
 1. Schema is returned as `[{ matchName, label, type, defaultValue }, ...]`
 2. Each property entry becomes a secondary input port on the node — no spawning needed, all ports exist from drop
@@ -1086,9 +1086,9 @@ All secondary input ports behave identically to static `secondaryInput` ports fo
 - `graph/schemaCache/` (state.js, persistence.js, diff.js, index.js) — in-memory cache + disk read/write + diff logic
 - `jsx/utils.jsx` — new function: `getAEVersion()`
 - `jsx/dispatcher.jsx` — new actions: `introspectEffect`, `readSchemaCache`, `writeSchemaCache`, `getAEVersion`
-- `engine.js` — call `schemaCache.getSchema()` on node drop when `params: 'dynamic'`; store schema on node instance, all ports visible immediately
+- `engine/nodes/dropNode.js` — calls `schemaCache.fetchSchema()` on node drop when `params: 'dynamic'`; stores schema on node instance, all ports visible immediately
 - `data/effectSchemaCache.json` — ships empty, never created at runtime
-- `index.html` — `<script>` tags for `schemaCache/state.js`, `schemaCache/persistence.js`, `schemaCache/diff.js`, `schemaCache/index.js` after `nodeRegistry.js`, before `engine.js`
+- `index.html` — `<script>` tags for `schemaCache/state.js`, `schemaCache/persistence.js`, `schemaCache/diff.js`, `schemaCache/index.js` after `nodeRegistry.js`, before the engine files
 - Effect node definitions — simplified (`matchName` + `params: 'dynamic'` + two ports only)
 
 ### 20d. `schemaCache/` — Split Module Specification
@@ -1217,7 +1217,7 @@ Register all three under keys `'readSchemaCache'`, `'writeSchemaCache'`, `'getAE
 
 ### 20g. Engine Integration — Dynamic Schema Hook on Node Drop
 
-On node drop, after adding the node to `nodeMap`, `engine.js` checks `nodeDef.params`:
+On node drop, after adding the node to `nodeMap`, `dropNode.js` checks `nodeDef.params`:
 
 1. If `params` is not `'dynamic'`: proceed normally
 2. If `params === 'dynamic'`:
@@ -1463,11 +1463,11 @@ These rules apply to every phase without exception. Do not rationalize exception
 1. **ExtendScript is ES3 strict.** No `const`, `let`, arrow functions, template literals, `forEach`, destructuring, spread, or default parameters. Use `var`, named functions, string concatenation, and `for` loops exclusively.
 2. **Every `.jsx` function returns `JSON.stringify({ ok, data, error })`.** No exceptions. Panel JS always checks `res.ok` before using `res.data`.
 3. **`evalBridge.js` is the only door to AE.** Never call `csInterface.evalScript()` from any other file.
-4. **`graphState.js` is the only file that mutates `nodeMap` and `wireMap`.** All other files call into it. Never mutate node or wire state from outside `graphState.js`.
+4. **`graph/graphState/` is the only module that mutates `nodeMap` and `wireMap`.** All other files call into it. Never mutate node or wire state from outside `graph/graphState/`.
 5. **`jsx/dispatcher/dispatcher.jsx` is the only file that writes AE API calls.** Nodes return command objects. The engine passes them to `evalBridge`. `evalBridge` sends them to `dispatcher.jsx`. Nothing else touches AE.
 6. **Node definitions never call `evalBridge`.** A lifecycle hook returns a command object or `null`. It never resolves a Promise or calls `evalBridge` directly.
-7. **`engine.js` contains zero node-type conditionals.** No `if (node.type === 'CompNode')`, no `switch(nodeKind)`. All type-specific behavior lives in the node definition. The engine calls hooks by name only.
-8. **Ghost cascade never traverses `parent` or `data` wires.** `cascadeAlgorithm.js` skips any wire whose `type` is not `'layer'` during traversal.
+7. **`graph/engine/` contains zero node-type conditionals.** No `if (node.type === 'CompNode')`, no `switch(nodeKind)`. All type-specific behavior lives in the node definition. The engine calls hooks by name only.
+8. **Ghost cascade never traverses `parent` or `data` wires.** `cascade/cascadeGhost.js` skips any wire whose `type` is not `'layer'` during traversal.
 9. **`nodeKind` is set on the node definition, never on the instance.** It is a type-level constant.
 10. **AE layer `.comment` = terminal wire UUID (not node UUID).** The dispatcher finds layers by the `_pathLayerUUID` / `layerNodeUUID` param. Never look up a layer by node UUID for path-driven AE operations.
 11. **Data nodes are always `alive`.** Set to `alive` on drop. All hooks return `null`. Never ghost, never park, never cascade. Same applies to blending and matte nodes.
@@ -1475,7 +1475,7 @@ These rules apply to every phase without exception. Do not rationalize exception
 13. **Persistence writes happen only on three events:** AE save, AE quit, panel unload.
 14. **Polling pauses during writes.** `isWriting = true` before any `evalBridge.dispatch()`. `isWriting = false` in the callback. Poller skips if `isWriting` is true.
 15. **`JSON` is not native in ExtendScript.** `jsx/json.jsx` must be the first file in the `evalBridge` preamble. Never call `JSON.stringify` or `JSON.parse` in any `.jsx` without this polyfill loaded.
-16. **One file per node. One node per file.** If adding a new node requires editing `engine.js`, `cascadeAlgorithm.js`, or `dispatcher.jsx` — stop and reconsider the design. Exception: if a new node needs a new **action** that doesn't exist in `dispatcher.jsx`, add the action handler there. This is the only acceptable reason to edit `dispatcher.jsx` when adding a node.
+16. **One file per node. One node per file.** If adding a new node requires editing engine code, cascade code, or dispatcher code — stop and reconsider the design. Exception: if a new node needs a new **action** that doesn't exist in `dispatcher.jsx`, add the action handler there. This is the only acceptable reason to edit dispatcher code when adding a node.
 17. **`evalScript` callbacks only fire when AE has window focus.** In testing: trigger the call, click the AE window, then switch back to the browser console to see the result.
 18. **Layer stacking in AE is 1-based. `layerOrder` in panel is 0-based.** Index 0 = AE layer 1 (top). Reorder using `moveToBeginning()` from bottom to top.
 19. **Effect opacity values stored as 0–100 must be divided by 100** before setting AE properties that expect a 0–1 range (e.g. `ADBE Fill-0006`). This normalization happens inside the dispatcher action handler, not in the node definition.

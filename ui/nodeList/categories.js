@@ -1,6 +1,6 @@
 /**
- * @fileoverview Node categories configuration. Maps display labels to node type IDs
- * and defines the category structure for the node list sidebar.
+ * @fileoverview Dynamic node categories built from nodeRegistry.
+ * Groups all registered node definitions by their `category` field.
  * Depends on: nodeRegistry (global).
  * Exports: __nl_cat.LABEL_TO_TYPE, .CATEGORIES, .getCategoryColor, .resolveDefByLabel
  */
@@ -10,60 +10,110 @@
 
 var __nl_cat = (function() {
 
-  var LABEL_TO_TYPE = {
-    'Text':     'layers/text',
-    'Null':     'layers/null',
-    'Comp':     'core/comp',
-    'Footage':  'core/footage',
-    'Fill':     'effects/fill',
-    'Color':    'data/color',
-    'Number':   'data/number',
-    'Blending': 'utility/blending'
+  var CATEGORY_COLORS = {
+    'Core':            '#534AB7',
+    'Data':            '#2E7D32',
+    'Layers':          '#185FA5',
+    'Utility':         '#5F5E5A',
+    'Effects':         '#854F0B',
+    '3D Channel':      '#854F0B',
+    'Audio':           '#854F0B',
+    'Blur & Sharpen':  '#854F0B',
+    'Boris FX Mocha':  '#854F0B',
+    'Channel':         '#854F0B',
+    'Color Correction':'#854F0B',
+    'Distort':         '#854F0B',
+    'Expression Controls': '#854F0B',
+    'Generate':        '#854F0B',
+    'Immersive Video': '#854F0B',
+    'Keying':          '#854F0B',
+    'Matte':           '#854F0B',
+    'Noise & Grain':   '#854F0B',
+    'Perspective':     '#854F0B',
+    'Simulation':      '#854F0B',
+    'Stylize':         '#854F0B',
+    'Text':            '#854F0B',
+    'Time':            '#854F0B',
+    'Transition':      '#854F0B'
   };
 
-  var CATEGORIES = [
-    {
-      id: 'comps',
-      name: 'Comps',
-      color: '#534AB7',
-      open: true,
-      nodes: ['Comp', 'Footage']
-    },
-    {
-      id: 'data',
-      name: 'Data',
-      color: '#2E7D32',
-      open: true,
-      nodes: ['Color', 'Number']
-    },
-    {
-      id: 'effects',
-      name: 'Effects',
-      color: '#854F0B',
-      open: true,
-      nodes: ['Fill']
-    },
-    {
-      id: 'layers',
-      name: 'Layers',
-      color: '#185FA5',
-      open: true,
-      nodes: ['Text', 'Null']
-    },
-    {
-      id: 'utility',
-      name: 'Utility',
-      color: '#5F5E5A',
-      open: true,
-      nodes: ['Blending']
-    }
+  var CATEGORY_NAMES = {
+    'Core': 'Comps'
+  };
+
+  var CATEGORY_ORDER = [
+    'Core', 'Data', 'Layers', 'Utility',
+    'Effects', '3D Channel', 'Audio', 'Blur & Sharpen', 'Boris FX Mocha',
+    'Channel', 'Color Correction', 'Distort', 'Expression Controls',
+    'Generate', 'Immersive Video', 'Keying', 'Matte',
+    'Noise & Grain', 'Perspective', 'Simulation', 'Stylize',
+    'Text', 'Time', 'Transition'
   ];
 
-  /**
-   * Returns the category color for a given node label.
-   * @param {string} label The node display label.
-   * @return {string} CSS color string.
-   */
+  var LABEL_TO_TYPE = {};
+  var CATEGORIES = [];
+
+  function init() {
+    var all = nodeRegistry.getAll();
+    var groups = {};
+
+    for (var type in all) {
+      var def = all[type];
+      var cat = def.category || 'Uncategorized';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(def);
+      LABEL_TO_TYPE[def.label] = def.type;
+    }
+
+    var used = {};
+
+    var OPEN_CATEGORIES = { 'Core': true, 'Data': true, 'Layers': true, 'Utility': true };
+
+    for (var o = 0; o < CATEGORY_ORDER.length; o++) {
+      var key = CATEGORY_ORDER[o];
+      if (groups[key]) {
+        var open = OPEN_CATEGORIES[key] === true;
+        CATEGORIES.push(buildCategory(key, groups[key], open));
+        used[key] = true;
+      }
+    }
+
+    for (var cat in groups) {
+      if (!used[cat]) {
+        var isOpen = (cat === 'obsolete' || cat === 'Uncategorized') ? false : true;
+        CATEGORIES.push(buildCategory(cat, groups[cat], isOpen));
+      }
+    }
+  }
+
+  function buildCategory(catName, defs, openByDefault) {
+    var id = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cat';
+    var displayName = CATEGORY_NAMES[catName] || catName;
+    var color = CATEGORY_COLORS[catName] || '#888780';
+    var labels = [];
+    var sortable = [];
+    for (var i = 0; i < defs.length; i++) {
+      sortable.push({ label: defs[i].label, sortKey: defs[i].label.toLowerCase() });
+    }
+    sortable.sort(function(a, b) {
+      if (a.sortKey < b.sortKey) return -1;
+      if (a.sortKey > b.sortKey) return 1;
+      return 0;
+    });
+    for (var j = 0; j < sortable.length; j++) {
+      labels.push(sortable[j].label);
+    }
+    return {
+      id: id,
+      name: displayName,
+      color: color,
+      open: openByDefault,
+      nodes: labels
+    };
+  }
+
+  init();
+
   function getCategoryColor(label) {
     for (var i = 0; i < CATEGORIES.length; i++) {
       for (var j = 0; j < CATEGORIES[i].nodes.length; j++) {
@@ -73,11 +123,6 @@ var __nl_cat = (function() {
     return '#888780';
   }
 
-  /**
-   * Resolves a node definition from a display label.
-   * @param {string} label The display label.
-   * @return {Object|null} The node definition, or null if not found.
-   */
   function resolveDefByLabel(label) {
     var type = LABEL_TO_TYPE[label];
     if (!type) return null;

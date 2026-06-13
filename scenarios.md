@@ -71,16 +71,20 @@
     `text -> fill -> drop shadow -> comp`
     (parent null to text)
 
+18. Footage item with effects
+    `color -> fill`
+    `footage -> fill -> comp`
+
 ## Advanced (7+ nodes)
 
-18. Multi-layer comp with null parenting and effects
+19. Multi-layer comp with null parenting and effects
     `null -> shape`
     `color -> fill`
     `shape -> fill -> drop shadow -> comp`
     `text -> comp`
     (parent null to shape)
 
-19. Full composite: shape, text, adjustment, matte
+20. Full composite: shape, text, adjustment, matte
     `shape -> gaussian blur -> blending -> comp`
     `number -> gaussian blur`
     `text -> comp`
@@ -88,7 +92,7 @@
     `text -> alpha matte -> comp`
     (top: text, matte: shape-blur)
 
-20. Complex graph with branching, matte, blending, and multiple effects
+21. Complex graph with branching, matte, blending, and multiple effects
     `color -> fill-1`
     `color -> fill-2`
     `number -> gaussian blur`

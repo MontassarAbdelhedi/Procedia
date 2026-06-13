@@ -10,6 +10,9 @@
 | `core/comp` | `Comp.js` | `onAlive` | `createComp` | `Comp.js:67-79` | `actions_comp.jsx:30 _handleCreateComp` |
 | `core/comp` | `Comp.js` | `onDelete` | `deleteComp` | `Comp.js:52-59` | `actions_comp.jsx:60 _handleDeleteComp` |
 | `core/comp` | `Comp.js` | `onPropertyChange` | `setCompProperty` | `Comp.js:88-98` | `actions_comp.jsx:83 _handleSetCompProperty` |
+| `core/footage` | `Footage.js` | `onDrop` | `importFootage` | `Footage.js:40-52` | `actions_footage.jsx:_handleImportFootage` |
+| `core/footage` | `Footage.js` | `onAlive` | `addCompAsLayer` | `Footage.js:60-73` | `actions_layer.jsx:_handleAddCompAsLayer` |
+| `core/footage` | `Footage.js` | `onDelete` | `removeFootageLayer` | `Footage.js:80-87` | `actions_footage.jsx:_handleRemoveFootage` |
 | `layers/text` | `Text.js` | `onDrop` | `null` (no-op) | `Text.js:38-40` | — |
 | `layers/text` | `Text.js` | `onAlive` | `createTextLayer` | `Text.js:48-63` | `actions_layer.jsx:18 _handleCreateTextLayer` |
 | `layers/text` | `Text.js` | `onGhost` | `parkLayer` | `Text.js:71-79` | `actions_park.jsx:16 _handleParkLayer` |
@@ -30,21 +33,21 @@
 | `layers/adjustment` | `Adjustment.js` | `onGhost` | `parkLayer` | `Adjustment.js:65-73` | `actions_park.jsx:16 _handleParkLayer` |
 | `layers/adjustment` | `Adjustment.js` | `onDelete` | `deleteParkedLayer` | `Adjustment.js:80-87` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
 | `layers/adjustment` | `Adjustment.js` | `onPropertyChange` | `setLayerProperty` | `Adjustment.js:97-107` | `actions_property.jsx:17 _handleSetLayerProperty` |
-| `effects/fill` | `FillEffect.js` | `onDrop` | `null` (no-op) | `FillEffect.js:29` | — |
-| `effects/fill` | `FillEffect.js` | `onAlive` | `applyDynamicEffect` | `FillEffect.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
-| `effects/fill` | `FillEffect.js` | `onGhost` | `removeEffect` | `FillEffect.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
-| `effects/fill` | `FillEffect.js` | `onDelete` | `null` (no-op) | `FillEffect.js:71` | — |
-| `effects/fill` | `FillEffect.js` | `onPropertyChange` | `setEffectProperty` | `FillEffect.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
-| `effects/gaussian-blur` | `GaussianBlur.js` | `onDrop` | `null` (no-op) | `GaussianBlur.js:29` | — |
-| `effects/gaussian-blur` | `GaussianBlur.js` | `onAlive` | `applyDynamicEffect` | `GaussianBlur.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
-| `effects/gaussian-blur` | `GaussianBlur.js` | `onGhost` | `removeEffect` | `GaussianBlur.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
-| `effects/gaussian-blur` | `GaussianBlur.js` | `onDelete` | `null` (no-op) | `GaussianBlur.js:71` | — |
-| `effects/gaussian-blur` | `GaussianBlur.js` | `onPropertyChange` | `setEffectProperty` | `GaussianBlur.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
-| `effects/drop-shadow` | `DropShadow.js` | `onDrop` | `null` (no-op) | `DropShadow.js:29` | — |
-| `effects/drop-shadow` | `DropShadow.js` | `onAlive` | `applyDynamicEffect` | `DropShadow.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
-| `effects/drop-shadow` | `DropShadow.js` | `onGhost` | `removeEffect` | `DropShadow.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
-| `effects/drop-shadow` | `DropShadow.js` | `onDelete` | `null` (no-op) | `DropShadow.js:71` | — |
-| `effects/drop-shadow` | `DropShadow.js` | `onPropertyChange` | `setEffectProperty` | `DropShadow.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onDrop` | `null` (no-op) | `FillEffect.js:29` | — |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onAlive` | `applyDynamicEffect` | `FillEffect.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onGhost` | `removeEffect` | `FillEffect.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onDelete` | `null` (no-op) | `FillEffect.js:71` | — |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onPropertyChange` | `setEffectProperty` | `FillEffect.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onDrop` | `null` (no-op) | `GaussianBlur.js:29` | — |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onAlive` | `applyDynamicEffect` | `GaussianBlur.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onGhost` | `removeEffect` | `GaussianBlur.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onDelete` | `null` (no-op) | `GaussianBlur.js:71` | — |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onPropertyChange` | `setEffectProperty` | `GaussianBlur.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onDrop` | `null` (no-op) | `DropShadow.js:29` | — |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onAlive` | `applyDynamicEffect` | `DropShadow.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onGhost` | `removeEffect` | `DropShadow.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onDelete` | `null` (no-op) | `DropShadow.js:71` | — |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onPropertyChange` | `setEffectProperty` | `DropShadow.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
 | `data/color` | `Color.js` | all hooks | `null` (no-op) | `Color.js:31-39` | — |
 | `data/number` | `Number.js` | all hooks | `null` (no-op) | `Number.js:31-39` | — |
 | `utility/blending` | `Blending.js` | all hooks | `null` (no-op) | `Blending.js:32-40` | — |

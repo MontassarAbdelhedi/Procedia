@@ -1,7 +1,7 @@
 # Procedia Skill
 
 > Node-based procedural motion design plugin for Adobe After Effects (CEP panel)
-> Platform: **Windows only** · AE 2025+ · CSXS 11.0 · May 2026
+> Platform: **Windows only** · AE 2025+ · CSXS 11.0 · June 2026
 
 **Always load this skill when working on Procedia.** For full detail, see `_docs/CLAUDE.md` (16 skills, 21 absolute rules), `_docs/arch_specs.md`, `_docs/structure.md`, `_docs/flow.md`.
 
@@ -15,7 +15,7 @@
 | **AE side** | ExtendScript (.jsx) — **strict ES3**: `var`, named fns, string concat, `for` loops. No `const`/`let`/arrow/forEach/template literals/Promise/destructuring/spread/default params/`Object.keys` |
 | **Bridge** | `csInterface.evalScript()` — string in, string out, always async. Only `bridge/evalBridge.js` calls it |
 | **Dispatcher** | Only `jsx/dispatcher/dispatcher.jsx` contains AE API calls. Nodes return `{ action, params }` command objects |
-| **Load order** | `index.html` is the single truth. No bundler. 86 `<script>` tags in exact order. Every file has `// DEPENDS ON:` header |
+| **Load order** | `index.html` is the single truth. No bundler. 103 `<script>` tags in exact order. Every file has `// DEPENDS ON:` header |
 | **State** | `graph/graphState/` is the only module that mutates `nodeMap`, `wireMap` |
 | **Identifiers** | UUID only. `comp.comment` = node UUID. `layer.comment` = **terminal wire UUID** (not node UUID) |
 | **Persistence** | Written only on: AE save, AE quit, panel unload |
@@ -31,7 +31,7 @@
 | `blending` | Sets `layer.blendingMode` on upstream affected | Yes | `(nodeData, hostingCompUUID, upstreamNodeUUID)` |
 | `matte` | Sets `layer.trackMatteType` on top layer | Yes | `(nodeData, hostingCompUUID, topLayerUUID, matteLayerUUID)` |
 
-**Dedicated nodes** (have AE project object): CompNode, NullNode, AdjustmentNode. Creation order: AE object first, layer second.
+**Dedicated nodes** (have AE project object): CompNode, FootageNode, NullNode, AdjustmentNode. Creation order: AE object first, layer second.
 
 ## Critical Rules (Never Violate)
 
@@ -70,7 +70,7 @@
 | Renaming layers not updating in timeline | `renameNode` action sets `layer.name` from node label |
 | Double-click on wire to remove it | Wire interaction handler added |
 | Notification system missing | `notifications/notificationBar.js` added |
-| Footage node (video) | Implemented in `layers/Footage.js` |
+| Footage node (video) | Implemented in `core/Footage.js` |
 
 ## What To Do (Roadmap)
 
@@ -79,7 +79,7 @@
 - [ ] Fix false alert: unwiring effector from affected node triggers "effect deleted outside Procedia"
 - [ ] Add Procedia folder check on every Comp node drop
 - [ ] Test import: unnecessary blending node case
-- [ ] `_docs/For_Mont.md` — see full task list
+- [ ] `_docs/forMont.md` — see full task list
 
 ## What Has Been Done (v4)
 
@@ -93,13 +93,16 @@
 - Dirty flush (300ms debounced property push)
 - Auto-layout (Sugiyama algorithm)
 - Wire-insertion (drop node onto active wire)
-- Sugoi import feature
+- Import module (project import from AE)
+- Graph exporter
+- Footage node (video)
+- Dynamic node loader (474 node definitions across 25 categories)
 
 ## Key File Map
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Load order truth + DOM shell |
+| `index.html` | Load order truth + DOM shell (103 scripts) |
 | `index.js` | Entry point |
 | `bridge/evalBridge.js` | Only evalScript caller |
 | `jsx/dispatcher/dispatcher.jsx` | Only AE API writer |
@@ -107,10 +110,17 @@
 | `graph/graphState/` | In-memory state (only mutator) |
 | `graph/nodeRegistry.js` | Node definition registry |
 | `graph/schemaCache/` | Dynamic effect schema cache |
-| `graph/cascade/` | Ghost cascade algorithm |
+| `graph/cascade/` | Ghost cascade algorithm (3 files) |
+| `graph/canvas/renderer/` | DOM sync renderer (5 files) |
+| `graph/canvas/input/` | Canvas event handlers (6 files) |
+| `graph/canvas/minimap/` | Minimap (6 files) |
+| `graph/autoLayout/` | Sugiyama layout (7 files) |
+| `graph/import/` | Project import (5 files) |
 | `flush/dirtyFlusher.js` | Debounced property flush (300ms) |
 | `polling/poller.js` | Adaptive AE polling |
-| `graph/nodes/categories/` | All 13 node definitions |
+| `graph/nodes/loadNodes.js` | Dynamic node script loader |
+| `graph/nodes/categories/` | 474 node definitions across 25 categories |
+| `notifications/notificationBar.js` | Toast notification UI |
 | `data/effectSchemaCache.json` | Disk cache (must pre-exist) |
 
 ## Verification Checklist (Every Task)

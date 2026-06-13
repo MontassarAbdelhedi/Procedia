@@ -59,22 +59,8 @@
   <script src="graph/graphExporter.js"></script>
   <script src="ui/settings.js"></script>
 
-  <!-- 3. Node definitions — depend on nodeRegistry -->
-  <script src="graph/nodes/categories/core/Comp.js"></script>
-  <script src="graph/nodes/categories/core/Footage.js"></script>
-  <script src="graph/nodes/categories/layers/Text.js"></script>
-  <script src="graph/nodes/categories/layers/Null.js"></script>
-  <script src="graph/nodes/categories/layers/Shape.js"></script>
-  <script src="graph/nodes/categories/layers/Adjustment.js"></script>
-  <script src="graph/nodes/categories/effects/FillEffect.js"></script>
-  <script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
-  <script src="graph/nodes/categories/effects/DropShadow.js"></script>
-  <script src="graph/nodes/categories/effects/UnknownEffect.js"></script>
-  <script src="graph/nodes/categories/data/Color.js"></script>
-  <script src="graph/nodes/categories/data/Number.js"></script>
-  <script src="graph/nodes/categories/utility/Blending.js"></script>
-  <script src="graph/nodes/categories/utility/MatteLuma.js"></script>
-  <script src="graph/nodes/categories/utility/MatteAlpha.js"></script>
+  <!-- 3. Node definitions — depend on nodeRegistry; loaded via dynamic script loader -->
+  <script src="graph/nodes/loadNodes.js"></script>
 
   <!-- 4. Schema cache — after nodeRegistry, before engine -->
   <script src="graph/schemaCache/state.js"></script>

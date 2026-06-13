@@ -371,8 +371,9 @@ Every node is a plain JS object registered with `nodeRegistry.register()`. One f
 **`dedicated` reference — memorize this:**
 
 | Node | `dedicated` | AE Project Object |
-|---|---|---|
+|---|---|---|---|
 | `CompNode` | `true` | `CompItem` |
+| `FootageNode` | `true` | `FootageItem` |
 | `NullNode` | `true` | `FootageItem` (solid) |
 | `TextNode` | `false` | — |
 | `ShapeNode` | `false` | — |
@@ -730,7 +731,7 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 - Never split mid-task. Declare the split as its own step before writing any code.
 - After any file change, the first verification item is always: panel loads without console errors
 
-**Load order in `index.html`:**
+**Load order in `index.html`:** (103 script tags, 11 groups)
 ```html
 <!-- 1. CEP interface -->
 <script src="lib/CSInterface.js"></script>
@@ -747,22 +748,11 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/graphState/graphOps.js"></script>
 <script src="graph/graphState/index.js"></script>
 <script src="graph/nodeRegistry.js"></script>
+<script src="graph/graphExporter.js"></script>
 <script src="ui/settings.js"></script>
 
-<!-- 3. Node definitions — depend on nodeRegistry -->
-<script src="graph/nodes/categories/core/Comp.js"></script>
-<script src="graph/nodes/categories/layers/Text.js"></script>
-<script src="graph/nodes/categories/layers/Null.js"></script>
-<script src="graph/nodes/categories/layers/Shape.js"></script>
-<script src="graph/nodes/categories/layers/Adjustment.js"></script>
-<script src="graph/nodes/categories/effects/FillEffect.js"></script>
-<script src="graph/nodes/categories/effects/GaussianBlur.js"></script>
-<script src="graph/nodes/categories/effects/DropShadow.js"></script>
-<script src="graph/nodes/categories/data/Color.js"></script>
-<script src="graph/nodes/categories/data/Number.js"></script>
-<script src="graph/nodes/categories/utility/Blending.js"></script>
-<script src="graph/nodes/categories/utility/MatteLuma.js"></script>
-<script src="graph/nodes/categories/utility/MatteAlpha.js"></script>
+<!-- 3. Node definitions — loaded via dynamic script loader -->
+<script src="graph/nodes/loadNodes.js"></script>
 
 <!-- 4. Schema cache — after nodeRegistry, before engine -->
 <script src="graph/schemaCache/state.js"></script>
@@ -770,13 +760,15 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/schemaCache/diff.js"></script>
 <script src="graph/schemaCache/index.js"></script>
 
-<!-- 5. Graph engine — depends on graphState, nodeRegistry, schemaCache, all nodes -->
+<!-- 5. Graph engine — depends on graphState, nodeRegistry, all nodes, schemaCache -->
 <script src="graph/cycleChecker.js"></script>
 <script src="graph/wireValidator/portUtils.js"></script>
-  <script src="graph/wireValidator/matteValidator.js"></script>
-  <script src="graph/wireValidator/canConnect.js"></script>
-  <script src="graph/wireValidator/filterPickerList.js"></script>
-  <script src="graph/wireValidator/index.js"></script>
+<script src="graph/wireValidator/matteValidator.js"></script>
+<script src="graph/wireValidator/canConnect.js"></script>
+<script src="graph/wireValidator/filterPickerList.js"></script>
+<script src="graph/wireValidator/index.js"></script>
+<script src="graph/cascade/utils.js"></script>
+<script src="graph/cascade/cascadeGhost.js"></script>
 <script src="graph/cascade/index.js"></script>
 <script src="flush/dirtyFlusher.js"></script>
 <script src="graph/engine/helpers.js"></script>
@@ -786,6 +778,7 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/engine/nodes/deleteNode.js"></script>
 <script src="graph/engine/nodes/duplicateNode.js"></script>
 <script src="graph/engine/nodes/lockNode.js"></script>
+<script src="graph/engine/nodes/cloneNode.js"></script>
 <script src="graph/engine/nodes/recreateNode.js"></script>
 <script src="graph/engine/nodes/index.js"></script>
 <script src="graph/engine/state.js"></script>
@@ -793,8 +786,20 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 
 <!-- 6. Canvas — depends on engine -->
 <script src="graph/canvas/viewport.js"></script>
-<script src="graph/canvas/renderer.js"></script>
-<script src="graph/canvas/input.js"></script>
+<script src="graph/canvas/renderer/categories.js"></script>
+<script src="graph/canvas/renderer/helpers.js"></script>
+<script src="graph/canvas/renderer/builder.js"></script>
+<script src="graph/canvas/renderer/index.js"></script>
+<script src="graph/canvas/renderer/nodeToolbar.js"></script>
+<script src="graph/canvas/input/state.js"></script>
+<script src="graph/canvas/input/utils.js"></script>
+<script src="graph/canvas/input/rubberband.js"></script>
+<script src="graph/canvas/input/handlers/titleEdit.js"></script>
+<script src="graph/canvas/input/handlers/mouse.js"></script>
+<script src="graph/canvas/input/handlers/keyboard.js"></script>
+<script src="graph/canvas/input/handlers/wheel.js"></script>
+<script src="graph/canvas/input/handlers/index.js"></script>
+<script src="graph/canvas/input/index.js"></script>
 <script src="graph/canvas/minimap/constants.js"></script>
 <script src="graph/canvas/minimap/state.js"></script>
 <script src="graph/canvas/minimap/utils.js"></script>
@@ -805,29 +810,54 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/wire/wireRenderer.js"></script>
 <script src="graph/wire/wire.js"></script>
 
-<!-- 7. UI — depends on graphState, nodeRegistry, engine -->
-<script src="ui/nodeList.js"></script>
+<!-- 7. Auto layout — depends on graphState, nodeRegistry, engine -->
+<script src="graph/autoLayout/constants.js"></script>
+<script src="graph/autoLayout/estimateHeight.js"></script>
+<script src="graph/autoLayout/graphBuilder.js"></script>
+<script src="graph/autoLayout/layerAssignment.js"></script>
+<script src="graph/autoLayout/crossingReduction.js"></script>
+<script src="graph/autoLayout/positioning.js"></script>
+<script src="graph/autoLayout/index.js"></script>
+
+<!-- 7b. Import module — depends on graphState, nodeRegistry, engine, uuidGenerator, evalBridge -->
+<script src="graph/import/mapNodes.js"></script>
+<script src="graph/import/mapWires.js"></script>
+<script src="graph/import/stampUUIDs.js"></script>
+<script src="graph/import/builder.js"></script>
+<script src="graph/import/index.js"></script>
+
+<!-- 8. UI — depends on graphState, nodeRegistry, engine -->
+<script src="ui/nodeList/categories.js"></script>
+<script src="ui/nodeList/render.js"></script>
+<script src="ui/nodeList/search.js"></script>
+<script src="ui/nodeList/dragdrop.js"></script>
+<script src="ui/nodeList/index.js"></script>
 <script src="ui/nodePicker/compatibility.js"></script>
 <script src="ui/nodePicker/render.js"></script>
 <script src="ui/nodePicker/filter.js"></script>
 <script src="ui/nodePicker/events.js"></script>
 <script src="ui/nodePicker/index.js"></script>
-<script src="ui/inspector.js"></script>
+<script src="ui/inspector/viewModel.js"></script>
+<script src="ui/inspector/render.js"></script>
+<script src="ui/inspector/colorPicker.js"></script>
+<script src="ui/inspector/events.js"></script>
+<script src="ui/inspector/index.js"></script>
 <script src="ui/settingsModal.js"></script>
 
-<!-- 8. Infrastructure services -->
+<!-- 9. Infrastructure services -->
 <script src="polling/missingNodes.js"></script>
 <script src="polling/notifications.js"></script>
 <script src="polling/externalDeletions.js"></script>
 <script src="polling/poller.js"></script>
+<script src="notifications/notificationBar.js"></script>
 
-<!-- 9. UI chrome — no graph dependencies -->
+<!-- 10. UI chrome — no graph dependencies -->
 <script src="ui/topBar.js"></script>
 <script src="ui/bottomBar.js"></script>
 <script src="ui/statusBar.js"></script>
 <script src="ui/sidebarToggle.js"></script>
 
-<!-- 10. Entry point — depends on everything -->
+<!-- 11. Entry point — depends on everything -->
 <script src="index.js"></script>
 ```
 
@@ -975,99 +1005,111 @@ Effect nodes (`nodeKind: 'effector'`) declare `params: 'dynamic'`. On first drop
 
 ```
 procedia/
-├── index.html                              ← Script load order. Single source of truth.
+├── index.html                              ← Script load order (103 tags). Single source of truth.
 ├── index.js                                ← Panel entry point.
 │
 ├── graph/
-│   ├── graphState/
-│   │   ├── state.js                    ← Shared internal state (nodeMap, wireMap, tempGraph, selection)
-│   │   ├── tempGraph.js                ← rebuildTempGraph — stripped snapshot for consumers
-│   │   ├── nodes.js                    ← Node CRUD (addNode, removeNode, updateNode, getNode, getAllNodes)
-│   │   ├── wires.js                    ← Wire CRUD (addWire, removeWire, updateWire, getWire, getAllWires)
-│   │   ├── props.js                    ← updateProp, clearDirty
-│   │   ├── selection.js                ← Multi-select tracking (setSelection, getSelection, etc.)
-│   │   ├── graphOps.js                 ← loadGraph, clearGraph
-│   │   └── index.js                    ← Assembles graphState from sub-modules
-│   │                                     Supports `locked` node property.
+│   ├── graphState/                         ← In-memory state — ONLY mutator of nodeMap, wireMap
+│   │   ├── state.js                        ← Shared internal state (nodeMap, wireMap, tempGraph, selection)
+│   │   ├── tempGraph.js                    ← rebuildTempGraph — stripped snapshot for consumers
+│   │   ├── nodes.js                        ← Node CRUD (addNode, removeNode, updateNode, getNode, getAllNodes)
+│   │   ├── wires.js                        ← Wire CRUD (addWire, removeWire, updateWire, getWire, getAllWires)
+│   │   ├── props.js                        ← updateProp, clearDirty
+│   │   ├── selection.js                    ← Multi-select tracking (setSelection, getSelection, etc.)
+│   │   ├── graphOps.js                     ← loadGraph, clearGraph
+│   │   └── index.js                        ← Assembles graphState from sub-modules
+│   │
 │   ├── nodeRegistry.js                     ← register(), getDefinition(), getAll(), getByCategory()
+│   ├── graphExporter.js                    ← exportGraph() — JSON graph export
 │   ├── schemaCache/                        ← Dynamic effect schema cache (4 files)
-│   │   ├── state.js                        ─ Internal state & read accessors
-│   │   ├── persistence.js                  ─ Disk persistence via evalBridge
-│   │   ├── diff.js                         ─ AE version-diff & schema comparison
-│   │   └── index.js                        ─ Aggregates into schemaCache global (init(), getSchema(),
-│   │                                         storeSchema(), hasSchema(), isReady())
-│   ├── engine/
-│   │   ├── helpers.js                      ← Internal helpers: buildInitialProps, refreshNodeUI,
-│   │   │                                     resolveDynamicSchema, findPathLayerUUID, etc.
-│   │   ├── propagate.js                    ← Alive propagation engine: propagateAlive,
-│   │   │                                     checkMatteActivation, firePathCreation
+│   │   ├── state.js                        ← Internal state & read accessors
+│   │   ├── persistence.js                  ← Disk persistence via evalBridge
+│   │   ├── diff.js                         ← AE version-diff & schema comparison
+│   │   └── index.js                        ← Aggregates into schemaCache global
+│   │
+│   ├── engine/                             ← Dumb executor — zero node-type conditionals
+│   │   ├── helpers.js                      ← buildInitialProps, refreshNodeUI, resolveDynamicSchema, etc.
+│   │   ├── propagate.js                    ← propagateAlive, checkMatteActivation, firePathCreation
 │   │   ├── wires.js                        ← Wire connect/disconnect
 │   │   ├── nodes/
-│   │   │   ├── dropNode.js                 ← dropNode() — node creation with onDrop dispatch
+│   │   │   ├── dropNode.js                 ← dropNode() — node creation
 │   │   │   ├── deleteNode.js               ← deleteNode(), deleteSelectedNodes()
 │   │   │   ├── duplicateNode.js            ← duplicateSelectedNodes()
 │   │   │   ├── lockNode.js                 ← toggleLockSelectedNodes()
-│   │   │   ├── recreateNode.js             ← recreateNode() — error-state recovery
+│   │   │   ├── cloneNode.js                ← cloneNode() — deep copy
+│   │   │   ├── recreateNode.js             ← recreateNode() — error recovery
 │   │   │   └── index.js                    ← Aggregates into __e_nodes IIFE
 │   │   ├── state.js                        ← resetAll(), setNodeProperty()
 │   │   └── index.js                        ← Public API — aggregates all engine IIFEs
-│   ├── cascadeAlgorithm.js                 ← cascadeGhost(), hasCompDownstream(), collectPathUpstream()
+│   │
+│   ├── cascade/                            ← Ghost cascade algorithm (3 files)
+│   │   ├── utils.js                        ← hasCompDownstream, collectPathUpstream
+│   │   ├── cascadeGhost.js                 ← cascadeGhost()
+│   │   └── index.js                        ← Aggregates into cascadeAlgorithm global
+│   │
 │   ├── cycleChecker.js                     ← hasCycle() — pure graph traversal
-│   ├── wireValidator/                      ← Wire type compatibility. Filters picker list.
-│   │   ├── portUtils.js                    ← Port lookup & category validation
-│   │   ├── matteValidator.js               ← Matte three-condition validation
-│   │   ├── canConnect.js                   ← Core connection validation
-│   │   ├── filterPickerList.js             ← Picker list filtering
-│   │   └── index.js                        ← Aggregates into wireValidator global
+│   ├── wireValidator/                      ← Wire type compatibility
+│   │   ├── portUtils.js, matteValidator.js, canConnect.js, filterPickerList.js, index.js
+│   │
 │   ├── nodes/
-│   │   └── categories/
-│   │       ├── core/        Comp.js
+│   │   ├── loadNodes.js                    ← Dynamic script loader for 474 node definitions
+│   │   └── categories/                     ← 25 AE effect categories + core/layers/data/utility
+│   │       ├── core/        Comp.js, Footage.js
 │   │       ├── layers/      Text.js, Null.js, Shape.js, Adjustment.js
-│   │       ├── effects/     FillEffect.js, GaussianBlur.js, DropShadow.js
 │   │       ├── data/        Color.js, Number.js
-│   │       └── utility/     Blending.js, MatteLuma.js, MatteAlpha.js
-│   ├── canvas/
-│   │   ├── viewport.js, renderer.js, input.js, minimap.js (no selection highlight)
-│   │   ├── drag.js          ← onDrop handler + wire-insertion (drop on wire to insert mid-path)
-│   └── wire/
-│       ├── wire.js, wireRenderer.js
+│   │       ├── utility/     Blending.js, MatteLuma.js, MatteAlpha.js, Compander.js, GrowBounds.js, ...
+│   │       └── Blur & Sharpen/  3D Channel/  Audio/  Boris FX Mocha/  Channel/
+│   │           Color Correction/  Distort/  Expression Controls/  Generate/
+│   │           Immersive Video/  Keying/  Matte/  Noise & Grain/  obsolete/
+│   │           Perspective/  Simulation/  Stylize/  Text/  Time/  Transition/
+│   │           Uncategorized/  (474 total node files across all categories)
+│   │
+│   ├── canvas/                             ← Canvas interaction & rendering (split into subdirs)
+│   │   ├── viewport.js                     ← Pan, zoom, coordinate transforms
+│   │   ├── renderer/                       ← 5 files (categories, helpers, builder, index, nodeToolbar)
+│   │   ├── input/                          ← 6 files (state, utils, rubberband, handlers/*, index)
+│   │   ├── minimap/                        ← 6 files (constants, state, utils, renderer, interaction, index)
+│   │   └── drag.js                         ← onDrop handler + wire-insertion
+│   │
+│   ├── wire/                               ← Wire rendering & interaction
+│   │   ├── wireRenderer.js                 ← Bezier/direct/stepped drawing
+│   │   └── wire.js                         ← Wire drag, commit, delete
+│   │
+│   ├── autoLayout/                         ← Sugiyama layered graph layout (7 files)
+│   │   ├── constants.js, estimateHeight.js, graphBuilder.js, layerAssignment.js,
+│   │   │   crossingReduction.js, positioning.js, index.js
+│   │
+│   └── import/                             ← Project import module (5 files)
+│       ├── mapNodes.js, mapWires.js, stampUUIDs.js, builder.js, index.js
 │
 ├── ui/
-│   ├── nodeList.js      ← Node palette — category collapse, search, drag-to-canvas
-│   │                      Shows drag ghost with category-colored dot + node name
-│   ├── nodePicker.js    ← Popup picker when dropping wire on empty canvas
-│   ├── inspector.js     ← Inspector panel — renders params for selected node
-│   │                      Handles both static (params array) and dynamic (schema) nodes
-│   ├── statusBar.js     ← Status bar: node/wire counts, alive/ghost counts, zoom level
-│   ├── settings.js      ← Persistent key/value store (localStorage): minimap, wireStyle
-│   ├── settingsModal.js ← Gear-button modal — open/close, minimap toggle, wire style select
-│   ├── topBar.js        ← Top bar chrome with Save/Undo/Redo/Fit, Duplicate/Delete,
-│   │                      Reset/Reload/Settings buttons. Selection-badge removed.
-│   ├── bottomBar.js     ← Bottom bar chrome — centered notification text only
-│   └── sidebarToggle.js ← Left/right panel collapse toggle
+│   ├── nodeList/                           ← 5 files (categories, render, search, dragdrop, index)
+│   ├── nodePicker/                         ← 5 files (compatibility, render, filter, events, index)
+│   ├── inspector/                          ← 5 files (viewModel, render, colorPicker, events, index)
+│   ├── topBar.js, bottomBar.js, statusBar.js
+│   ├── settings.js, settingsModal.js
+│   └── sidebarToggle.js
 │
-├── flush/         dirtyFlusher.js
-├── polling/       missingNodes.js, notifications.js, externalDeletions.js, poller.js
+├── flush/          dirtyFlusher.js
+├── polling/        missingNodes.js, notifications.js, externalDeletions.js, poller.js
+├── notifications/  notificationBar.js
+├── bridge/         evalBridge.js
+├── data/           uuidGenerator.js, effectSchemaCache.json, effectsCatalog.json, graphExport.json
+├── lib/            CSInterface.js
+├── css/            13 stylesheets
+├── fonts/          tabler-icons (ttf, woff, woff2)
 │
-├── bridge/
-│   └── evalBridge.js                       ← ONLY file that calls csInterface.evalScript()
-│
-├── data/
-│   ├── uuidGenerator.js
-│   └── effectSchemaCache.json              ← Disk-persisted effect schema cache.
-│                                             Ships as { "aeVersion": "", "schemas": {} }.
-│                                             Written by schemaCache/persistence.js via writeSchemaCache action.
-│
-├── lib/
-│   └── CSInterface.js
-│
-└── jsx/
-    ├── json.jsx                            ← JSON polyfill. MUST be first in evalBridge preamble.
-    ├── utils.jsx                           ← findCompByUUID, findLayerByUUID, findReservedComp,
-    │                                         findOrCreateReservedComp, getAEVersion
-    ├── persistence.jsx                     ← readGraph, writeGraph, chunking
+└── jsx/                                    ← ExtendScript (ES3 strict)
+    ├── json.jsx                            ← JSON polyfill (MUST be first)
+    ├── utils.jsx                           ← Shared AE lookup utilities
+    ├── persistence.jsx                     ← Graph read/write with chunking
     └── dispatcher/
-        └── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER.
+        ├── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER — routes to handlers
+        ├── actions_schema.jsx, actions_comp.jsx, actions_layer.jsx,
+        │   actions_property.jsx, actions_park.jsx, actions_matte.jsx,
+        │   actions_effect.jsx, actions_footage.jsx, actions_import.jsx,
+        │   actions_graphExport.jsx
+        └── tools/buildEffectsCatalog.jsx   ← Standalone utility
 ```
 
 ---
@@ -1086,7 +1128,7 @@ These apply to every task, every file, without exception.
 
 5. **`dispatcher.jsx` is the only file that contains AE API calls.** Nodes return command objects. They never call AE.
 
-6. **`engine.js` contains zero node-type conditionals.** No `if (node.type === 'CompNode')`, no `switch(nodeKind)`.
+6. **`graph/engine/` contains zero node-type conditionals.** No `if (node.type === 'CompNode')`, no `switch(nodeKind)`.
 
 7. **Adding a new node touches one file only** — the node definition file — plus adding its `<script>` tag to `index.html`. If any other file needs editing, stop and reconsider the design.
 
