@@ -60,8 +60,25 @@ var pollerHelpers = (function() {
       return result;
     }
 
-    if (compNodeData.type === 'core/comp' && wire.fromNode) {
-      return [wire.fromNode];
+    if (compNodeData.type === 'core/comp') {
+      // Root CompNodes have no hostingComps — their .id IS the comp UUID.
+      // Find all alive nodes hosted in this comp, same as the parent path.
+      var aeCompUUID = compNodeData.id;
+      var nodes = graphState.getAllNodes();
+      var result = [];
+      for (var id in nodes) {
+        if (!nodes.hasOwnProperty(id)) continue;
+        if (nodes[id].state !== 'alive') continue;
+        for (var hc = 0; hc < (nodes[id].hostingComps || []).length; hc++) {
+          if (nodes[id].hostingComps[hc] === aeCompUUID) {
+            result.push(id);
+            break;
+          }
+        }
+      }
+      if (result.length > 0) return result;
+      // Last resort: flag the direct upstream node.
+      if (wire.fromNode) return [wire.fromNode];
     }
 
     return [];

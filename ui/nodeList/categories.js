@@ -15,7 +15,6 @@ var __nl_cat = (function() {
     'Data':            '#2E7D32',
     'Layers':          '#185FA5',
     'Utility':         '#5F5E5A',
-    'Effects':         '#854F0B',
     '3D Channel':      '#854F0B',
     'Audio':           '#854F0B',
     'Blur & Sharpen':  '#854F0B',
@@ -43,7 +42,7 @@ var __nl_cat = (function() {
 
   var CATEGORY_ORDER = [
     'Core', 'Data', 'Layers', 'Utility',
-    'Effects', '3D Channel', 'Audio', 'Blur & Sharpen', 'Boris FX Mocha',
+    '3D Channel', 'Audio', 'Blur & Sharpen', 'Boris FX Mocha',
     'Channel', 'Color Correction', 'Distort', 'Expression Controls',
     'Generate', 'Immersive Video', 'Keying', 'Matte',
     'Noise & Grain', 'Perspective', 'Simulation', 'Stylize',

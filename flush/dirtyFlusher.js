@@ -5,7 +5,7 @@
  * Exports: dirtyFlusher object with schedule, flush, cancel
  */
 // flush/dirtyFlusher.js
-// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/engine/helpers.js, bridge/evalBridge.js
 // MUST LOAD BEFORE: index.js
 
 var dirtyFlusher = (function() {
@@ -13,17 +13,17 @@ var dirtyFlusher = (function() {
   var _timer = null;
   var DEBOUNCE_MS = 300;
 
-  /**
-   * Finds the _pathLayerUUID by walking upstream wires from the given node.
-   * @param {string} nodeId - The starting node UUID
-   * @returns {string|null}
-   */
-  function _findPathLayerUUID(nodeId) {
-    return _findPathLayerUUIDWithVisited(nodeId, {});
-  }
+   /**
+    * Finds the _pathLayerUUID by walking downstream wires from the given node.
+    * @param {string} nodeId - The starting node UUID
+    * @returns {string|null}
+    */
+   function _findPathLayerUUID(nodeId) {
+     return _findPathLayerUUIDWithVisited(nodeId, {});
+   }
 
-  /**
-   * Recursively walks upstream wires to find a _pathLayerUUID, tracking visited nodes.
+   /**
+    * Recursively walks downstream wires to find a _pathLayerUUID, tracking visited nodes.
    * @param {string} nodeId - Current node UUID
    * @param {Object} visited - Set of visited node IDs (used to prevent cycles)
    * @returns {string|null}
@@ -60,7 +60,7 @@ var dirtyFlusher = (function() {
         if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
           return wire._pathLayerUUID;
         }
-        return _findPathLayerUUID(nodeId);
+        return _findPathLayerUUID(wire.fromNode);
       }
     }
     return null;
@@ -75,8 +75,12 @@ var dirtyFlusher = (function() {
   function _flushNode(nodeId, nodeData, def) {
     if (!def || typeof def.onPropertyChange !== 'function') {
       graphState.clearDirty(nodeId);
-      return;
+      return Promise.resolve();
     }
+
+    // Clear dirty synchronously before dispatch so a concurrent edit that
+    // sets a new dirty flag won't be erased by a stale .then() callback.
+    graphState.clearDirty(nodeId);
 
     var hostingCompUUID = nodeData.hostingComps[0];
     var upstreamNodeUUID = null;
@@ -98,10 +102,7 @@ var dirtyFlusher = (function() {
       }
     }
 
-    if (commands.length === 0) {
-      graphState.clearDirty(nodeId);
-      return;
-    }
+    if (commands.length === 0) return Promise.resolve();
 
     var chain = Promise.resolve();
     for (var i = 0; i < commands.length; i++) {
@@ -116,10 +117,12 @@ var dirtyFlusher = (function() {
       })(commands[i]);
     }
 
-    chain.then(function() {
-      graphState.clearDirty(nodeId);
-    }).catch(function(err) {
+    return chain.catch(function(err) {
       console.error('[dirtyFlusher] flush failed for ' + nodeId + ': ' + err);
+      if (nodeData) nodeData.state = 'error';
+      if (typeof __e_hlp !== 'undefined' && __e_hlp.refreshNodeUI) {
+        __e_hlp.refreshNodeUI();
+      }
     });
   }
 
@@ -129,6 +132,7 @@ var dirtyFlusher = (function() {
    */
   function flush() {
     var nodeMap = graphState.getAllNodes();
+    var chain = Promise.resolve();
     for (var nodeId in nodeMap) {
       if (!nodeMap.hasOwnProperty(nodeId)) continue;
       var nodeData = nodeMap[nodeId];
@@ -137,7 +141,11 @@ var dirtyFlusher = (function() {
       if (!nodeData.hostingComps || nodeData.hostingComps.length === 0) continue;
 
       var def = nodeRegistry.getDefinition(nodeData.type);
-      _flushNode(nodeId, nodeData, def);
+      (function(id, data, definition) {
+        chain = chain.then(function() {
+          return _flushNode(id, data, definition);
+        });
+      })(nodeId, nodeData, def);
     }
   }
 

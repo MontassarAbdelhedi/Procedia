@@ -13,7 +13,7 @@
 var GaussianBlurNode = {
   type:      'blur-sharpen/gaussian-blur',
   label:     'Gaussian Blur',
-  category:  'Effects',
+  category:  'Blur & Sharpen',
   version:   '1.0.0',
   nodeKind:  'effector',
   dedicated: false,

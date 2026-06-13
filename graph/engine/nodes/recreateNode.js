@@ -54,10 +54,20 @@ var __e_nrec = (function() {
       var hostUUID = nodeData.hostingComps[c];
 
       if (nodeData.nodeKind === 'affected') {
-        var pathLayerUUID = hlp.findPathLayerUUID(nodeId);
+        var oldLayerUUID = hlp.findPathLayerUUID(nodeId);
+        // Generate a fresh UUID for the replacement layer to avoid
+        // collision if the old AE layer still exists.
+        var newLayerUUID = null;
+        if (oldLayerUUID) {
+          newLayerUUID = uuidGenerator.node();
+          var wm = graphState.getAllWires();
+          if (wm[oldLayerUUID]) {
+            graphState.updateWire(oldLayerUUID, { _pathLayerUUID: newLayerUUID });
+          }
+        }
         var cmd = def.onAlive(nodeData, hostUUID);
         if (cmd) {
-          cmd.params.layerUUID = pathLayerUUID;
+          cmd.params.layerUUID = newLayerUUID || oldLayerUUID;
           (function(nId, cCmd) {
             evalBridge.dispatch(cCmd).then(function(res) {
               if (res.ok) {

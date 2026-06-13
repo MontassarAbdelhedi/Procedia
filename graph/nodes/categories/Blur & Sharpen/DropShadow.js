@@ -13,7 +13,7 @@
 var DropShadowNode = {
   type:      'blur-sharpen/drop-shadow',
   label:     'Drop Shadow',
-  category:  'Effects',
+  category:  'Blur & Sharpen',
   version:   '1.0.0',
   nodeKind:  'effector',
   dedicated: false,

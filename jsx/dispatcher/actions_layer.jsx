@@ -156,14 +156,6 @@ function _handleDeletePathLayer(cmd) {
     var layer = null;
     if (params.layerUUID) layer = findLayerByUUID(comp, params.layerUUID);
     if (!layer && params.nodeUUID) layer = findLayerByUUID(comp, params.nodeUUID);
-    if (!layer) {
-      var li;
-      for (li = 1; li <= comp.numLayers; li++) {
-        var L = comp.layer(li);
-        if (params.layerUUID && L.comment === params.layerUUID) { layer = L; break; }
-        if (params.nodeUUID && L.comment === params.nodeUUID) { layer = L; break; }
-      }
-    }
     if (layer) layer.remove();
     result.ok = true;
     result.data = { deleted: !!layer };

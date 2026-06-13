@@ -14,7 +14,7 @@
 var UnknownEffectNode = {
   type:      'blur-sharpen/unknown',
   label:     'Unknown Effect',
-  category:  'Effects',
+  category:  'Blur & Sharpen',
   version:   '1.0.0',
   nodeKind:  'effector',
   dedicated: false,

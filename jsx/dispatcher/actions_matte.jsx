@@ -23,7 +23,7 @@ function _handleSetLumaMatte(cmd) {
     if (!topLayer) { result.error = 'setLumaMatte: top layer not found'; return result; }
     var matteLayer = findLayerByUUID(comp, params.matteLayerUUID);
     if (!matteLayer) { result.error = 'setLumaMatte: matte layer not found'; return result; }
-    matteLayer.moveAfter(topLayer);
+    matteLayer.moveBefore(topLayer);
     topLayer.trackMatteType = TrackMatteType.LUMA;
     if (params.invert) topLayer.trackMatteType = TrackMatteType.LUMA_INVERTED;
     result.ok = true;
@@ -46,7 +46,7 @@ function _handleSetAlphaMatte(cmd) {
     if (!topLayer) { result.error = 'setAlphaMatte: top layer not found'; return result; }
     var matteLayer = findLayerByUUID(comp, params.matteLayerUUID);
     if (!matteLayer) { result.error = 'setAlphaMatte: matte layer not found'; return result; }
-    matteLayer.moveAfter(topLayer);
+    matteLayer.moveBefore(topLayer);
     topLayer.trackMatteType = params.invert ? TrackMatteType.ALPHA_INVERTED : TrackMatteType.ALPHA;
     result.ok = true;
   } catch (e) { result.error = e.toString(); }

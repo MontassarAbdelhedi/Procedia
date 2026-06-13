@@ -13,7 +13,7 @@
 var FillEffectNode = {
   type:      'blur-sharpen/fill',
   label:     'Fill',
-  category:  'Effects',
+  category:  'Blur & Sharpen',
   version:   '1.0.0',
   nodeKind:  'effector',
   dedicated: false,

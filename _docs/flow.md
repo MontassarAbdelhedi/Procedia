@@ -156,7 +156,7 @@
 
 36. **Missing node notification with dedup** — `polling/notifications.js:15` `pushMissingNotification(uuid)` checks `_notifiedMissing[uuid]` cache, creates `notificationBar.push()` (`notifications/notificationBar.js:43`) with severity `'error'`, message `"<label> is deleted outside Procedia"`, CTA button "Recreate" (calls `engine.recreateNode(uuid)`) and secondary "Remove node" (calls `engine.deleteNode(uuid)` + `renderer.render()` + `wireRenderer.render(null)`).
 
-37. **Polling adaptive schedule** — `polling/poller.js:92` `_schedule()` computes elapsed since `_lastActivity`: if < 3s sets ACTIVE_INTERVAL (1000ms), else IDLE_INTERVAL (5000ms); `markActivity()` (`poller.js:102`) updates `_lastActivity` timestamp; `setWriting(true)` (`poller.js:121`) skips ticks during AE writes.
+37. **Polling adaptive schedule** — `polling/poller.js:92` `_schedule()` computes elapsed since `_lastActivity`: if < 3s sets ACTIVE_INTERVAL (1000ms), else IDLE_INTERVAL (5000ms); `markActivity()` (`poller.js:102`) updates `_lastActivity` timestamp; `withWriteLock(fn)` (`poller.js:121`) sets the write lock before executing `fn()` and releases it after the returned promise resolves, preventing the poller from ticking during AE writes.
 
 ## Auto Layout
 

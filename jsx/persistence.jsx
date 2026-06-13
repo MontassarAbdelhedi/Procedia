@@ -73,8 +73,7 @@ var PERSISTENCE = (function() {
     var chunks = [];
     var len = jsonStr.length;
     if (len === 0) {
-      chunks.push(prefix);
-      return chunks;
+      return [];
     }
     var start = 0;
     var idx = 0;
@@ -155,9 +154,10 @@ var PERSISTENCE = (function() {
 
       var nodes = {};
       var wires = {};
+      var parsed;
 
       if (nodesStr) {
-        var parsed = JSON.parse(nodesStr);
+        parsed = JSON.parse(nodesStr);
         if (parsed && typeof parsed === 'object') nodes = parsed;
       }
       if (wiresStr) {

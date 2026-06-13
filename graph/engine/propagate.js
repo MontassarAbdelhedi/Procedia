@@ -202,10 +202,20 @@ var __e_prop = (function() {
     var topUpstreamData   = graphState.getNode(topUpstreamId);
     var matteUpstreamData = graphState.getNode(matteUpstreamId);
     if (!topUpstreamData || !matteUpstreamData) return;
-    if (!topUpstreamData.hostingComps[0] || !matteUpstreamData.hostingComps[0]) return;
-    if (topUpstreamData.hostingComps[0] !== matteUpstreamData.hostingComps[0]) return;
 
-    var sharedCompUUID = topUpstreamData.hostingComps[0];
+    var sharedCompUUID = null;
+    var topComps = topUpstreamData.hostingComps || [];
+    var matteComps = matteUpstreamData.hostingComps || [];
+    for (var ci = 0; ci < topComps.length; ci++) {
+      for (var cj = 0; cj < matteComps.length; cj++) {
+        if (topComps[ci] === matteComps[cj]) {
+          sharedCompUUID = topComps[ci];
+          break;
+        }
+      }
+      if (sharedCompUUID !== null) break;
+    }
+    if (sharedCompUUID === null) return;
 
     var outputWire = null;
     for (var wId in wireMap) {

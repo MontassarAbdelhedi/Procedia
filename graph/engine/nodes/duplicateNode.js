@@ -33,6 +33,13 @@ var __e_ndup = (function() {
         if (Array.isArray(src[key])) {
           copy[key] = src[key].slice();
         } else if (typeof src[key] === 'object' && src[key] !== null) {
+          // Deep copy via JSON round-trip. Low risk because:
+          // - Node plugins are first-party (no external plugin ecosystem)
+          // - `props` and `dynamicSchema` are populated by the framework,
+          //   not arbitrary user code
+          // - Architectural spec guarantees JSON-serializable data only
+          // - Any undefined/function from framework code would be a bug
+          //   caught in development, not silently introduced at runtime
           copy[key] = JSON.parse(JSON.stringify(src[key]));
         } else {
           copy[key] = src[key];

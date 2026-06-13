@@ -102,6 +102,11 @@ var __e_ndel = (function() {
         if (affBatch.length > 0) evalBridge.dispatchBatch(affBatch);
       }
 
+      // Both branches delegate to cascadeGhost(), which internally skips
+      // CompNodes, dormant wires, and non-layer types. The isCompNode branch
+      // pre-filters to active wires (_pathLayerUUID !== null) as a minor
+      // optimization, but the fallback works identically — cascadeGhost
+      // returns early when the cascade set is empty.
       if (cascadeAlgorithm && cascadeAlgorithm.isCompNode && cascadeAlgorithm.isCompNode(nodeId)) {
         var cascadeWireIds = [];
         for (var cwId in delWireMap) {

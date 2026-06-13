@@ -64,15 +64,10 @@ var __nl_dragdrop = (function() {
         if (hitWire && def && canvasDrag.canInsertOnWire(hitWire.id, def)) {
           if (_previewWireId !== hitWire.id) {
             _previewWireId = hitWire.id;
-            canvasDrag.setWirePreview(hitWire.id, e.clientX, e.clientY);
-            if (typeof wireRenderer !== 'undefined' && wireRenderer.renderSplitPreview) {
-              wireRenderer.renderSplitPreview(canvasDrag.getWirePreview());
-            }
-          } else {
-            canvasDrag.setWirePreview(hitWire.id, e.clientX, e.clientY);
-            if (typeof wireRenderer !== 'undefined' && wireRenderer.renderSplitPreview) {
-              wireRenderer.renderSplitPreview(canvasDrag.getWirePreview());
-            }
+          }
+          canvasDrag.setWirePreview(hitWire.id, e.clientX, e.clientY);
+          if (typeof wireRenderer !== 'undefined' && wireRenderer.renderSplitPreview) {
+            wireRenderer.renderSplitPreview(canvasDrag.getWirePreview());
           }
         } else {
           if (_previewWireId !== null) {

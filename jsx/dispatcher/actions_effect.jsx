@@ -9,6 +9,22 @@
 // Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
 
 /**
+ * Finds a property within an effect group by iterating and matching matchName.
+ * ExtendScript's property() does not accept matchName strings.
+ * @param {PropertyGroup} effect The effect (PropertyGroup) to search.
+ * @param {string} matchName The target matchName (e.g. "ADBE Slider Control-0001").
+ * @return {Property|null}
+ */
+function _findPropByMatchName(effect, matchName) {
+  var pi;
+  for (pi = 1; pi <= effect.numProperties; pi++) {
+    var p = effect.property(pi);
+    if (p.matchName === matchName) return p;
+  }
+  return null;
+}
+
+/**
  * Applies an effect to a layer by matchName and sets its property values.
  * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, matchName, props.
  * @return {Object} Result with .ok, .data (applied), .error.
@@ -31,7 +47,7 @@ function _handleApplyDynamicEffect(cmd) {
       for (var pk in params.props) {
         if (!params.props.hasOwnProperty(pk)) continue;
         try {
-          var prop = effect.property(pk);
+          var prop = _findPropByMatchName(effect, pk);
           if (prop) prop.setValue(params.props[pk]);
         } catch (propErr) {}
       }
@@ -121,7 +137,7 @@ function _handleSetEffectProperty(cmd) {
       }
     }
     if (found) {
-      var prop = fx.property(params.propMatchName);
+      var prop = _findPropByMatchName(fx, params.propMatchName);
       if (prop && typeof prop.setValue === 'function') prop.setValue(params.value);
     }
     result.ok = true;

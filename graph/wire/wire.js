@@ -206,15 +206,21 @@ var wireTool = (function () {
    * Initializes the wire tool by attaching event listeners to the canvas wrap
    * and document for mouse-based wire dragging.
    */
+  var _initialized = false;
+
+  function _onResize() {
+    wireRenderer.render(null);
+  }
+
   function init() {
+    if (_initialized) return;
+    _initialized = true;
     var wrap = document.getElementById('canvas-wrap');
     if (!wrap) return;
     wrap.addEventListener('mousedown', _onMouseDown, true);
     document.addEventListener('mousemove', _onMouseMove);
     document.addEventListener('mouseup', _onMouseUp);
-    window.addEventListener('resize', function () {
-      wireRenderer.render(null);
-    });
+    window.addEventListener('resize', _onResize);
   }
   return {
     init: init

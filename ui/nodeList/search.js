@@ -3,10 +3,23 @@
  * Exports: __nl_search.wireSearch, .applySearch
  */
 // ui/nodeList/search.js
-// DEPENDS ON: (none)
+// DEPENDS ON: ui/nodeList/categories.js (__nl_cat)
 // MUST LOAD BEFORE: ui/nodeList/index.js
 
 var __nl_search = (function() {
+
+  var defaultOpenState = null;
+
+  function getDefaultOpenState() {
+    if (!defaultOpenState) {
+      defaultOpenState = {};
+      var cats = __nl_cat.CATEGORIES;
+      for (var c = 0; c < cats.length; c++) {
+        defaultOpenState['cat-' + cats[c].id] = cats[c].open;
+      }
+    }
+    return defaultOpenState;
+  }
 
   /**
    * Wires input and click events for search and clear.
@@ -35,12 +48,15 @@ var __nl_search = (function() {
 
   /**
    * Filters node items by query and hides/shows categories accordingly.
+   * When a query is active, categories with matches are auto-opened.
+   * When cleared, categories return to their default open/closed state.
    * @param {HTMLElement} listEl The list container element.
    * @param {string} query The search query string.
    */
   function applySearch(listEl, query) {
     var q = query.toLowerCase();
     var catEls = listEl.querySelectorAll('.leftbar-category');
+    var defaults = getDefaultOpenState();
 
     for (var i = 0; i < catEls.length; i++) {
       var catEl = catEls[i];
@@ -61,8 +77,18 @@ var __nl_search = (function() {
 
       if (q === '') {
         catEl.style.display = '';
+        if (defaults[catEl.id]) {
+          catEl.classList.add('open');
+        } else {
+          catEl.classList.remove('open');
+        }
       } else {
         catEl.style.display = (anyVisible || nodeItems.length === 0) ? '' : 'none';
+        if (anyVisible) {
+          catEl.classList.add('open');
+        } else {
+          catEl.classList.remove('open');
+        }
       }
     }
   }

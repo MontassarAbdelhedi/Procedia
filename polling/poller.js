@@ -1,10 +1,10 @@
-/**
- * Polls the host application for node aliveness and marks missing nodes as errored.
- * Switches between active and idle polling intervals based on recent activity.
- * Depends on: bridge/evalBridge.js, graph/graphState.js,
- *             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js
- * Exports: poller object with start, stop, markActivity, setWriting
- */
+ /**
+  * Polls the host application for node aliveness and marks missing nodes as errored.
+  * Switches between active and idle polling intervals based on recent activity.
+  * Depends on: bridge/evalBridge.js, graph/graphState.js,
+  *             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js
+  * Exports: poller object with start, stop, markActivity, withWriteLock
+  */
 // polling/poller.js
 // DEPENDS ON: bridge/evalBridge.js, graph/graphState.js,
 //             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js
@@ -16,7 +16,7 @@ var poller = (function() {
   var IDLE_INTERVAL   = 5000;
   var _timer = null;
   var _active = false;
-  var _isWriting = false;
+  var _writeCount = 0;
   var _lastActivity = 0;
 
   function _handleMissingNode(uuid) {
@@ -57,7 +57,7 @@ var poller = (function() {
   }
 
   function _tick() {
-    if (_isWriting) return;
+    if (_writeCount > 0) return;
 
     var uuids = pollerHelpers.getAliveWireUUIDs();
 
@@ -84,8 +84,8 @@ var poller = (function() {
       : Promise.resolve();
 
     wirePromise.then(function() {
-      pollerExternalDeletions.checkExternalDeletions(_isWriting, _onNodesMissing);
-      pollerExternalDeletions.checkEffectDeletions(_isWriting, _onNodesMissing);
+      pollerExternalDeletions.checkExternalDeletions(_writeCount > 0, _onNodesMissing);
+      pollerExternalDeletions.checkEffectDeletions(_writeCount > 0, _onNodesMissing);
     });
   }
 
@@ -118,15 +118,24 @@ var poller = (function() {
     }
   }
 
-  function setWriting(flag) {
-    _isWriting = !!flag;
+  function withWriteLock(fn) {
+    _writeCount++;
+    return Promise.resolve().then(function() {
+      return fn();
+    }).then(function(result) {
+      _writeCount--;
+      return result;
+    }, function(err) {
+      _writeCount--;
+      throw err;
+    });
   }
 
   return {
     start:        start,
     stop:         stop,
     markActivity: markActivity,
-    setWriting:   setWriting
+    withWriteLock: withWriteLock
   };
 
 })();
