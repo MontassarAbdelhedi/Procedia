@@ -62,7 +62,6 @@ function init() {
   bottomBar.init();
   notificationBar.init();
   if (typeof nodeToolbar !== 'undefined' && nodeToolbar.init) nodeToolbar.init();
-  if (typeof graphExporter !== 'undefined' && graphExporter.init) graphExporter.init();
   statusBar.init();
   sidebarToggle.init();
   settingsModal.init();
@@ -85,12 +84,24 @@ function init() {
         for (var k in res.data.nodes) { hasNodes = true; break; }
         if (hasNodes) {
           graphState.loadGraph(res.data);
+          var allNodes = graphState.getAllNodes();
+          for (var nid in allNodes) {
+            if (!allNodes.hasOwnProperty(nid)) continue;
+            var n = allNodes[nid];
+            if (!n.dynamicSchema || !n.dynamicSchema.properties) {
+              var def = nodeRegistry.getDefinition(n.type);
+              if (def && def.params === 'dynamic' && def.matchName && typeof __e_hlp !== 'undefined') {
+                __e_hlp.resolveDynamicSchema(nid, def.matchName);
+              }
+            }
+          }
           renderer.render();
           if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
           console.log('[Procedia] graph restored from persistence');
         }
       }
     }).then(function() {
+      if (typeof graphExporter !== 'undefined' && graphExporter.init) graphExporter.init();
       if (typeof poller !== 'undefined' && poller.start) poller.start();
       if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     });

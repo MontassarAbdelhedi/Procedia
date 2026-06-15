@@ -64,13 +64,13 @@ var sidebarToggle = (function() {
 
     if (x < 20) {
       showHandle(leftHandle);
-    } else {
+    } else if (leftBarOpen) {
       hideHandle(leftHandle);
     }
 
     if (x > w - 20) {
       showHandle(rightHandle);
-    } else {
+    } else if (rightBarOpen) {
       hideHandle(rightHandle);
     }
   }
@@ -79,8 +79,8 @@ var sidebarToggle = (function() {
    * Hides both sidebar handles when the mouse leaves the canvas.
    */
   function onCanvasMouseLeave() {
-    hideHandle(leftHandle);
-    hideHandle(rightHandle);
+    if (leftBarOpen) hideHandle(leftHandle);
+    if (rightBarOpen) hideHandle(rightHandle);
   }
 
   /**
@@ -105,6 +105,7 @@ var sidebarToggle = (function() {
   function collapseLeft() {
     document.getElementById('left-bar').classList.add('collapsed');
     leftBarOpen = false;
+    showHandle(leftHandle);
     updateLeftHandleIcon();
   }
 
@@ -114,6 +115,7 @@ var sidebarToggle = (function() {
   function expandLeft() {
     document.getElementById('left-bar').classList.remove('collapsed');
     leftBarOpen = true;
+    hideHandle(leftHandle);
     updateLeftHandleIcon();
   }
 
@@ -123,6 +125,7 @@ var sidebarToggle = (function() {
   function collapseRight() {
     document.getElementById('right-bar').classList.add('collapsed');
     rightBarOpen = false;
+    showHandle(rightHandle);
     updateRightHandleIcon();
   }
 
@@ -132,6 +135,7 @@ var sidebarToggle = (function() {
   function expandRight() {
     document.getElementById('right-bar').classList.remove('collapsed');
     rightBarOpen = true;
+    hideHandle(rightHandle);
     updateRightHandleIcon();
   }
 

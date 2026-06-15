@@ -60,8 +60,7 @@ var __r_bld = (function() {
     body.className = 'node-body';
 
     if (def.params === 'dynamic') {
-      if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties ||
-          nodeData.dynamicSchema.properties.length === 0) {
+      if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) {
         var loading = document.createElement('span');
         loading.className = 'node-param-loading';
         loading.textContent = 'Loading\u2026';

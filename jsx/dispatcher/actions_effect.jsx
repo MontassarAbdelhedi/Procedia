@@ -283,33 +283,42 @@ function _handleIntrospectEffect(cmd) {
     ];
 
     var schema = [];
-    var pi;
-    for (pi = 1; pi <= effect.numProperties; pi++) {
-      var prop = effect.property(pi);
-      var pvt  = prop.propertyValueType;
-      var allowed = false;
-      var ki;
-      for (ki = 0; ki < ALLOWED_TYPES.length; ki++) {
-        if (pvt === ALLOWED_TYPES[ki]) { allowed = true; break; }
+
+    function _walkProperties(parent) {
+      var wi;
+      for (wi = 1; wi <= parent.numProperties; wi++) {
+        var prop = parent.property(wi);
+        if (prop.numProperties > 0) {
+          _walkProperties(prop);
+          continue;
+        }
+        var pvt  = prop.propertyValueType;
+        var allowed = false;
+        var ki;
+        for (ki = 0; ki < ALLOWED_TYPES.length; ki++) {
+          if (pvt === ALLOWED_TYPES[ki]) { allowed = true; break; }
+        }
+        if (!allowed) continue;
+        if (typeof prop.setValue !== 'function') continue;
+
+        var mappedType = null;
+        if (pvt === PropertyValueType.COLOR)    mappedType = 'color';
+        if (pvt === PropertyValueType.TwoD)     mappedType = 'vector2';
+        if (pvt === PropertyValueType.ThreeD)   mappedType = 'vector3';
+        if (pvt === PropertyValueType.SCALAR)   mappedType = 'number';
+        if (pvt === PropertyValueType.ANGLE)    mappedType = 'number';
+        if (pvt === PropertyValueType.NO_VALUE) mappedType = 'boolean';
+
+        schema.push({
+          matchName:    prop.matchName,
+          label:        prop.name,
+          type:         mappedType,
+          defaultValue: prop.value
+        });
       }
-      if (!allowed) continue;
-      if (typeof prop.setValue !== 'function') continue;
-
-      var mappedType = null;
-      if (pvt === PropertyValueType.COLOR)    mappedType = 'color';
-      if (pvt === PropertyValueType.TwoD)     mappedType = 'vector2';
-      if (pvt === PropertyValueType.ThreeD)   mappedType = 'vector3';
-      if (pvt === PropertyValueType.SCALAR)   mappedType = 'number';
-      if (pvt === PropertyValueType.ANGLE)    mappedType = 'number';
-      if (pvt === PropertyValueType.NO_VALUE) mappedType = 'boolean';
-
-      schema.push({
-        matchName:    prop.matchName,
-        label:        prop.name,
-        type:         mappedType,
-        defaultValue: prop.value
-      });
     }
+
+    _walkProperties(effect);
 
     effect.remove();
     tempLayer.remove();

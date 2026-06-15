@@ -23,7 +23,7 @@ var nodeList = (function() {
     var el = document.getElementById('left-bar');
     el.innerHTML =
       '<div class="leftbar-search">' +
-        '<input type="text" class="leftbar-search-input" id="leftbar-search-input" placeholder="filter nodes\u2026" autocomplete="off" spellcheck="false">' +
+        '<input type="text" class="leftbar-search-input" id="leftbar-search-input" placeholder="search nodes" autocomplete="off" spellcheck="false">' +
         '<button class="leftbar-search-clear" id="leftbar-search-clear">\u00d7</button>' +
       '</div>' +
       '<div class="leftbar-list" id="leftbar-list"></div>';

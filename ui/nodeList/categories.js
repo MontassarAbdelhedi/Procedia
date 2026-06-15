@@ -12,42 +12,64 @@ var __nl_cat = (function() {
 
   var CATEGORY_COLORS = {
     'Core':            '#534AB7',
-    'Data':            '#2E7D32',
+    'Data':            '#D4AC0D',
     'Layers':          '#185FA5',
-    'Utility':         '#5F5E5A',
-    '3D Channel':      '#854F0B',
-    'Audio':           '#854F0B',
-    'Blur & Sharpen':  '#854F0B',
-    'Boris FX Mocha':  '#854F0B',
-    'Channel':         '#854F0B',
-    'Color Correction':'#854F0B',
-    'Distort':         '#854F0B',
-    'Expression Controls': '#854F0B',
-    'Generate':        '#854F0B',
-    'Immersive Video': '#854F0B',
-    'Keying':          '#854F0B',
-    'Matte':           '#854F0B',
-    'Noise & Grain':   '#854F0B',
-    'Perspective':     '#854F0B',
-    'Simulation':      '#854F0B',
-    'Stylize':         '#854F0B',
-    'Text':            '#854F0B',
-    'Time':            '#854F0B',
-    'Transition':      '#854F0B'
+    'Effects':         '#27AE60',
+    '3D Channel':      '#27AE60',
+    'Audio':           '#27AE60',
+    'Blur & Sharpen':  '#27AE60',
+    'Boris FX Mocha':  '#27AE60',
+    'Channel':         '#27AE60',
+    'Color Correction':'#27AE60',
+    'Distort':         '#27AE60',
+    'Expression Controls': '#27AE60',
+    'Generate':        '#27AE60',
+    'Immersive Video': '#27AE60',
+    'Keying':          '#27AE60',
+    'Matte':           '#27AE60',
+    'Noise & Grain':   '#27AE60',
+    'Perspective':     '#27AE60',
+    'Simulation':      '#27AE60',
+    'Stylize':         '#27AE60',
+    'Text':            '#27AE60',
+    'Time':            '#27AE60',
+    'Transition':      '#27AE60',
+    'obsolete':        '#27AE60',
+    'Utility':         '#5F5E5A'
   };
 
   var CATEGORY_NAMES = {
-    'Core': 'Comps'
+    'Core': 'Core'
   };
 
   var CATEGORY_ORDER = [
-    'Core', 'Data', 'Layers', 'Utility',
-    '3D Channel', 'Audio', 'Blur & Sharpen', 'Boris FX Mocha',
-    'Channel', 'Color Correction', 'Distort', 'Expression Controls',
-    'Generate', 'Immersive Video', 'Keying', 'Matte',
-    'Noise & Grain', 'Perspective', 'Simulation', 'Stylize',
-    'Text', 'Time', 'Transition'
+    'Core', 'Data', 'Layers', 'Effects'
   ];
+
+  var EFFECTS_SUBCATEGORIES = {
+    '3D Channel': true,
+    'Audio': true,
+    'Blur & Sharpen': true,
+    'Boris FX Mocha': true,
+    'Channel': true,
+    'Color Correction': true,
+    'Distort': true,
+    'Expression Controls': true,
+    'Generate': true,
+    'Immersive Video': true,
+    'Keying': true,
+    'Matte': true,
+    'Noise & Grain': true,
+    'obsolete': true,
+    'Perspective': true,
+    'Simulation': true,
+    'Stylize': true,
+    'Text': true,
+    'Time': true,
+    'Transition': true,
+    'Uncategorized': true,
+    'Utility': true
+  };
 
   var LABEL_TO_TYPE = {};
   var CATEGORIES = [];
@@ -66,11 +88,33 @@ var __nl_cat = (function() {
 
     var used = {};
 
-    var OPEN_CATEGORIES = { 'Core': true, 'Data': true, 'Layers': true, 'Utility': true };
+    var OPEN_CATEGORIES = {};
 
     for (var o = 0; o < CATEGORY_ORDER.length; o++) {
       var key = CATEGORY_ORDER[o];
-      if (groups[key]) {
+      if (key === 'Effects') {
+        var subs = [];
+        for (var sub in EFFECTS_SUBCATEGORIES) {
+          if (groups[sub]) {
+            subs.push(buildCategory(sub, groups[sub], false));
+            used[sub] = true;
+          }
+        }
+        subs.sort(function(a, b) {
+          if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
+          if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
+          return 0;
+        });
+        var effectsCat = {
+          id: 'effects',
+          name: 'Effects',
+          color: CATEGORY_COLORS['Effects'] || '#27AE60',
+          open: false,
+          nodes: [],
+          subcategories: subs
+        };
+        CATEGORIES.push(effectsCat);
+      } else if (groups[key]) {
         var open = OPEN_CATEGORIES[key] === true;
         CATEGORIES.push(buildCategory(key, groups[key], open));
         used[key] = true;
@@ -79,7 +123,7 @@ var __nl_cat = (function() {
 
     for (var cat in groups) {
       if (!used[cat]) {
-        var isOpen = (cat === 'obsolete' || cat === 'Uncategorized') ? false : true;
+        var isOpen = true;
         CATEGORIES.push(buildCategory(cat, groups[cat], isOpen));
       }
     }
@@ -115,8 +159,17 @@ var __nl_cat = (function() {
 
   function getCategoryColor(label) {
     for (var i = 0; i < CATEGORIES.length; i++) {
-      for (var j = 0; j < CATEGORIES[i].nodes.length; j++) {
-        if (CATEGORIES[i].nodes[j] === label) return CATEGORIES[i].color;
+      var cat = CATEGORIES[i];
+      for (var j = 0; j < cat.nodes.length; j++) {
+        if (cat.nodes[j] === label) return cat.color;
+      }
+      if (cat.subcategories) {
+        for (var k = 0; k < cat.subcategories.length; k++) {
+          var sub = cat.subcategories[k];
+          for (var m = 0; m < sub.nodes.length; m++) {
+            if (sub.nodes[m] === label) return sub.color;
+          }
+        }
       }
     }
     return '#888780';

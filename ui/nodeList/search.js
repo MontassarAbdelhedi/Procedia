@@ -61,6 +61,7 @@ var __nl_search = (function() {
     for (var i = 0; i < catEls.length; i++) {
       var catEl = catEls[i];
       var nodeItems = catEl.querySelectorAll('.leftbar-node-item');
+      var subcats = catEl.querySelectorAll('.leftbar-subcategory');
       var anyVisible = false;
 
       for (var j = 0; j < nodeItems.length; j++) {
@@ -72,6 +73,27 @@ var __nl_search = (function() {
           anyVisible = true;
         } else {
           nodeItems[j].classList.add('hidden');
+        }
+      }
+
+      for (var k = 0; k < subcats.length; k++) {
+        var subItems = subcats[k].querySelectorAll('.leftbar-node-item');
+        var subVisible = false;
+        for (var m = 0; m < subItems.length; m++) {
+          if (!subItems[m].classList.contains('hidden')) {
+            subVisible = true;
+            break;
+          }
+        }
+        if (q === '') {
+          subcats[k].style.display = '';
+        } else {
+          subcats[k].style.display = subVisible ? '' : 'none';
+        }
+        if (subVisible) {
+          subcats[k].classList.add('open');
+        } else {
+          subcats[k].classList.remove('open');
         }
       }
 

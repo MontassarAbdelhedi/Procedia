@@ -211,12 +211,8 @@ var canvasDrag = (function() {
 
     graphState.addNode(nodeData);
 
-    if (def.params === 'dynamic' && def.matchName && typeof schemaCache !== 'undefined' && schemaCache.fetchSchema) {
-      schemaCache.fetchSchema(def.matchName).then(function(schema) {
-        if (typeof engine._applyDynamicSchema === 'function') {
-          engine._applyDynamicSchema(nodeId, schema);
-        }
-      });
+    if (def.params === 'dynamic' && def.matchName && typeof __e_hlp !== 'undefined') {
+      __e_hlp.resolveDynamicSchema(nodeId, def.matchName);
     }
 
     graphState.removeWire(wireId);
