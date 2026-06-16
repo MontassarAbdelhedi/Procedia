@@ -146,6 +146,49 @@ function _handleSetEffectProperty(cmd) {
 }
 
 /**
+ * Enables or disables an effect on a layer by matchName.
+ * @param {Object} cmd Command with params: hostingCompUUID, layerUUID/nodeUUID, matchName, enabled.
+ * @return {Object} Result with .ok, .error.
+ */
+function _handleSetEffectEnabled(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var params = _cmdParams(cmd);
+    var comp = findCompByUUID(params.hostingCompUUID);
+    if (!comp) { result.error = 'setEffectEnabled: host comp not found'; return result; }
+    var layerUUID = params.layerUUID || params.layerNodeUUID;
+    if (!layerUUID) { result.error = 'setEffectEnabled: layerUUID required'; return result; }
+    var layer = findLayerByUUID(comp, layerUUID);
+    if (!layer) { result.error = 'setEffectEnabled: layer not found'; return result; }
+    var targetEffectName = params.matchName + '__' + params.nodeUUID;
+    var effects = layer.Effects;
+    var ei;
+    var fx;
+    var found = false;
+    for (ei = 1; ei <= effects.numProperties; ei++) {
+      fx = effects.property(ei);
+      if (fx.name === targetEffectName) {
+        fx.enabled = (params.enabled !== false);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      for (ei = 1; ei <= effects.numProperties; ei++) {
+        fx = effects.property(ei);
+        if (fx.matchName === params.matchName) {
+          fx.enabled = (params.enabled !== false);
+          found = true;
+          break;
+        }
+      }
+    }
+    result.ok = true;
+  } catch (e) { result.error = e.toString(); }
+  return result;
+}
+
+/**
  * Renames an effect on a layer by matchName.
  * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, effectMatchName, label.
  * @return {Object} Result with .ok, .error.
@@ -273,41 +316,33 @@ function _handleIntrospectEffect(cmd) {
       return result;
     }
 
-    var ALLOWED_TYPES = [
-      PropertyValueType.COLOR,
-      PropertyValueType.TwoD,
-      PropertyValueType.ThreeD,
-      PropertyValueType.SCALAR,
-      PropertyValueType.ANGLE,
-      PropertyValueType.NO_VALUE
-    ];
-
     var schema = [];
 
     function _walkProperties(parent) {
       var wi;
       for (wi = 1; wi <= parent.numProperties; wi++) {
-        var prop = parent.property(wi);
+        var prop;
+        try {
+          prop = parent.property(wi);
+        } catch (e) { continue; }
+        if (!prop) continue;
         if (prop.numProperties > 0) {
           _walkProperties(prop);
           continue;
         }
-        var pvt  = prop.propertyValueType;
-        var allowed = false;
-        var ki;
-        for (ki = 0; ki < ALLOWED_TYPES.length; ki++) {
-          if (pvt === ALLOWED_TYPES[ki]) { allowed = true; break; }
-        }
-        if (!allowed) continue;
         if (typeof prop.setValue !== 'function') continue;
+        if (prop.propertyValueType === undefined || prop.propertyValueType === null) continue;
 
-        var mappedType = null;
-        if (pvt === PropertyValueType.COLOR)    mappedType = 'color';
-        if (pvt === PropertyValueType.TwoD)     mappedType = 'vector2';
-        if (pvt === PropertyValueType.ThreeD)   mappedType = 'vector3';
-        if (pvt === PropertyValueType.SCALAR)   mappedType = 'number';
-        if (pvt === PropertyValueType.ANGLE)    mappedType = 'number';
-        if (pvt === PropertyValueType.NO_VALUE) mappedType = 'boolean';
+        var pvt    = prop.propertyValueType;
+        var mappedType = 'string';
+
+        if (pvt === PropertyValueType.COLOR)        mappedType = 'color';
+        else if (pvt === PropertyValueType.TwoD)    mappedType = 'vector2';
+        else if (pvt === PropertyValueType.ThreeD)  mappedType = 'vector3';
+        else if (pvt === PropertyValueType.SCALAR)  mappedType = 'number';
+        else if (pvt === PropertyValueType.ANGLE)   mappedType = 'number';
+        else if (pvt === PropertyValueType.NO_VALUE) mappedType = 'boolean';
+        else if (pvt === PropertyValueType.SELECTION) mappedType = 'enum';
 
         schema.push({
           matchName:    prop.matchName,

@@ -24,6 +24,7 @@
         if (node.secondaryPorts === undefined) node.secondaryPorts = null;
         if (node.dynamicSchema  === undefined) node.dynamicSchema  = null;
         if (node.locked         === undefined) node.locked         = false;
+        if (node.disabled       === undefined) node.disabled       = false;
       }
     }
 

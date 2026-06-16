@@ -40,7 +40,11 @@ var NumberNode = {
   /** @return {null} Data node — no AE action on delete. */
   onDelete:         function(nodeData)                              { return null; },
   /** @return {null} Data node — no AE action on property change. */
-  onPropertyChange: function(key, value, nodeData, hostingCompUUID) { return null; }
+  onPropertyChange: function(key, value, nodeData, hostingCompUUID) { return null; },
+  /** @return {null} Data node — handled via JS propagation. */
+  onDisable: function(nodeData) { return null; },
+  /** @return {null} Data node — handled via JS propagation. */
+  onEnable:  function(nodeData) { return null; }
 };
 
 nodeRegistry.register(NumberNode);

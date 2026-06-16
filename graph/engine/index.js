@@ -40,6 +40,7 @@ var engine = (function() {
     recreateNode:          __e_nodes.recreateNode,
     resetAll:              __e_state.resetAll,
     toggleLockSelectedNodes: __e_nodes.toggleLockSelectedNodes,
+    toggleNodeDisabled:     __e_state.toggleNodeDisabled,
     disconnectWire:        __e_wires.disconnectWire,
     setNodeProperty:       __e_state.setNodeProperty,
     _firePathCreation:     __e_prop.firePathCreation,

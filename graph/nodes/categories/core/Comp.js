@@ -108,6 +108,42 @@ var CompNode = {
         value:           value
       }
     };
+  },
+
+  /**
+   * When a comp is disabled, hide its layer in the hosting comp (if nested).
+   * @param {Object} nodeData
+   * @param {string} hostingCompUUID
+   * @return {Object|null} Action to disable the layer, or null if root comp.
+   */
+  onDisable: function(nodeData, hostingCompUUID) {
+    if (!hostingCompUUID) return null;
+    return {
+      action: 'setLayerEnabled',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        enabled:         false
+      }
+    };
+  },
+
+  /**
+   * When a comp is re-enabled, show its layer in the hosting comp (if nested).
+   * @param {Object} nodeData
+   * @param {string} hostingCompUUID
+   * @return {Object|null} Action to enable the layer, or null if root comp.
+   */
+  onEnable: function(nodeData, hostingCompUUID) {
+    if (!hostingCompUUID) return null;
+    return {
+      action: 'setLayerEnabled',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        enabled:         true
+      }
+    };
   }
 };
 

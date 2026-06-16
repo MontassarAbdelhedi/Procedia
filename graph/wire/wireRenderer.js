@@ -166,7 +166,18 @@ var wireRenderer = (function() {
   }
 
   /**
+   * Checks whether a node is disabled.
+   * @param {string} nodeId
+   * @returns {boolean}
+   */
+  function _isNodeDisabled(nodeId) {
+    var node = graphState.getNode(nodeId);
+    return node ? !!node.disabled : false;
+  }
+
+  /**
    * Draws a single wire from its source to target port.
+   * Wires connected to a disabled node are rendered gray without dash animation.
    *
    * @param {CanvasRenderingContext2D} ctx - Canvas context
    * @param {Object} wire - Wire data object
@@ -176,13 +187,23 @@ var wireRenderer = (function() {
     var to   = _portPosInWrap(wire.toNode, wire.toPort);
     if (!from || !to) return;
 
+    var isDisabledWire = _isNodeDisabled(wire.fromNode) || _isNodeDisabled(wire.toNode);
     var isSelected = typeof _selectedWireId !== 'undefined' && _selectedWireId === wire.id;
-    var color = isSelected ? '#FFFFFF' : (WIRE_COLORS[wire.type] || WIRE_COLORS.layer);
+
+    var color;
+    if (isDisabledWire) {
+      color = '#555550';
+    } else if (isSelected) {
+      color = '#FFFFFF';
+    } else {
+      color = WIRE_COLORS[wire.type] || WIRE_COLORS.layer;
+    }
+
     var style = _getStyle();
     ctx.strokeStyle = color;
     ctx.lineWidth = isSelected ? 3 : 2;
 
-    var useDash = _getAnimDash();
+    var useDash = !isDisabledWire && _getAnimDash();
     if (useDash) {
       ctx.setLineDash([6, 4]);
       ctx.lineDashOffset = wire.type === 'parent' ? _animOffset : -_animOffset;
@@ -195,7 +216,7 @@ var wireRenderer = (function() {
     if (isSelected) {
       ctx.strokeStyle = color;
       ctx.lineWidth = 6;
-      ctx.globalAlpha = 0.2;
+      ctx.globalAlpha = isDisabledWire ? 0.1 : 0.2;
       if (useDash) {
         ctx.setLineDash([12, 8]);
         ctx.lineDashOffset = wire.type === 'parent' ? _animOffset : -_animOffset;
@@ -288,6 +309,59 @@ var wireRenderer = (function() {
   }
 
   /**
+   * Draws neon blue bypass wires for disabled effector nodes.
+   * Skips from previous node's output to next node's input port.
+   */
+  function _drawBypassWires() {
+    var nodes = graphState.getAllNodes();
+    var wires = graphState.getAllWires();
+
+    for (var nodeId in nodes) {
+      if (!nodes.hasOwnProperty(nodeId)) continue;
+      var nodeData = nodes[nodeId];
+      if (nodeData.nodeKind !== 'effector' || !nodeData.disabled) continue;
+
+      var inputWire = null;
+      var outputWire = null;
+
+      for (var wid in wires) {
+        if (!wires.hasOwnProperty(wid)) continue;
+        var w = wires[wid];
+        if (w.toNode === nodeId && w.type === 'layer') inputWire = w;
+        if (w.fromNode === nodeId && w.type === 'layer') outputWire = w;
+      }
+
+      if (!inputWire || !outputWire) continue;
+
+      var fromPos = _portPosInWrap(inputWire.fromNode, inputWire.fromPort);
+      var toPos   = _portPosInWrap(outputWire.toNode, outputWire.toPort);
+      if (!fromPos || !toPos) continue;
+
+      var style = _getStyle();
+
+      _ctx.save();
+      _ctx.strokeStyle = '#4A90D9';
+      _ctx.lineWidth = 2.5;
+      _ctx.globalAlpha = 0.75;
+      _ctx.setLineDash([8, 6]);
+      _ctx.lineDashOffset = -_animOffset;
+
+      _ctx.beginPath();
+      _drawSegment(_ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, style);
+      _ctx.stroke();
+
+      _ctx.setLineDash([]);
+      _ctx.globalAlpha = 0.15;
+      _ctx.lineWidth = 8;
+      _ctx.beginPath();
+      _drawSegment(_ctx, fromPos.x, fromPos.y, toPos.x, toPos.y, style);
+      _ctx.stroke();
+
+      _ctx.restore();
+    }
+  }
+
+  /**
    * Clears the canvas and draws all wires (and optional preview line).
    *
    * @param {Object|null} preview - Preview data with from/to positions, or null
@@ -304,6 +378,7 @@ var wireRenderer = (function() {
     }
 
     _drawCloneWires(_ctx);
+    _drawBypassWires();
 
     if (preview && preview.from && preview.to) {
       _drawPreview(_ctx, preview.from, preview.to);

@@ -75,9 +75,209 @@ var __e_state = (function() {
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
   }
 
+  /**
+   * Toggles the disabled state of a node. Updates graphState, dispatches
+   * onDisable/onEnable lifecycle hooks (or default actions based on nodeKind),
+   * and refreshes the UI.
+   *
+   * @param {string} nodeId - Node ID to toggle
+   */
+  function toggleNodeDisabled(nodeId) {
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) {
+      console.warn('[engine] toggleNodeDisabled: node not found:', nodeId);
+      return;
+    }
+
+    var newDisabled = !nodeData.disabled;
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def) return;
+
+    graphState.updateNode(nodeId, { disabled: newDisabled });
+
+    if (newDisabled) {
+      _dispatchDisableAction(nodeData, def);
+    } else {
+      _dispatchEnableAction(nodeData, def);
+    }
+
+    hlp.refreshNodeUI();
+    if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+  }
+
+  /**
+   * Builds and dispatches the disable action for a node.
+   * Uses onDisable hook if defined; otherwise applies default behavior per nodeKind.
+   * Kind-specific side effects (data defaults propagation) always run regardless.
+   */
+  function _dispatchDisableAction(nodeData, def) {
+    var action = null;
+
+    if (def.onDisable) {
+      action = _buildLifecycleAction(nodeData, def, 'onDisable');
+    } else {
+      // Default AE action per nodeKind (no custom onDisable hook)
+      if (nodeData.nodeKind === 'effector') {
+        _defaultEffectorDisable(nodeData);
+      } else if (nodeData.nodeKind === 'affected') {
+        _defaultAffectedDisable(nodeData);
+      }
+    }
+
+    if (action) evalBridge.dispatch(action);
+
+    // Kind-specific side effects that run regardless of hook existence
+    if (nodeData.nodeKind === 'data') {
+      hlp.propagateDataDefaults(nodeData.id);
+    }
+  }
+
+  /**
+   * Builds and dispatches the enable action for a node.
+   * Uses onEnable hook if defined; otherwise applies default behavior per nodeKind.
+   * Kind-specific side effects (data re-propagation) always run regardless.
+   */
+  function _dispatchEnableAction(nodeData, def) {
+    var action = null;
+
+    if (def.onEnable) {
+      action = _buildLifecycleAction(nodeData, def, 'onEnable');
+    } else {
+      // Default AE action per nodeKind (no custom onEnable hook)
+      if (nodeData.nodeKind === 'effector') {
+        _defaultEffectorEnable(nodeData);
+      } else if (nodeData.nodeKind === 'affected') {
+        _defaultAffectedEnable(nodeData);
+      }
+    }
+
+    if (action) evalBridge.dispatch(action);
+
+    // Kind-specific side effects that run regardless of hook existence
+    if (nodeData.nodeKind === 'data') {
+      hlp.repropagateDataValues(nodeData.id);
+    }
+  }
+
+  /**
+   * Calls a lifecycle hook (onDisable/onEnable) with appropriate params per nodeKind.
+   * For affected nodes, injects the path layer UUID so AE can find the correct layer.
+   */
+  function _buildLifecycleAction(nodeData, def, hookName) {
+    var hook = def[hookName];
+    if (!hook) return null;
+
+    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
+      ? nodeData.hostingComps[0] : null;
+
+    if (nodeData.nodeKind === 'effector') {
+      var upstreamNodeUUID = hlp.findPathLayerUUID(nodeData.id);
+      return hook(nodeData, hostingCompUUID, upstreamNodeUUID);
+    } else if (nodeData.nodeKind === 'affected') {
+      var action = hook(nodeData, hostingCompUUID);
+      // Inject layerUUID so AE can find the layer by its .comment (pathLayerUUID)
+      if (action && action.params) {
+        action.params.layerUUID = hlp.findPathLayerUUID(nodeData.id);
+      }
+      return action;
+    }
+    return hook(nodeData);
+  }
+
+  /**
+   * Default disable for effector nodes: set effect.enabled = false via AE.
+   */
+  function _defaultEffectorDisable(nodeData) {
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def || !def.matchName) return;
+
+    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
+      ? nodeData.hostingComps[0] : null;
+    if (!hostingCompUUID) return;
+
+    var upstreamNodeUUID = hlp.findPathLayerUUID(nodeData.id);
+
+    evalBridge.dispatch({
+      action: 'setEffectEnabled',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerNodeUUID:   upstreamNodeUUID,
+        matchName:       def.matchName,
+        enabled:         false
+      }
+    });
+  }
+
+  /**
+   * Default enable for effector nodes: set effect.enabled = true via AE.
+   */
+  function _defaultEffectorEnable(nodeData) {
+    var def = nodeRegistry.getDefinition(nodeData.type);
+    if (!def || !def.matchName) return;
+
+    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
+      ? nodeData.hostingComps[0] : null;
+    if (!hostingCompUUID) return;
+
+    var upstreamNodeUUID = hlp.findPathLayerUUID(nodeData.id);
+
+    evalBridge.dispatch({
+      action: 'setEffectEnabled',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerNodeUUID:   upstreamNodeUUID,
+        matchName:       def.matchName,
+        enabled:         true
+      }
+    });
+  }
+
+  /**
+   * Default disable for affected nodes: set layer.enabled = false via AE.
+   * Injects layerUUID so AE can find the layer by its .comment (pathLayerUUID).
+   */
+  function _defaultAffectedDisable(nodeData) {
+    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
+      ? nodeData.hostingComps[0] : null;
+    if (!hostingCompUUID) return;
+
+    evalBridge.dispatch({
+      action: 'setLayerEnabled',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerUUID:       hlp.findPathLayerUUID(nodeData.id),
+        enabled:         false
+      }
+    });
+  }
+
+  /**
+   * Default enable for affected nodes: set layer.enabled = true via AE.
+   * Injects layerUUID so AE can find the layer by its .comment (pathLayerUUID).
+   */
+  function _defaultAffectedEnable(nodeData) {
+    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
+      ? nodeData.hostingComps[0] : null;
+    if (!hostingCompUUID) return;
+
+    evalBridge.dispatch({
+      action: 'setLayerEnabled',
+      params: {
+        nodeUUID:        nodeData.id,
+        hostingCompUUID: hostingCompUUID,
+        layerUUID:       hlp.findPathLayerUUID(nodeData.id),
+        enabled:         true
+      }
+    });
+  }
+
   return {
-    resetAll:         resetAll,
-    setNodeProperty:  setNodeProperty
+    resetAll:           resetAll,
+    setNodeProperty:    setNodeProperty,
+    toggleNodeDisabled: toggleNodeDisabled
   };
 
 })();

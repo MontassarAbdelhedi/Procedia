@@ -61,6 +61,8 @@ var _handlers = {
   'removeEffect':         _handleRemoveEffect,
   'setEffectProperty':    _handleSetEffectProperty,
   'renameEffect':         _handleRenameEffect,
+  'setEffectEnabled':     _handleSetEffectEnabled,
+  'setLayerEnabled':      _handleSetLayerEnabled,
   'restampLayer':         _handleRestampLayer,
   'pollAliveNodes':       _handlePollAliveNodes,
   'pollExternalDeletions': _handlePollExternalDeletions,

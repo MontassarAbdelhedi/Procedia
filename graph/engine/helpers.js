@@ -9,8 +9,9 @@
  * Load before: engine/propagate.js, engine/wires.js, engine/nodes/index.js,
  *              engine/state.js, engine/index.js
  *
- * Exports: buildInitialProps, refreshNodeUI, resolveDynamicSchema,
- *          applyDynamicSchema, findPathLayerUUID, propagateDataValue
+   * Exports: buildInitialProps, refreshNodeUI, resolveDynamicSchema,
+   *          applyDynamicSchema, findPathLayerUUID, propagateDataValue,
+   *          propagateDataDefaults, repropagateDataValues
  */
 // graph/engine/helpers.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
@@ -65,6 +66,8 @@ var __e_hlp = (function() {
       _refreshNodeUI();
     }).catch(function(err) {
       console.error('[engine] dynamic schema failed for ' + matchName + ': ' + err);
+      graphState.updateNode(nodeId, { dynamicSchema: { matchName: matchName, properties: [] } });
+      _refreshNodeUI();
     });
   }
 
@@ -161,13 +164,72 @@ var __e_hlp = (function() {
     }
   }
 
+  /**
+   * Propagates default values from target node definitions to all nodes
+   * connected via data wires from the given source node.
+   * Used when a data node is disabled — receivers fall back to their own defaults.
+   *
+   * @param {string} fromNodeId - The disabled data node ID
+   */
+  function _propagateDataDefaults(fromNodeId) {
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.fromNode === fromNodeId && w.type === 'data') {
+        var targetNode = graphState.getNode(w.toNode);
+        if (!targetNode) continue;
+        var targetDef = nodeRegistry.getDefinition(targetNode.type);
+        if (!targetDef) continue;
+
+        if (targetDef.params === 'dynamic') {
+          if (targetNode.dynamicSchema && targetNode.dynamicSchema.properties) {
+            var props = targetNode.dynamicSchema.properties;
+            for (var pi = 0; pi < props.length; pi++) {
+              if (props[pi].matchName === w.toPort) {
+                graphState.updateProp(w.toNode, w.toPort, props[pi].defaultValue);
+                break;
+              }
+            }
+          }
+        } else {
+          var params = targetDef.params || [];
+          for (var j = 0; j < params.length; j++) {
+            if (params[j].key === w.toPort) {
+              graphState.updateProp(w.toNode, w.toPort, params[j]['default']);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Re-propagates all property values from a data node to its connected
+   * data wire targets. Used when a data node is re-enabled.
+   *
+   * @param {string} fromNodeId - The re-enabled data node ID
+   */
+  function _repropagateDataValues(fromNodeId) {
+    var nodeData = graphState.getNode(fromNodeId);
+    if (!nodeData) return;
+    for (var key in nodeData.props) {
+      if (nodeData.props.hasOwnProperty(key)) {
+        _propagateDataValue(fromNodeId, key, nodeData.props[key]);
+      }
+    }
+  }
+
   return {
     buildInitialProps:   _buildInitialProps,
     refreshNodeUI:       _refreshNodeUI,
     resolveDynamicSchema:_resolveDynamicSchema,
     applyDynamicSchema:  _applyDynamicSchema,
     findPathLayerUUID:   _findPathLayerUUID,
-    propagateDataValue:  _propagateDataValue
+    propagateDataValue:  _propagateDataValue,
+    propagateDataDefaults:  _propagateDataDefaults,
+    repropagateDataValues:  _repropagateDataValues
   };
 
 })();

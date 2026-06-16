@@ -83,7 +83,7 @@ var __r_hlp = (function() {
 
   /**
    * Returns a space-separated class string for a node element based on its state.
-   * Includes "node", nodeKind, state class, and "selected" if applicable.
+   * Includes "node", nodeKind, state class, "selected", "collapsed", and "disabled".
    * @param {object} nodeData
    * @returns {string}
    */
@@ -92,6 +92,7 @@ var __r_hlp = (function() {
     classes.push(nodeData.state || 'ghost');
     if (graphState.isSelected(nodeData.id)) classes.push('selected');
     if (nodeData.collapsed) classes.push('node--collapsed');
+    if (nodeData.disabled) classes.push('disabled');
     return classes.join(' ');
   }
 

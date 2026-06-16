@@ -371,6 +371,25 @@
   border-color: #e05555;
 }
 
+.node.disabled {
+  opacity: 0.5;
+  border-style: dashed;
+  border-color: #555550;
+  filter: saturate(0.4);
+}
+
+.node.disabled .node-state-dot {
+  background: #666660;
+}
+
+.node.disabled .node-body .node-param-value {
+  color: #6a6a66;
+}
+
+.node.disabled .node-body .node-param-value.is-wired {
+  color: #6a6a66;
+}
+
 .node.selected {
   border-color: #534AB7;
   box-shadow: 0 0 0 1px #534AB7, 0 2px 12px rgba(0,0,0,0.55);

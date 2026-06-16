@@ -61,6 +61,19 @@ var nodeToolbar = (function() {
     _toolbar.appendChild(_colorPicker);
   }
 
+  function _updateToggleIcon() {
+    var nodeData = graphState.getNode(_currentNodeId);
+    var toggleBtn = _toolbar ? _toolbar.querySelector('[data-action="toggle"]') : null;
+    if (!toggleBtn || !nodeData) return;
+    if (nodeData.disabled) {
+      toggleBtn.innerHTML = '<i class="ti ti-player-play"></i>';
+      toggleBtn.title = 'Enable';
+    } else {
+      toggleBtn.innerHTML = '<i class="ti ti-player-pause"></i>';
+      toggleBtn.title = 'Disable';
+    }
+  }
+
   function _onToolbarClick(e) {
     var btn = e.target.closest('.node-toolbar-btn');
     if (!btn) return;
@@ -85,6 +98,8 @@ var nodeToolbar = (function() {
         _handleCollapse();
         break;
       case 'toggle':
+        engine.toggleNodeDisabled(_currentNodeId);
+        _updateToggleIcon();
         break;
       case 'switch':
         break;
@@ -137,6 +152,8 @@ var nodeToolbar = (function() {
 
     _detach();
     _currentNodeId = nodeId;
+
+    _updateToggleIcon();
 
     nodeEl.appendChild(_toolbar);
     _toolbar.style.display = 'flex';
