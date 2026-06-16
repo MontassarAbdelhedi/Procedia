@@ -1,91 +1,12 @@
 /**
- * @fileoverview Import action handler — enumerates the entire AE project
- * and returns its structure as JSON (comps, layers, effects, footage).
- * REQUIRES: json.jsx, utils.jsx
- * Load BEFORE: dispatcher.jsx (function becomes global for _handlers map)
- * Exports: _handleImportProject
+ * @fileoverview Read functions for importing AE project structure — reads
+ * layers, comps, and footage items into plain JSON-safe objects. (ES3-safe)
+ * REQUIRES: json.jsx, utils.jsx, actionImport/helpers.jsx
+ * Load BEFORE: dispatcher.jsx, actionImport/handler.jsx
  */
-
-var _import_uuid_counter = 0;
-
-function _import_uuid(prefix) {
-  _import_uuid_counter++;
-  var ts = '';
-  var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  for (var ci = 0; ci < 6; ci++) {
-    ts += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return prefix + '-' + ts + '-' + String(_import_uuid_counter);
-}
-
-function _readTransformProp(layer, matchName, def) {
-  try {
-    var prop = layer.property(matchName);
-    if (prop) return prop.value;
-  } catch (e) {}
-  return def;
-}
-
-function _readTransform(layer) {
-  return {
-    position:    _readTransformProp(layer, 'ADBE Position', [0, 0]),
-    scale:       _readTransformProp(layer, 'ADBE Scale', [100, 100]),
-    rotation:    _readTransformProp(layer, 'ADBE Rotate Z', 0),
-    opacity:     _readTransformProp(layer, 'ADBE Opacity', 100),
-    anchorPoint: _readTransformProp(layer, 'ADBE Anchor Point', [0, 0])
-  };
-}
-
-function _readEffectProps(effect, arr) {
-  for (var pi = 1; pi <= effect.numProperties; pi++) {
-    var prop = effect.property(pi);
-    try {
-      var ptype = prop.propertyType;
-      if (ptype === PropertyType.INDEXED_GROUP || ptype === PropertyType.NAMED_GROUP) {
-        _readEffectProps(prop, arr);
-      } else if (typeof prop.value !== 'undefined') {
-        arr.push({ matchName: prop.matchName, value: prop.value });
-      }
-    } catch (e) {}
-  }
-}
-
-function _readEffects(layer) {
-  var result = [];
-  try {
-    var effectsGroup = layer.property('ADBE Effect Parade');
-    if (!effectsGroup) return result;
-    for (var ei = 1; ei <= effectsGroup.numProperties; ei++) {
-      var effect = effectsGroup.property(ei);
-      var props = [];
-      _readEffectProps(effect, props);
-      result.push({
-        matchName: effect.matchName,
-        name:      effect.name,
-        index:     ei,
-        properties: props
-      });
-    }
-  } catch (e) {}
-  return result;
-}
-
-function _layerType(layer) {
-  if (layer instanceof TextLayer)       return 'text';
-  if (layer instanceof ShapeLayer)      return 'shape';
-  if (layer instanceof CameraLayer)     return 'camera';
-  if (layer instanceof LightLayer)      return 'light';
-  if (!(layer instanceof AVLayer))      return 'unknown';
-  if (layer.nullLayer)                  return 'null';
-  if (layer.adjustmentLayer)            return 'adjustment';
-  if (layer.source instanceof CompItem) return 'precomp';
-  if (layer.source instanceof FootageItem) {
-    var ms = layer.source.mainSource;
-    if (ms instanceof SolidSource) return 'solid';
-    return 'footage';
-  }
-  return 'unknown';
-}
+// actionImport/read.jsx — AE project structure readers (ES3-safe)
+// REQUIRES: json.jsx, utils.jsx, actionImport/helpers.jsx
+// Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
 
 function _readLayer(layer) {
   var uuid = _import_uuid('PROC');
@@ -233,32 +154,6 @@ function _readFootageItems() {
         result.push(_readFootage(item));
       }
     } catch (e) {}
-  }
-  return result;
-}
-
-function _handleImportProject(cmd) {
-  var result = { ok: false, data: null, error: null };
-  try {
-    var comps = [];
-    var i;
-    for (i = 1; i <= app.project.numItems; i++) {
-      try {
-        var item = app.project.item(i);
-        if (item instanceof CompItem) {
-          if (item.name.indexOf('DO NOT DELETE') === 0) continue;
-          comps.push(_readComp(item));
-        }
-      } catch (e) {}
-    }
-    var footage = _readFootageItems();
-    result.ok = true;
-    result.data = {
-      comps:   comps,
-      footage: footage
-    };
-  } catch (e) {
-    result.error = 'importProject: ' + e.toString();
   }
   return result;
 }

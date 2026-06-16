@@ -67,8 +67,12 @@ var evalBridge = (function() {
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_property.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_park.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_effect.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_import.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/apply.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/introspect.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/pollAlive.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actionImport/helpers.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actionImport/read.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actionImport/handler.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_compList.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_graphExport.jsx");',
       // Core dispatcher — must be last (defines _handlers + dispatch/dispatchBatch)
@@ -81,7 +85,7 @@ var evalBridge = (function() {
         _flushReadyCallbacks(false);
       } else {
         _preambleLoaded = true;
-        console.log('[evalBridge] preamble loaded successfully');
+
         _flushReadyCallbacks(true);
       }
     });

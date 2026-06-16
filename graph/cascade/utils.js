@@ -6,14 +6,17 @@
  * UUID resolution.
  *
  * Dependencies: graphState, nodeRegistry
- * Load before: cascade/cascadeGhost.js, cascade/index.js
+ * Load before: cascade/cascadeGhost/ (5 files), cascade/index.js
  *
  * Exports: isCompNode, _hasCompDownstreamExcluding, hasCompDownstream,
  *          collectPathUpstream, _resolvePathLayerUUID
  */
 // graph/cascade/utils.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js
-// MUST LOAD BEFORE: graph/cascade/cascadeGhost.js, graph/cascade/index.js
+// MUST LOAD BEFORE: graph/cascade/cascadeGhost/collect.js, graph/cascade/cascadeGhost/commands.js,
+//                   graph/cascade/cascadeGhost/update.js, graph/cascade/cascadeGhost/cleanup.js,
+//                   graph/cascade/cascadeGhost/ghost.js,
+//                   graph/cascade/index.js
 
 var __c_util = (function() {
 

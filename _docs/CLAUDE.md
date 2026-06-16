@@ -768,7 +768,11 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/wireValidator/filterPickerList.js"></script>
 <script src="graph/wireValidator/index.js"></script>
 <script src="graph/cascade/utils.js"></script>
-<script src="graph/cascade/cascadeGhost.js"></script>
+<script src="graph/cascade/cascadeGhost/collect.js"></script>
+<script src="graph/cascade/cascadeGhost/commands.js"></script>
+<script src="graph/cascade/cascadeGhost/update.js"></script>
+<script src="graph/cascade/cascadeGhost/cleanup.js"></script>
+<script src="graph/cascade/cascadeGhost/ghost.js"></script>
 <script src="graph/cascade/index.js"></script>
 <script src="flush/dirtyFlusher.js"></script>
 <script src="graph/engine/helpers.js"></script>
@@ -794,8 +798,15 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/canvas/input/state.js"></script>
 <script src="graph/canvas/input/utils.js"></script>
 <script src="graph/canvas/input/rubberband.js"></script>
-<script src="graph/canvas/input/handlers/titleEdit.js"></script>
-<script src="graph/canvas/input/handlers/mouse.js"></script>
+<script src="graph/canvas/input/handlers/titleEdit/helpers.js"></script>
+<script src="graph/canvas/input/handlers/titleEdit/exit.js"></script>
+<script src="graph/canvas/input/handlers/titleEdit/commit.js"></script>
+<script src="graph/canvas/input/handlers/titleEdit/cancel.js"></script>
+<script src="graph/canvas/input/handlers/titleEdit/dblclick.js"></script>
+<script src="graph/canvas/input/handlers/mouse/mousedown.js"></script>
+<script src="graph/canvas/input/handlers/mouse/mousemove.js"></script>
+<script src="graph/canvas/input/handlers/mouse/mouseup.js"></script>
+<script src="graph/canvas/input/handlers/mouse/click.js"></script>
 <script src="graph/canvas/input/handlers/keyboard.js"></script>
 <script src="graph/canvas/input/handlers/wheel.js"></script>
 <script src="graph/canvas/input/handlers/index.js"></script>
@@ -806,8 +817,13 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/canvas/minimap/renderer.js"></script>
 <script src="graph/canvas/minimap/interaction.js"></script>
 <script src="graph/canvas/minimap/index.js"></script>
-<script src="graph/canvas/drag.js"></script>
-<script src="graph/wire/wireRenderer.js"></script>
+<script src="graph/canvas/drag/helpers.js"></script>
+<script src="graph/canvas/drag/hitTest.js"></script>
+<script src="graph/canvas/drag/insert.js"></script>
+<script src="graph/canvas/drag/preview.js"></script>
+<script src="graph/wire/wireRenderer/helpers.js"></script>
+<script src="graph/wire/wireRenderer/draw.js"></script>
+<script src="graph/wire/wireRenderer/render.js"></script>
 <script src="graph/wire/wire.js"></script>
 
 <!-- 7. Auto layout — depends on graphState, nodeRegistry, engine -->
@@ -820,7 +836,9 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="graph/autoLayout/index.js"></script>
 
 <!-- 7b. Import module — depends on graphState, nodeRegistry, engine, uuidGenerator, evalBridge -->
-<script src="graph/import/mapNodes.js"></script>
+<script src="graph/import/mapNodes/helpers.js"></script>
+<script src="graph/import/mapNodes/buildItems.js"></script>
+<script src="graph/import/mapNodes/buildEffects.js"></script>
 <script src="graph/import/mapWires.js"></script>
 <script src="graph/import/stampUUIDs.js"></script>
 <script src="graph/import/builder.js"></script>
@@ -1044,7 +1062,7 @@ procedia/
 │   │
 │   ├── cascade/                            ← Ghost cascade algorithm (3 files)
 │   │   ├── utils.js                        ← hasCompDownstream, collectPathUpstream
-│   │   ├── cascadeGhost.js                 ← cascadeGhost()
+│   │   ├── cascadeGhost/                    ← 5 files (collect, commands, update, cleanup, ghost)
 │   │   └── index.js                        ← Aggregates into cascadeAlgorithm global
 │   │
 │   ├── cycleChecker.js                     ← hasCycle() — pure graph traversal
@@ -1069,10 +1087,10 @@ procedia/
 │   │   ├── renderer/                       ← 5 files (categories, helpers, builder, index, nodeToolbar)
 │   │   ├── input/                          ← 6 files (state, utils, rubberband, handlers/*, index)
 │   │   ├── minimap/                        ← 6 files (constants, state, utils, renderer, interaction, index)
-│   │   └── drag.js                         ← onDrop handler + wire-insertion
+│   │   ├── drag/                            ← 4 files (helpers, hitTest, insert, preview)
 │   │
 │   ├── wire/                               ← Wire rendering & interaction
-│   │   ├── wireRenderer.js                 ← Bezier/direct/stepped drawing
+│   │   ├── wireRenderer/                   ← 3 files (helpers, draw, render)
 │   │   └── wire.js                         ← Wire drag, commit, delete
 │   │
 │   ├── autoLayout/                         ← Sugiyama layered graph layout (7 files)
@@ -1080,7 +1098,7 @@ procedia/
 │   │   │   crossingReduction.js, positioning.js, index.js
 │   │
 │   └── import/                             ← Project import module (5 files)
-│       ├── mapNodes.js, mapWires.js, stampUUIDs.js, builder.js, index.js
+│       ├── mapNodes/ (3 files), mapWires.js, stampUUIDs.js, builder.js, index.js
 │
 ├── ui/
 │   ├── nodeList/                           ← 5 files (categories, render, search, dragdrop, index)
@@ -1107,7 +1125,7 @@ procedia/
         ├── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER — routes to handlers
         ├── actions_schema.jsx, actions_comp.jsx, actions_layer.jsx,
         │   actions_property.jsx, actions_park.jsx, actions_matte.jsx,
-        │   actions_effect.jsx, actions_footage.jsx, actions_import.jsx,
+        │   actionEffect/ (3 files), actions_footage.jsx, actionImport/ (3 files),
         │   actions_graphExport.jsx
         └── tools/buildEffectsCatalog.jsx   ← Standalone utility
 ```

@@ -5,7 +5,9 @@
  * returned by the ExtendScript scanner, builds matching Procedia nodes and
  * wires, stamps UUIDs on AE objects, and loads the result into graph state.
  *
- * Dependencies: graphState, graph/import/mapNodes.js, graph/import/mapWires.js,
+ * Dependencies: graphState, graph/import/mapNodes/helpers.js,
+ *               graph/import/mapNodes/buildItems.js, graph/import/mapNodes/buildEffects.js,
+ *               graph/import/mapWires.js,
  *               graph/import/stampUUIDs.js, evalBridge
  *
  * Exports: importProject
@@ -21,7 +23,7 @@ var __imp_builder = (function() {
    * Imports a full AE project structure into the Procedia graph.
    * Merges into the existing graph state (no clearing).
    *
-   * @param {Object} aeData - Project structure from actions_import.jsx
+   * @param {Object} aeData - Project structure from actionImport/handler.jsx
    *        { comps: [...], footage: [...] }
    * @returns {Promise<Object>} Resolves with summary { comps, layers, effects, footage }
    */

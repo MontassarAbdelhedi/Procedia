@@ -75,7 +75,7 @@ var __sc_diff = (function() {
               return;
             }
             if (_schemasAreDifferent(_state.getSchema(matchName), res.data)) {
-              console.log('[schemaCache] Schema changed for:', matchName);
+
               _state.storeSchema(matchName, res.data);
               changed++;
             }
@@ -87,7 +87,7 @@ var __sc_diff = (function() {
     return chain.then(function() {
       _state.setVersion(newVersion);
       _state.setReady(true);
-      console.log('[schemaCache] Diff complete — ' + changed + ' schema(s) updated');
+
       _persist.writeToDisk();
     });
   }

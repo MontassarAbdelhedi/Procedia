@@ -43,7 +43,7 @@ var __e_state = (function() {
     if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection([]);
 
-    console.log('[Procedia] reset complete — ' + ids.length + ' nodes removed');
+
   }
 
   /**

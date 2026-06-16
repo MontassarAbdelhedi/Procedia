@@ -769,7 +769,7 @@ var nodeMap = {
 
 **`dynamicSchema`:** Runtime-only field on effector nodes with `params: 'dynamic'`. Populated from `schemaCache` on drop or on panel load restore. Never written to `tempGraph`. Shape: `{ matchName: string, properties: [{ matchName, label, type, defaultValue }] }`.
 
-**`_transplantLayerUUID`:** Transient field, never persisted. Set by `drag.js` during wire-insertion to carry the old path UUID across the graph-only wire removal. Cleared by `_firePathCreation` immediately after issuing `restampLayer`.
+**`_transplantLayerUUID`:** Transient field, never persisted. Set by `graph/canvas/drag/insert.js` during wire-insertion to carry the old path UUID across the graph-only wire removal. Cleared by `_firePathCreation` immediately after issuing `restampLayer`.
 
 ### 8b. `wireMap` — In-Session Wire Ledger
 
@@ -981,7 +981,7 @@ For each UUID in the list:
 
 ### Wire Style Modes
 
-`wireRenderer.js` reads `settings.get('wireStyle')` on every draw call. Three styles are supported:
+`wireRenderer/` reads `settings.get('wireStyle')` on every draw call. Three styles are supported:
 
 | Value | Name | Geometry |
 | ----- | ---- | -------- |
@@ -1036,7 +1036,7 @@ settings.getAll()         // returns a shallow copy of the full state
 
 ## 18. Wire-Insertion Feature
 
-When the user drops a node from the palette directly onto an existing wire, `drag.js` intercepts the drop and inserts the node mid-path.
+When the user drops a node from the palette directly onto an existing wire, `graph/canvas/drag/insert.js` intercepts the drop and inserts the node mid-path.
 
 **Active path (wire has `_pathLayerUUID`):**
 
@@ -1467,7 +1467,7 @@ These rules apply to every phase without exception. Do not rationalize exception
 5. **`jsx/dispatcher/dispatcher.jsx` is the only file that writes AE API calls.** Nodes return command objects. The engine passes them to `evalBridge`. `evalBridge` sends them to `dispatcher.jsx`. Nothing else touches AE.
 6. **Node definitions never call `evalBridge`.** A lifecycle hook returns a command object or `null`. It never resolves a Promise or calls `evalBridge` directly.
 7. **`graph/engine/` contains zero node-type conditionals.** No `if (node.type === 'CompNode')`, no `switch(nodeKind)`. All type-specific behavior lives in the node definition. The engine calls hooks by name only.
-8. **Ghost cascade never traverses `parent` or `data` wires.** `cascade/cascadeGhost.js` skips any wire whose `type` is not `'layer'` during traversal.
+8. **Ghost cascade never traverses `parent` or `data` wires.** `cascade/cascadeGhost/ghost.js` skips any wire whose `type` is not `'layer'` during traversal.
 9. **`nodeKind` is set on the node definition, never on the instance.** It is a type-level constant.
 10. **AE layer `.comment` = terminal wire UUID (not node UUID).** The dispatcher finds layers by the `_pathLayerUUID` / `layerNodeUUID` param. Never look up a layer by node UUID for path-driven AE operations.
 11. **Data nodes are always `alive`.** Set to `alive` on drop. All hooks return `null`. Never ghost, never park, never cascade. Same applies to blending and matte nodes.

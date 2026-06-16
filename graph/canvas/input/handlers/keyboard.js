@@ -2,13 +2,17 @@
  * @fileoverview Keyboard event handlers for the graph canvas.
  * Handles keydown (Delete/Backspace for node/wire deletion, Space for pan mode,
  * Enter/Escape for title editing) and keyup (Space release).
- * @dependencies input/state.js, input/utils.js, input/handlers/titleEdit.js,
+ * @dependencies input/state.js, input/utils.js, input/handlers/titleEdit/helpers.js,
+ *               input/handlers/titleEdit/exit.js, input/handlers/titleEdit/commit.js,
+ *               input/handlers/titleEdit/cancel.js, input/handlers/titleEdit/dblclick.js,
  *               graph/graphState.js, graph/engine/index.js
  * @exports _handlersKeyboard { onKeyDown, onKeyUp }
  */
 
 // graph/canvas/input/handlers/keyboard.js
-// DEPENDS ON: input/state.js, input/utils.js, input/handlers/titleEdit.js,
+// DEPENDS ON: input/state.js, input/utils.js, input/handlers/titleEdit/helpers.js,
+//             input/handlers/titleEdit/exit.js, input/handlers/titleEdit/commit.js,
+//             input/handlers/titleEdit/cancel.js, input/handlers/titleEdit/dblclick.js,
 //             graph/graphState.js, graph/engine/index.js,
 //             graph/canvas/viewport.js, graph/canvas/renderer/index.js
 // MUST LOAD BEFORE: input/handlers/index.js

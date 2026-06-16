@@ -5,7 +5,8 @@
  * Creates layer chains, effect wiring, parent relationships, blending
  * mode splices, and track matte connections.
  *
- * Dependencies: uuidGenerator, graph/import/mapNodes.js
+ * Dependencies: uuidGenerator, graph/import/mapNodes/helpers.js,
+ *               graph/import/mapNodes/buildItems.js, graph/import/mapNodes/buildEffects.js
  * Load before: graph/import/builder.js
  *
  * Exports: buildCompWires, buildParentWires, getTerminalWireIds

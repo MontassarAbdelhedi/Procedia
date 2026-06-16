@@ -16,10 +16,10 @@
   gs._fireGraphChange = function _fireGraphChange() {
     var listeners = gs._graphChangeListeners;
     if (!listeners) {
-      console.log('[graphState] _fireGraphChange: no listeners');
+
       return;
     }
-    console.log('[graphState] _fireGraphChange: ' + listeners.length + ' listeners');
+
     for (var i = 0; i < listeners.length; i++) {
       try {
         listeners[i]();

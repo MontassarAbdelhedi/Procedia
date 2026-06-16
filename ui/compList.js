@@ -85,7 +85,7 @@ var compList = (function() {
     try {
       if (compId) {
         var nodeIds = _calcDownstream(compId);
-        console.log('[compList] filter ' + nodeIds.length + ' nodes for comp ' + compId);
+
         graphState.setFilteredNodes(nodeIds);
       } else {
         graphState.clearFilter();
@@ -193,7 +193,7 @@ var compList = (function() {
       graphState.setActiveComp(compId);
       _applyFilter(compId);
     } else {
-      console.log('[compList] no matching graph node for comp: ' + name + ' (uuid: ' + comment + ')');
+
       graphState.setActiveComp(null);
       if (typeof graphState.clearFilter === 'function') {
         _applyFilter(null);

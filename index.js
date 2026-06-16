@@ -35,7 +35,7 @@ function init() {
   var _extPath = (typeof window.__adobe_cep__ !== 'undefined')
     ? csInterface.getSystemPath(SystemPath.EXTENSION)
     : '[browser preview — no CEP context]';
-  console.log('[Procedia] Panel loaded. Path: ' + _extPath);
+
   if (typeof wireValidator === 'undefined') {
     console.error('[Procedia] wireValidator did not load — check Network tab for graph/wireValidator/index.js');
   }
@@ -97,7 +97,7 @@ function init() {
           }
           renderer.render();
           if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-          console.log('[Procedia] graph restored from persistence');
+
         }
       }
     }).then(function() {
@@ -127,7 +127,7 @@ function init() {
           return;
         }
         return graphImport.importProject(res.data).then(function(summary) {
-          console.log('[Procedia] Import complete:', summary);
+
           if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
           if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
           if (typeof minimap !== 'undefined' && minimap.render) minimap.render();

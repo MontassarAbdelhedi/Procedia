@@ -53,7 +53,7 @@ var schemaCache = (function() {
           _state.setReady(true);
           return;
         }
-        console.log('[schemaCache] AE version changed — running schema diff');
+
         return _diff.runVersionDiff(currentVersion);
       })
       .catch(function(err) {

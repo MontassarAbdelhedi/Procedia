@@ -22,7 +22,7 @@ flowchart TB
     JSX_DISPATCHER --> JSX_COMP[actions_comp.jsx]
     JSX_DISPATCHER --> JSX_LAYER[actions_layer.jsx]
     JSX_DISPATCHER --> JSX_PROP[actions_property.jsx]
-    JSX_DISPATCHER --> JSX_EFFECT[actions_effect.jsx]
+    JSX_DISPATCHER --> JSX_EFFECT[actionEffect/]
     JSX_DISPATCHER --> JSX_MATTE[actions_matte.jsx]
     JSX_DISPATCHER --> JSX_PARK[actions_park.jsx]
     JSX_DISPATCHER --> JSX_SCHEMA[actions_schema.jsx]
@@ -66,7 +66,7 @@ flowchart TB
     ENGINE --> ENG_HELP[helpers.js - utilities]
     ENGINE --> ENG_STATE[state.js - reset / setProp]
     ENGINE --> CASCADE[graph/cascade/index.js - upstream/downstream tracking]
-    CASCADE --> CASCADE_GHOST[cascadeGhost.js - ghost on delete]
+    CASCADE --> CASCADE_GHOST[cascadeGhost/ - ghost on delete (5 files)]
     CASCADE --> CASCADE_UTILS[utils.js]
 
     ENG_WIRES --> WIRE_VALIDATOR
@@ -80,7 +80,7 @@ flowchart TB
     WIRE_VALIDATOR --> FILTER_PICK[filterPickerList.js]
     WIRE_VALIDATOR --> CYCLE[cycleChecker.js]
 
-    WIRE_RENDER[graph/wire/wireRenderer.js - bezier/direct/stepped]
+    WIRE_RENDER[graph/wire/wireRenderer/ - bezier/direct/stepped]
     WIRE_TOOL[graph/wire/wire.js - drag preview]
   end
 
@@ -105,7 +105,7 @@ flowchart TB
     MINIMAP --> MM_RENDER[renderer.js]
     MINIMAP --> MM_INTERACT[interaction.js]
 
-    DRAG[graph/canvas/drag.js - node drag]
+    DRAG[graph/canvas/drag/ - node drag (4 files)]
   end
 
   subgraph "Auto Layout (Sugiyama)"

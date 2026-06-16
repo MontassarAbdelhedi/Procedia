@@ -16,7 +16,7 @@ var graphImport = (function() {
    * Imports a full AE project structure into the Procedia graph.
    * Merges the imported nodes and wires into the existing graph state.
    *
-   * @param {Object} aeData - Project structure from actions_import.jsx
+   * @param {Object} aeData - Project structure from actionImport/handler.jsx
    *        { comps: [..], footage: [..] }
    * @returns {Promise<Object>} Summary { comps, layers, effects, footage, unknowns, errors }
    */

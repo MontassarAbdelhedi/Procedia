@@ -66,7 +66,7 @@ var graphExporter = (function() {
         }
       }
     }
-    console.log('[graphExporter] _buildExportGraph: ' + ghostCount + ' nodes, parkedLayers=' + JSON.stringify(parkedLayers));
+
     reservedComp.parkedLayers = parkedLayers;
 
     var nodes = [];
@@ -103,7 +103,7 @@ var graphExporter = (function() {
   }
 
   function _writeExport() {
-    console.log('[graphExporter] _writeExport fired');
+
     try {
       var graph = _buildExportGraph();
       if (typeof evalBridge !== 'undefined' && evalBridge.dispatch) {
@@ -125,7 +125,7 @@ var graphExporter = (function() {
   }
 
   function _onChange() {
-    console.log('[graphExporter] _onChange called');
+
     if (_debounceTimer) {
       clearTimeout(_debounceTimer);
     }
@@ -135,7 +135,7 @@ var graphExporter = (function() {
   function init() {
     if (_ready) return;
     _ready = true;
-    console.log('[graphExporter] init - registering onChange listener');
+
     graphState.onGraphChange(_onChange);
     _writeExport();
   }

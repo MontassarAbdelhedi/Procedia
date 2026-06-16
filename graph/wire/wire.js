@@ -6,14 +6,16 @@
  * delegating wire creation to the engine.
  *
  * Dependencies: graphState, nodeRegistry, engine/index.js, canvas/renderer,
- *               canvas/viewport, wire/wireRenderer.js
+ *               canvas/viewport, wire/wireRenderer/helpers.js,
+ *               wire/wireRenderer/draw.js, wire/wireRenderer/render.js
  * Load before: index.js
  *
  * Exports: init
  */
 // graph/wire/wire.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
-//             graph/canvas/renderer/index.js, graph/canvas/viewport.js, graph/wire/wireRenderer.js
+//             graph/canvas/renderer/index.js, graph/canvas/viewport.js, graph/wire/wireRenderer/helpers.js,
+//             graph/wire/wireRenderer/draw.js, graph/wire/wireRenderer/render.js
 // MUST LOAD BEFORE: index.js
 
 var wireTool = (function () {

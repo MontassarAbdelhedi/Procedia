@@ -10,7 +10,11 @@
 // graph/canvas/input/state.js
 // DEPENDS ON: (none)
 // MUST LOAD BEFORE: input/utils.js, input/rubberband.js,
-//                   input/handlers/titleEdit.js, input/handlers/mouse.js,
+//                   input/handlers/titleEdit/helpers.js, input/handlers/titleEdit/exit.js,
+//                   input/handlers/titleEdit/commit.js, input/handlers/titleEdit/cancel.js,
+//                   input/handlers/titleEdit/dblclick.js,
+//                   input/handlers/mouse/mousedown.js,
+//                   input/handlers/mouse/mouseup.js, input/handlers/mouse/click.js,
 //                   input/handlers/keyboard.js, input/handlers/wheel.js,
 //                   input/handlers/index.js, input/index.js
 

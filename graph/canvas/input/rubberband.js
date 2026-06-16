@@ -8,7 +8,11 @@
 
 // graph/canvas/input/rubberband.js
 // DEPENDS ON: input/state.js, input/utils.js, graph/graphState.js, graph/canvas/renderer/index.js
-// MUST LOAD BEFORE: input/handlers/titleEdit.js, input/handlers/mouse.js,
+// MUST LOAD BEFORE: input/handlers/titleEdit/helpers.js, input/handlers/titleEdit/exit.js,
+//                   input/handlers/titleEdit/commit.js, input/handlers/titleEdit/cancel.js,
+//                   input/handlers/titleEdit/dblclick.js,
+//                   input/handlers/mouse/mousedown.js,
+//                   input/handlers/mouse/mouseup.js, input/handlers/mouse/click.js,
 //                   input/handlers/keyboard.js, input/handlers/wheel.js,
 //                   input/handlers/index.js, input/index.js
 

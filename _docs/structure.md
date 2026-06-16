@@ -45,97 +45,115 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 24. graph/wireValidator/filterPickerList.js
 25. graph/wireValidator/index.js
 26. graph/cascade/utils.js
-27. graph/cascade/cascadeGhost.js
-28. graph/cascade/index.js
-29. flush/dirtyFlusher.js
-30. graph/engine/helpers.js
-31. graph/engine/propagate.js
-32. graph/engine/wires.js
-33. graph/engine/nodes/dropNode.js
-34. graph/engine/nodes/deleteNode.js
-35. graph/engine/nodes/duplicateNode.js
-36. graph/engine/nodes/lockNode.js
-37. graph/engine/nodes/cloneNode.js
-38. graph/engine/nodes/recreateNode.js
-39. graph/engine/nodes/index.js
-40. graph/engine/state.js
-41. graph/engine/index.js
+27. graph/cascade/cascadeGhost/collect.js
+28. graph/cascade/cascadeGhost/commands.js
+29. graph/cascade/cascadeGhost/update.js
+30. graph/cascade/cascadeGhost/cleanup.js
+31. graph/cascade/cascadeGhost/ghost.js
+32. graph/cascade/index.js
+33. flush/dirtyFlusher.js
+34. graph/engine/helpers.js
+35. graph/engine/propagate.js
+36. graph/engine/wires.js
+37. graph/engine/nodes/dropNode.js
+38. graph/engine/nodes/deleteNode.js
+39. graph/engine/nodes/duplicateNode.js
+40. graph/engine/nodes/lockNode.js
+41. graph/engine/nodes/cloneNode.js
+42. graph/engine/nodes/recreateNode.js
+43. graph/engine/nodes/index.js
+44. graph/engine/state.js
+45. graph/engine/index.js
 
 <!-- 6. Canvas — depends on engine -->
-42. graph/canvas/viewport.js
-43. graph/canvas/renderer/categories.js
-44. graph/canvas/renderer/helpers.js
-45. graph/canvas/renderer/builder.js
-46. graph/canvas/renderer/index.js
-47. graph/canvas/renderer/nodeToolbar.js
-48. graph/canvas/input/state.js
-49. graph/canvas/input/utils.js
-50. graph/canvas/input/rubberband.js
-51. graph/canvas/input/handlers/titleEdit.js
-52. graph/canvas/input/handlers/mouse.js
-53. graph/canvas/input/handlers/keyboard.js
-54. graph/canvas/input/handlers/wheel.js
-55. graph/canvas/input/handlers/index.js
-56. graph/canvas/input/index.js
-57. graph/canvas/minimap/constants.js
-58. graph/canvas/minimap/state.js
-59. graph/canvas/minimap/utils.js
-60. graph/canvas/minimap/renderer.js
-61. graph/canvas/minimap/interaction.js
-62. graph/canvas/minimap/index.js
-63. graph/canvas/drag.js
-64. graph/wire/wireRenderer.js
-65. graph/wire/wire.js
+46. graph/canvas/viewport.js
+47. graph/canvas/renderer/categories.js
+48. graph/canvas/renderer/helpers.js
+49. graph/canvas/renderer/builder.js
+50. graph/canvas/renderer/index.js
+51. graph/canvas/renderer/nodeToolbar.js
+52. graph/canvas/input/state.js
+53. graph/canvas/input/utils.js
+54. graph/canvas/input/rubberband.js
+55. graph/canvas/input/handlers/titleEdit/helpers.js
+56. graph/canvas/input/handlers/titleEdit/exit.js
+57. graph/canvas/input/handlers/titleEdit/commit.js
+58. graph/canvas/input/handlers/titleEdit/cancel.js
+59. graph/canvas/input/handlers/titleEdit/dblclick.js
+60. graph/canvas/input/handlers/mouse/mousedown.js
+61. graph/canvas/input/handlers/mouse/mousemove.js
+62. graph/canvas/input/handlers/mouse/mouseup.js
+63. graph/canvas/input/handlers/mouse/click.js
+64. graph/canvas/input/handlers/keyboard.js
+65. graph/canvas/input/handlers/wheel.js
+66. graph/canvas/input/handlers/index.js
+67. graph/canvas/input/index.js
+68. graph/canvas/minimap/constants.js
+69. graph/canvas/minimap/state.js
+70. graph/canvas/minimap/utils.js
+71. graph/canvas/minimap/renderer.js
+72. graph/canvas/minimap/interaction.js
+73. graph/canvas/minimap/index.js
+74. graph/canvas/drag/helpers.js
+75. graph/canvas/drag/hitTest.js
+76. graph/canvas/drag/insert.js
+77. graph/canvas/drag/preview.js
+78. graph/wire/wireRenderer/helpers.js
+79. graph/wire/wireRenderer/draw.js
+80. graph/wire/wireRenderer/render.js
+81. graph/wire/wire.js
 
 <!-- 7. Auto layout -->
-66. graph/autoLayout/constants.js
-67. graph/autoLayout/estimateHeight.js
-68. graph/autoLayout/graphBuilder.js
-69. graph/autoLayout/layerAssignment.js
-70. graph/autoLayout/crossingReduction.js
-71. graph/autoLayout/positioning.js
-72. graph/autoLayout/index.js
+82. graph/autoLayout/constants.js
+83. graph/autoLayout/estimateHeight.js
+84. graph/autoLayout/graphBuilder.js
+85. graph/autoLayout/layerAssignment.js
+86. graph/autoLayout/crossingReduction.js
+87. graph/autoLayout/positioning.js
+88. graph/autoLayout/index.js
 
 <!-- 7b. Import module -->
-73. graph/import/mapNodes.js
-74. graph/import/mapWires.js
-75. graph/import/stampUUIDs.js
-76. graph/import/builder.js
-77. graph/import/index.js
+89. graph/import/mapNodes/helpers.js
+90. graph/import/mapNodes/buildItems.js
+91. graph/import/mapNodes/buildEffects.js
+92. graph/import/mapWires.js
+93. graph/import/stampUUIDs.js
+94. graph/import/builder.js
+95. graph/import/index.js
 
 <!-- 8. UI — depends on graphState, nodeRegistry, engine -->
-78. ui/nodeList/categories.js
-79. ui/nodeList/render.js
-80. ui/nodeList/search.js
-81. ui/nodeList/dragdrop.js
-82. ui/nodeList/index.js
-83. ui/nodePicker/compatibility.js
-84. ui/nodePicker/render.js
-85. ui/nodePicker/filter.js
-86. ui/nodePicker/events.js
-87. ui/nodePicker/index.js
-88. ui/inspector/viewModel.js
-89. ui/inspector/render.js
-90. ui/inspector/colorPicker.js
-91. ui/inspector/events.js
-92. ui/inspector/index.js
-93. ui/settingsModal.js
+96. ui/nodeList/categories.js
+97. ui/nodeList/render.js
+98. ui/nodeList/search.js
+99. ui/nodeList/dragdrop.js
+100. ui/nodeList/index.js
+101. ui/nodePicker/compatibility.js
+102. ui/nodePicker/render.js
+103. ui/nodePicker/filter.js
+104. ui/nodePicker/events.js
+105. ui/nodePicker/index.js
+106. ui/inspector/viewModel.js
+107. ui/inspector/render.js
+108. ui/inspector/colorPicker.js
+109. ui/inspector/events.js
+110. ui/inspector/index.js
+111. ui/settingsModal.js
 
 <!-- 9. Infrastructure services -->
-94. polling/missingNodes.js
-95. polling/notifications.js
-96. polling/externalDeletions.js
-97. polling/poller.js
-98. notifications/notificationBar.js
+112. polling/missingNodes.js
+113. polling/notifications.js
+114. polling/externalDeletions.js
+115. polling/poller.js
+116. notifications/notificationBar.js
 
 <!-- 10. UI chrome — no graph dependencies -->
-99. ui/topBar.js
-100. ui/bottomBar.js
-101. ui/statusBar.js
-102. ui/sidebarToggle.js
+117. ui/topBar.js
+118. ui/bottomBar.js
+119. ui/statusBar.js
+120. ui/sidebarToggle.js
 
 <!-- 11. Entry point — depends on everything -->
-103. index.js
+121. index.js
 ```
 
 ---
@@ -244,7 +262,7 @@ procedia/
 │   │
 │   ├── cascade/                        ← Ghost cascade algorithm (split from cascadeAlgorithm.js)
 │   │   ├── utils.js                    ← _hasCompDownstreamExcluding(), collectPathUpstream(), isCompNode()
-│   │   ├── cascadeGhost.js             ← cascadeGhost() — ghost propagation on layer wire deletion
+│   │   ├── cascadeGhost/               ← 5 files (collect, commands, update, cleanup, ghost)
 │   │   └── index.js                    ← Aggregates into cascadeAlgorithm global
 │   │                                     Exposes: cascadeAlgorithm.cascadeGhost(deletedWireId)
 │   │                                     Depends on: graph/graphState/, graph/nodeRegistry.js, bridge/evalBridge.js
@@ -333,20 +351,33 @@ procedia/
 │   │   │   ├── utils.js                ← wrapOffset, clientToWrap, isEditableTarget
 │   │   │   ├── rubberband.js           ← Rubber-band multi-select
 │   │   │   ├── handlers/
-│   │   │   │   ├── titleEdit.js        ← Inline title editing on double-click
-│   │   │   │   ├── mouse.js            ← Mouse down/move/up/click handlers
+│   │   │   │   ├── titleEdit/
+│   │   │   │   │   ├── helpers.js      ← Graph-traversal helpers (_findInputWire, etc.)
+│   │   │   │   │   ├── exit.js         ← _exitTitleEdit / exitTitleEdit
+│   │   │   │   │   ├── commit.js       ← commitTitleEdit
+│   │   │   │   │   ├── cancel.js       ← cancelTitleEdit
+│   │   │   │   │   └── dblclick.js     ← onDblClick + event helpers
+│   │   │   │   ├── mouse/
+│   │   │   │   │   ├── mousedown.js    ← onMouseDown handler
+│   │   │   │   │   ├── mousemove.js    ← onMouseMove handler
+│   │   │   │   │   ├── mouseup.js      ← onMouseUp handler
+│   │   │   │   │   └── click.js        ← onClick handler
 │   │   │   │   ├── keyboard.js         ← Keyboard down/up handlers (delete, escape, space)
 │   │   │   │   ├── wheel.js            ← Mouse wheel zoom handler
 │   │   │   │   └── index.js            ← Assembles inputHandlers from sub-modules
 │   │   │   └── index.js                ← init() + public API
 │   │   │                                 Exposes: canvasInput.init()
 │   │   │                                 Depends on: graph/graphState/, viewport.js, renderer/
-│   │   └── drag.js                     ← Drop handler + wire-insertion (drop on wire to insert mid-path)
-│   │                                     Exposes: canvasDrag.findWireAt(), canvasDrag.insertNodeOnWire()
+│   │   ├── drag/
+│   │   │   ├── helpers.js              ← Math helpers (Bezier, distance, port pos) + declares canvasDrag
+│   │   │   ├── hitTest.js              ← Wire hit-testing (bezier/direct/stepped)
+│   │   │   ├── insert.js               ← Wire-insertion (split wire on node drop)
+│   │   │   └── preview.js              ← Drag-over-wire preview state
+│   │   │                                 Exposes: canvasDrag.findWireAt(), canvasDrag.insertNodeOnWire()
 │   │                                     Depends on: graph/graphState/, graph/nodeRegistry.js
 │   │
 │   ├── wire/                           ← Wire rendering & interaction
-│   │   ├── wireRenderer.js             ← Bezier/direct/stepped wire drawing on <canvas>
+│   │   ├── wireRenderer/               ← 3 files (helpers, draw, render)
 │   │   │                                 Exposes: wireRenderer.init(), wireRenderer.render(preview)
 │   │   │                                 Reads: settings.get('wireStyle') per frame, settings.get('animatedDash')
 │   │   │                                 Depends on: graph/graphState/, graph/canvas/viewport.js
@@ -368,7 +399,7 @@ procedia/
 │   │                                     Depends on: graph/graphState/, ui/settings.js
 │   │
 │   └── import/                         ← Project import module
-│       ├── mapNodes.js                 ← Map AE project items to Procedia nodes
+│       ├── mapNodes/                   ← 3 files (helpers, buildItems, buildEffects)
 │       ├── mapWires.js                 ← Infer wire connections from AE layer structure
 │       ├── stampUUIDs.js               ← Stamp UUIDs on imported nodes/wires
 │       ├── builder.js                  ← Build complete import graph
@@ -512,12 +543,12 @@ procedia/
         │                                  _handleDeleteParkedLayer, _handlePollAliveNodes
         ├── actions_matte.jsx           ← Track-matte handlers
         │                                  _handleSetLumaMatte, _handleSetAlphaMatte, _handleClearMatte
-        ├── actions_effect.jsx          ← Effect application/removal/property handlers
+        ├── actionEffect/               ← 3 files (apply, introspect, pollAlive)
         │                                  _handleApplyDynamicEffect, _handleRemoveEffect,
         │                                  _handleSetEffectProperty, _handleIntrospectEffect
         ├── actions_footage.jsx         ← Footage item handlers
         │                                  _handleImportFootage
-        ├── actions_import.jsx          ← Project import handlers
+        ├── actionImport/               ← 3 files (helpers, read, handler)
         │                                  _handleImportProject
         └── actions_graphExport.jsx     ← Graph export handlers
                                            _handleExportGraph
@@ -540,7 +571,7 @@ procedia/
 
 ### Node drop → AE layer created
 ```
-graph/canvas/drag.js
+graph/canvas/drag/ (4 files)
   └─ engine.dropNode(nodeDef, x, y)
        ├─ graphState.addNode()
        └─ [if params:'dynamic'] schemaCache.fetchSchema(matchName)
@@ -606,7 +637,7 @@ The following files exist on disk but were absent from prior documentation:
 | `graph/graphExporter.js` | Not in load order or file tree | ✅ Added |
 | `graph/nodes/loadNodes.js` | Dynamic script loader for 474 nodes | ✅ Added |
 | `graph/engine/nodes/cloneNode.js` | Clone utility for duplication | ✅ Added |
-| `graph/cascade/` (3 files) | Split from `cascadeAlgorithm.js` | ✅ Added |
+| `graph/cascade/` (7 files) | Split from `cascadeAlgorithm.js` | ✅ Added |
 | `graph/canvas/renderer/` (5 files) | Split from `renderer.js` | ✅ Added |
 | `graph/canvas/minimap/` (6 files) | Split from `minimap.js` | ✅ Added |
 | `graph/canvas/input/` (6 files) | Split from `input.js` | ✅ Added |
@@ -618,7 +649,7 @@ The following files exist on disk but were absent from prior documentation:
 | `notifications/notificationBar.js` | Toast notification UI | ✅ Added |
 | `jsx/dispatcher/actions_footage.jsx` | Footage item handlers | ✅ Added |
 | `jsx/dispatcher/actions_graphExport.jsx` | Graph export handlers | ✅ Added |
-| `jsx/dispatcher/actions_import.jsx` | Import handlers | ✅ Added |
+| `jsx/dispatcher/actionImport/` (3 files) | Import handlers | ✅ Added |
 | `jsx/tools/buildEffectsCatalog.jsx` | Catalog build tool | ✅ Added |
 | `graph/nodes/categories/core/Footage.js` | Footage node definition | ✅ Added |
 | `graph/nodes/categories/utility/` (5 extra) | Utility nodes beyond Blending/Matte | ✅ Added |
@@ -632,7 +663,7 @@ The following files exist on disk but were absent from prior documentation:
 
 | Old Reference | New Location | Status |
 | ------------- | ------------ | ------ |
-| `graph/cascadeAlgorithm.js` | `graph/cascade/utils.js`, `cascadeGhost.js`, `index.js` | ✅ Updated |
+| `graph/cascadeAlgorithm.js` | `graph/cascade/utils.js`, `cascadeGhost/` (5 files), `index.js` | ✅ Updated |
 | `graph/canvas/renderer.js` | `graph/canvas/renderer/categories.js`, `helpers.js`, `builder.js`, `index.js`, `nodeToolbar.js` | ✅ Updated |
 | `graph/canvas/minimap.js` | `graph/canvas/minimap/constants.js`, `state.js`, `utils.js`, `renderer.js`, `interaction.js`, `index.js` | ✅ Updated |
 | `graph/canvas/input.js` | `graph/canvas/input/` (6 files) | ✅ Updated |

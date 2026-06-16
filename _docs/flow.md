@@ -34,20 +34,20 @@
 | `layers/adjustment` | `Adjustment.js` | `onDelete` | `deleteParkedLayer` | `Adjustment.js:80-87` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
 | `layers/adjustment` | `Adjustment.js` | `onPropertyChange` | `setLayerProperty` | `Adjustment.js:97-107` | `actions_property.jsx:17 _handleSetLayerProperty` |
 | `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onDrop` | `null` (no-op) | `FillEffect.js:29` | — |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onAlive` | `applyDynamicEffect` | `FillEffect.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onGhost` | `removeEffect` | `FillEffect.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onAlive` | `applyDynamicEffect` | `FillEffect.js:38-49` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onGhost` | `removeEffect` | `FillEffect.js:58-68` | `actionEffect/apply.jsx _handleRemoveEffect` |
 | `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onDelete` | `null` (no-op) | `FillEffect.js:71` | — |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onPropertyChange` | `setEffectProperty` | `FillEffect.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
+| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onPropertyChange` | `setEffectProperty` | `FillEffect.js:82-94` | `actionEffect/apply.jsx _handleSetEffectProperty` |
 | `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onDrop` | `null` (no-op) | `GaussianBlur.js:29` | — |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onAlive` | `applyDynamicEffect` | `GaussianBlur.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onGhost` | `removeEffect` | `GaussianBlur.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onAlive` | `applyDynamicEffect` | `GaussianBlur.js:38-49` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onGhost` | `removeEffect` | `GaussianBlur.js:58-68` | `actionEffect/apply.jsx _handleRemoveEffect` |
 | `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onDelete` | `null` (no-op) | `GaussianBlur.js:71` | — |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onPropertyChange` | `setEffectProperty` | `GaussianBlur.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
+| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onPropertyChange` | `setEffectProperty` | `GaussianBlur.js:82-94` | `actionEffect/apply.jsx _handleSetEffectProperty` |
 | `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onDrop` | `null` (no-op) | `DropShadow.js:29` | — |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onAlive` | `applyDynamicEffect` | `DropShadow.js:38-49` | `actions_effect.jsx:16 _handleApplyDynamicEffect` |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onGhost` | `removeEffect` | `DropShadow.js:58-68` | `actions_effect.jsx:47 _handleRemoveEffect` |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onAlive` | `applyDynamicEffect` | `DropShadow.js:38-49` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onGhost` | `removeEffect` | `DropShadow.js:58-68` | `actionEffect/apply.jsx _handleRemoveEffect` |
 | `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onDelete` | `null` (no-op) | `DropShadow.js:71` | — |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onPropertyChange` | `setEffectProperty` | `DropShadow.js:82-94` | `actions_effect.jsx:76 _handleSetEffectProperty` |
+| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onPropertyChange` | `setEffectProperty` | `DropShadow.js:82-94` | `actionEffect/apply.jsx _handleSetEffectProperty` |
 | `data/color` | `Color.js` | all hooks | `null` (no-op) | `Color.js:31-39` | — |
 | `data/number` | `Number.js` | all hooks | `null` (no-op) | `Number.js:31-39` | — |
 | `utility/blending` | `Blending.js` | all hooks | `null` (no-op) | `Blending.js:32-40` | — |
@@ -74,13 +74,13 @@
 
 4. **Drag node from node list to empty canvas** — `ui/nodeList/dragdrop.js:21` `__nl_dragdrop.wireCanvasDrop()` on mouseup hits canvas-wrap → calls `viewport.screenToCanvas()` (`graph/canvas/viewport.js`) → `engine.dropNode()` (`graph/engine/nodes/dropNode.js:31`) which calls `uuidGenerator.node()` (`data/uuidGenerator.js`), `hlp.buildInitialProps()` (`graph/engine/helpers.js:buildInitialProps`), `graphState.addNode()` (`graph/graphState/nodes.js:addNode`), `hlp.refreshNodeUI()`, and for data/blending/matte nodes sets `state:'alive'` immediately, for effector nodes resolves dynamic schema via `hlp.resolveDynamicSchema()` (`graph/engine/helpers.js:resolveDynamicSchema`) + `schemaCache.fetchSchema()` (`graph/schemaCache/index.js:fetchSchema`) + `engine._applyDynamicSchema()` (`graph/engine/helpers.js:applyDynamicSchema`), for affected nodes calls `def.onDrop(nodeData)` then `evalBridge.dispatch(command)` which on success sets `state:'alive'` → then `graphState.setSelection()` (`graph/graphState/selection.js:setSelection`) → `renderer.render()` → `wireRenderer.render(null)` → `inspector.refresh()` → `statusBar.refresh()`.
 
-5. **Drag node onto existing wire (mid-path insertion)** — `ui/nodeList/dragdrop.js:87` `canvasDrag.findWireAt()` (`graph/canvas/drag.js:147`) hits a wire → `canvasDrag.insertNodeOnWire()` (`graph/canvas/drag.js:173`) creates node data with `_transplantLayerUUID` copied from the existing wire, calls `graphState.addNode()`, `schemaCache.fetchSchema()` for effector nodes, `graphState.removeWire(wireId)`, then `engine.connectWire(wire.fromNode→node.main_input)` and `engine.connectWire(node.output→wire.toNode)` → `graphState.setSelection()` → `renderer.render()` → `wireRenderer.render()` → `inspector.refresh()` → `statusBar.refresh()`.
+5. **Drag node onto existing wire (mid-path insertion)** — `ui/nodeList/dragdrop.js:87` `canvasDrag.findWireAt()` (`graph/canvas/drag/hitTest.js`) hits a wire → `canvasDrag.insertNodeOnWire()` (`graph/canvas/drag/insert.js`) creates node data with `_transplantLayerUUID` copied from the existing wire, calls `graphState.addNode()`, `schemaCache.fetchSchema()` for effector nodes, `graphState.removeWire(wireId)`, then `engine.connectWire(wire.fromNode→node.main_input)` and `engine.connectWire(node.output→wire.toNode)` → `graphState.setSelection()` → `renderer.render()` → `wireRenderer.render()` → `inspector.refresh()` → `statusBar.refresh()`.
 
 6. **Duplicate selected nodes** — `ui/topBar.js:48` dupe btn click → `engine.duplicateSelectedNodes()` (`graph/engine/nodes/duplicateNode.js:23`) iterates `graphState.getSelection()`, deep-copies each node (excluding id/dirty/`_transplantLayerUUID`) with `uuidGenerator.node()`, +30 offset on x/y, empty `hostingComps`, `state:'ghost'` for non-data nodes, calls `graphState.addNode()` for each, then `graphState.replaceSelection(newIds)`.
 
 ## Wire Creation & Connection
 
-7. **Drag wire from source port to target port** — `graph/wire/wire.js:111` `wireTool._onMouseDown()` on `.port-dot` → `_findPortDef()` to identify source port → starts drag state, calls `wireRenderer.render({from,to})` (`graph/wire/wireRenderer.js:259`) to show preview → `wireTool._onMouseMove()` (`wire.js:148`) updates preview → `wireTool._onMouseUp()` (`wire.js:162`) on target `.port-dot` → `_findPortDef()` to identify target port → `engine.connectWire(fromNode, fromPort, toNodeId, toPort)` → `wireRenderer.render(null)`.
+7. **Drag wire from source port to target port** — `graph/wire/wire.js:111` `wireTool._onMouseDown()` on `.port-dot` → `_findPortDef()` to identify source port → starts drag state, calls `wireRenderer.render({from,to})` (`graph/wire/wireRenderer/render.js`) to show preview → `wireTool._onMouseMove()` (`wire.js:148`) updates preview → `wireTool._onMouseUp()` (`wire.js:162`) on target `.port-dot` → `_findPortDef()` to identify target port → `engine.connectWire(fromNode, fromPort, toNodeId, toPort)` → `wireRenderer.render(null)`.
 
 8. **Drag wire to empty canvas (node picker creation)** — `wireTool._onMouseUp()` (`graph/wire/wire.js:162`) on empty canvas-wrap → `nodePicker.show(clientX, clientY, fromNode, fromPort, wireType)` (`ui/nodePicker/index.js:45`) calls `__np_compat.compatibleNodes(wireType)` (`ui/nodePicker/compatibility.js`) which filters `nodeRegistry.getAll()` by matching input port type, renders popup via `__np_render`, and returns a Promise → on user selection `close(type)` (`ui/nodePicker/index.js:122`) calls `nodeRegistry.getDefinition(type)`, `viewport.screenToCanvas()`, `engine.dropNode(def, canvasX, canvasY)`, then `engine.connectWire(fromNodeId, fromPortId, node.id, 'main_input')`, then `graphState.setSelection(node.id)`, `renderer.render()`, `wireRenderer.render(null)`, `inspector.refresh()`, `statusBar.refresh()`.
 
@@ -90,9 +90,9 @@
 
 ## Wire Deletion & Cascade Ghost
 
-11. **Disconnect wire** — `graph/engine/wires.js:148` `disconnectWire(wireId)` looks up wire data, then branches: for `parent` wires calls `evalBridge.dispatch({action:'clearLayerParent'})` (`jsx/dispatcher/actions_property.jsx:clearLayerParent`) then `graphState.removeWire()` and `hlp.refreshNodeUI()`; for `data` wires directly `graphState.removeWire()`; for `layer` wires calls `cascadeAlgorithm.cascadeGhost(wireId)` (`graph/cascade/cascadeGhost.js:28`) then `hlp.refreshNodeUI()`.
+11. **Disconnect wire** — `graph/engine/wires.js:148` `disconnectWire(wireId)` looks up wire data, then branches: for `parent` wires calls `evalBridge.dispatch({action:'clearLayerParent'})` (`jsx/dispatcher/actions_property.jsx:clearLayerParent`) then `graphState.removeWire()` and `hlp.refreshNodeUI()`; for `data` wires directly `graphState.removeWire()`; for `layer` wires calls `cascadeAlgorithm.cascadeGhost(wireId)` (`graph/cascade/cascadeGhost/ghost.js`) then `hlp.refreshNodeUI()`.
 
-12. **Cascade ghost on layer wire delete** — `cascadeGhost(deletedWireId)` (`graph/cascade/cascadeGhost.js:28`) looks up wire, rejects non-layer types, identifies source node, checks `util._hasCompDownstreamExcluding()` (`graph/cascade/utils.js:_hasCompDownstreamExcluding`), collects upstream nodes via `util.collectPathUpstream()` (`graph/cascade/utils.js:collectPathUpstream`), separates into effectors-first then affected-last order, computes `losingComps` per node by comparing `hostingComps` against remaining comps, builds `onGhost` batch commands (effectors get `upstreamNodeUUID`, affected get `layerUUID` from `_pathLayerUUID`), calls `evalBridge.dispatchBatch(commands)` (`bridge/evalBridge.js:135`), updates each node's `hostingComps`/`state`/`hasParkedLayer`, clears `_pathLayerUUID` on the deleted wire, calls `graphState.removeWire()`, then `graphState.rebuildTempGraph()` (`graph/graphState/tempGraph.js:rebuildTempGraph`).
+12. **Cascade ghost on layer wire delete** — `cascadeGhost(deletedWireId)` (`graph/cascade/cascadeGhost/ghost.js`) looks up wire, rejects non-layer types, identifies source node, checks `util._hasCompDownstreamExcluding()` (`graph/cascade/utils.js:_hasCompDownstreamExcluding`), collects upstream nodes via `util.collectPathUpstream()` (`graph/cascade/utils.js:collectPathUpstream`), separates into effectors-first then affected-last order, computes `losingComps` per node by comparing `hostingComps` against remaining comps, builds `onGhost` batch commands (effectors get `upstreamNodeUUID`, affected get `layerUUID` from `_pathLayerUUID`), calls `evalBridge.dispatchBatch(commands)` (`bridge/evalBridge.js:135`), updates each node's `hostingComps`/`state`/`hasParkedLayer`, clears `_pathLayerUUID` on the deleted wire, calls `graphState.removeWire()`, then `graphState.rebuildTempGraph()` (`graph/graphState/tempGraph.js:rebuildTempGraph`).
 
 ## Node Lifecycle (Delete)
 
@@ -110,21 +110,21 @@
 
 ## Canvas Interaction
 
-18. **Click node to select** — `graph/canvas/input/handlers/mouse.js:20` `onMouseDown()` on `.node` → `nodeEl.getAttribute('data-node-id')` → for ctrl/meta: `graphState.toggleSelection()`; for shift: `graphState.addToSelection()` or `removeFromSelection()`; plain: `graphState.setSelection()` if not already selected → `renderer.render()` → triggers `graphState.onSelectionChange()` callback chain → `wireRenderer.render(null)` → `inspector.refresh()` → `statusBar.refresh()` → `topBar.refreshSelection(sel)` → `nodeToolbar.refresh()`.
+18. **Click node to select** — `graph/canvas/input/handlers/mouse/mousedown.js` `onMouseDown()` on `.node` → `nodeEl.getAttribute('data-node-id')` → for ctrl/meta: `graphState.toggleSelection()`; for shift: `graphState.addToSelection()` or `removeFromSelection()`; plain: `graphState.setSelection()` if not already selected → `renderer.render()` → triggers `graphState.onSelectionChange()` callback chain → `wireRenderer.render(null)` → `inspector.refresh()` → `statusBar.refresh()` → `topBar.refreshSelection(sel)` → `nodeToolbar.refresh()`.
 
-19. **Click empty canvas (rubberband multi-select)** — `onMouseDown()` on empty (`graph/canvas/input/handlers/mouse.js:98`) → `canvasDrag.findWireAt()` misses → `graphState.clearSelection()` if no modifier → `_inpRubber.active` → `inputRubberband.createRubberEl()` → `onMouseMove()` (`mouse.js:128`) calls `inputRubberband.updateRubberEl()` → `onMouseUp()` (`mouse.js:183`) calls `inputRubberband.getNodesInRect()` → `graphState.replaceSelection()` with ctrl/shift modifier logic → `renderer.render()` → `inputRubberband.destroyRubberEl()`.
+19. **Click empty canvas (rubberband multi-select)** — `onMouseDown()` on empty (`graph/canvas/input/handlers/mouse/mousedown.js`) → `canvasDrag.findWireAt()` misses → `graphState.clearSelection()` if no modifier → `_inpRubber.active` → `inputRubberband.createRubberEl()` → `onMouseMove()` (`graph/canvas/input/handlers/mouse/mousemove.js`) calls `inputRubberband.updateRubberEl()` → `onMouseUp()` (`graph/canvas/input/handlers/mouse/mouseup.js`) calls `inputRubberband.getNodesInRect()` → `graphState.replaceSelection()` with ctrl/shift modifier logic → `renderer.render()` → `inputRubberband.destroyRubberEl()`.
 
-20. **Click wire to select** — `onMouseDown()` (`mouse.js:98`) → `canvasDrag.findWireAt(clientX, clientY)` (`graph/canvas/drag.js:147`) returns wire via `hitTestWire()` (`graph/canvas/drag.js:112`) using bezier/direct/stepped distance sampling → `_selectedWireId = wire.id` → `graphState.clearSelection()` → `renderer.render()` → `wireRenderer.render(null)`.
+20. **Click wire to select** — `onMouseDown()` (`graph/canvas/input/handlers/mouse/mousedown.js`) → `canvasDrag.findWireAt(clientX, clientY)` (`graph/canvas/drag/hitTest.js`) returns wire via `hitTestWire()` (`graph/canvas/drag/hitTest.js`) using bezier/direct/stepped distance sampling → `_selectedWireId = wire.id` → `graphState.clearSelection()` → `renderer.render()` → `wireRenderer.render(null)`.
 
-21. **Drag node on canvas** — `onMouseDown()` on node (`mouse.js:58`) → `_inpDrag.active`, captures `dragStartCanvas` via `viewport.screenToCanvas()`, stores `nodeStartPos` and `selectionStartPositions` for all selected nodes → `onMouseMove()` (`mouse.js:144`) computes delta from drag start, calls `graphState.updateNode(draggedNodeId, {x,y})`, then for each other selected node calls `graphState.updateNode(selId, {x,y})` and `renderer.getNodeElement(selId).style` updates for immediate DOM feedback → `wireRenderer.render(null)` → `minimap.render()`.
+21. **Drag node on canvas** — `onMouseDown()` on node (`graph/canvas/input/handlers/mouse/mousedown.js`) → `_inpDrag.active`, captures `dragStartCanvas` via `viewport.screenToCanvas()`, stores `nodeStartPos` and `selectionStartPositions` for all selected nodes → `onMouseMove()` (`graph/canvas/input/handlers/mouse/mousemove.js`) computes delta from drag start, calls `graphState.updateNode(draggedNodeId, {x,y})`, then for each other selected node calls `graphState.updateNode(selId, {x,y})` and `renderer.getNodeElement(selId).style` updates for immediate DOM feedback → `wireRenderer.render(null)` → `minimap.render()`.
 
-22. **Pan canvas** — `onKeyDown()` (`keyboard.js:33`) Space sets `_inpSpaceHeld` → `onMouseDown()` (`mouse.js:44`) with button 1 or button 0+Space → `_inpPan.active` → `onMouseMove()` (`mouse.js:129`) calls `viewport.setPan(startPan.x + dx, startPan.y + dy)` (`graph/canvas/viewport.js:setPan`) → `onMouseUp()` clears pan.
+22. **Pan canvas** — `onKeyDown()` (`keyboard.js:33`) Space sets `_inpSpaceHeld` → `onMouseDown()` (`graph/canvas/input/handlers/mouse/mousedown.js`) with button 1 or button 0+Space → `_inpPan.active` → `onMouseMove()` (`graph/canvas/input/handlers/mouse/mousemove.js`) calls `viewport.setPan(startPan.x + dx, startPan.y + dy)` (`graph/canvas/viewport.js:setPan`) → `onMouseUp()` clears pan.
 
 23. **Zoom canvas** — `graph/canvas/input/handlers/wheel.js` `onWheel()` calls `viewport.setZoom()` (`graph/canvas/viewport.js:setZoom`) with mouse position as zoom origin.
 
-24. **Double-click comp node (focus in AE)** — `graph/canvas/input/handlers/mouse.js:228` `onClick()` on a `core/comp` node sets a 280ms timer → `evalBridge.dispatch({action:'focusComp', params:{nodeUUID:nodeId}})` (`jsx/dispatcher/actions_comp.jsx:focusComp`).
+24. **Double-click comp node (focus in AE)** — `graph/canvas/input/handlers/mouse/click.js` `onClick()` on a `core/comp` node sets a 280ms timer → `evalBridge.dispatch({action:'focusComp', params:{nodeUUID:nodeId}})` (`jsx/dispatcher/actions_comp.jsx:focusComp`).
 
-25. **Double-click node title (inline edit)** — `graph/canvas/input/handlers/titleEdit.js:onDblClick` makes title `contenteditable` → Enter key in `onKeyDown()` (`keyboard.js:22`) calls `commitTitleEdit()` which dispatches `evalBridge.dispatch({action:'renameNode'})` (`jsx/dispatcher/actions_layer.jsx:renameNode`); Escape calls `cancelTitleEdit()`.
+25. **Double-click node title (inline edit)** — `graph/canvas/input/handlers/titleEdit/dblclick.js` `onDblClick()` makes title `contenteditable` → Enter key in `onKeyDown()` (`keyboard.js:22`) calls `commitTitleEdit()` which dispatches `evalBridge.dispatch({action:'renameNode'})` (`jsx/dispatcher/actions_layer.jsx:renameNode`); Escape calls `cancelTitleEdit()`.
 
 ## Property System & Dirty Flush
 
@@ -152,7 +152,7 @@
 
 34. **Poll external comp deletions** — `polling/externalDeletions.js:74` `checkExternalDeletions()` collects UUIDs of all alive `core/comp` nodes, dispatches `{action:'pollExternalDeletions', params:{compNodeUUIDs}}` (`jsx/dispatcher/actions_schema.jsx:pollExternalDeletions`), passes missing comp UUIDs to `onMissing()` callback.
 
-35. **Poll external effect deletions** — `polling/externalDeletions.js:12` `checkEffectDeletions()` collects all alive effector nodes with `matchName`, `hostingComps[0]`, and a `_pathLayerUUID` from outgoing layer wire, dispatches `{action:'pollAliveEffects', params:{entries}}` (`jsx/dispatcher/actions_effect.jsx:pollAliveEffects`), passes missing effector node UUIDs to `onMissing()`.
+35. **Poll external effect deletions** — `polling/externalDeletions.js:12` `checkEffectDeletions()` collects all alive effector nodes with `matchName`, `hostingComps[0]`, and a `_pathLayerUUID` from outgoing layer wire, dispatches `{action:'pollAliveEffects', params:{entries}}` (`jsx/dispatcher/actionEffect/pollAlive.jsx:pollAliveEffects`), passes missing effector node UUIDs to `onMissing()`.
 
 36. **Missing node notification with dedup** — `polling/notifications.js:15` `pushMissingNotification(uuid)` checks `_notifiedMissing[uuid]` cache, creates `notificationBar.push()` (`notifications/notificationBar.js:43`) with severity `'error'`, message `"<label> is deleted outside Procedia"`, CTA button "Recreate" (calls `engine.recreateNode(uuid)`) and secondary "Remove node" (calls `engine.deleteNode(uuid)` + `renderer.render()` + `wireRenderer.render(null)`).
 
@@ -202,7 +202,7 @@
 
 ## Schema Cache
 
-53. **Dynamic schema resolution on drop** — `dropNode()` (`graph/engine/nodes/dropNode.js:68`) for effector with `params === 'dynamic'` calls `hlp.resolveDynamicSchema(id, matchName)` → `schemaCache.fetchSchema(matchName)` (`graph/schemaCache/index.js:fetchSchema`) which checks in-memory cache, then disk cache (`persistence.js:readSchemaCache`), then introspects AE via `evalBridge.dispatch({action:'introspectEffect', params:{matchName}})` (`jsx/dispatcher/actions_effect.jsx:introspectEffect`), stores via `storeSchema()`, then calls `engine._applyDynamicSchema(nodeId, schema)` (`graph/engine/helpers.js:applyDynamicSchema`) which sets `dynamicSchema` and `secondaryPorts` on the node data.
+53. **Dynamic schema resolution on drop** — `dropNode()` (`graph/engine/nodes/dropNode.js:68`) for effector with `params === 'dynamic'` calls `hlp.resolveDynamicSchema(id, matchName)` → `schemaCache.fetchSchema(matchName)` (`graph/schemaCache/index.js:fetchSchema`) which checks in-memory cache, then disk cache (`persistence.js:readSchemaCache`), then introspects AE via `evalBridge.dispatch({action:'introspectEffect', params:{matchName}})` (`jsx/dispatcher/actionEffect/introspect.jsx:introspectEffect`), stores via `storeSchema()`, then calls `engine._applyDynamicSchema(nodeId, schema)` (`graph/engine/helpers.js:applyDynamicSchema`) which sets `dynamicSchema` and `secondaryPorts` on the node data.
 
 54. **Schema cache init on startup** — `schemaCache.init()` (`graph/schemaCache/index.js:init`) calls `evalBridge.dispatch({action:'readSchemaCache'})` (`jsx/dispatcher/actions_schema.jsx:readSchemaCache`) to load disk cache, then `runVersionDiff()` (`graph/schemaCache/diff.js:runVersionDiff`) compares cached AE version with `getAEVersion()`, re-introspects schemas for mismatched versions.
 
@@ -222,7 +222,7 @@
 
 ## Wire Rendering
 
-60. **Wire canvas render** — `graph/wire/wireRenderer.js:259` `render(preview)` if preview is set (wire drag) draws immediately and stops animation; if `animatedDash` setting is true starts `requestAnimationFrame` loop incrementing `_animOffset` and re-drawing all wires with `setLineDash([6,4])` and `lineDashOffset = -_animOffset`; otherwise draws once with no dash; each wire is drawn via `_drawWire()` (`wireRenderer.js:162`) which reads port positions via `_portPosInWrap()`, picks color by wire type (layer=`#06D6A0`, data=`#6B7280`, parent=`#E07B39`, selected=`#FFFFFF`), draws bezier/direct/stepped segments, and for selected wires adds a 6px-wide glow (alpha 0.2).
+60. **Wire canvas render** — `wireRenderer.render(preview)` (`graph/wire/wireRenderer/render.js`) if preview is set (wire drag) draws immediately and stops animation; if `animatedDash` setting is true starts `requestAnimationFrame` loop incrementing `_animOffset` and re-drawing all wires with `setLineDash([6,4])` and `lineDashOffset = -_animOffset`; otherwise draws once with no dash; each wire is drawn via `_drawWire()` (`graph/wire/wireRenderer/draw.js`) which reads port positions via `_portPosInWrap()`, picks color by wire type (layer=`#06D6A0`, data=`#6B7280`, parent=`#E07B39`, selected=`#FFFFFF`), draws bezier/direct/stepped segments, and for selected wires adds a 6px-wide glow (alpha 0.2).
 
 ## Initialization Sequence
 
@@ -230,7 +230,7 @@
 
 62. **Canvas input init** — `canvasInput.init()` (`graph/canvas/input/index.js:init`) binds mousedown/mousemove/mouseup/click/wheel/keydown/keyup event listeners on `#canvas-wrap` and `document` via `inputHandlers` (`graph/canvas/input/handlers/index.js`).
 
-63. **Wire renderer init** — `wireRenderer.init()` (`graph/wire/wireRenderer.js:305`) acquires `#node-graph` canvas and 2D context, calls `_resize()` and `render(null)`.
+63. **Wire renderer init** — `wireRenderer.init()` (`graph/wire/wireRenderer/render.js`) acquires `#node-graph` canvas and 2D context, calls `_resize()` and `render(null)`.
 
 64. **Wire tool init** — `wireTool.init()` (`graph/wire/wire.js:209`) binds mousedown/mousemove/mouseup on `#canvas-wrap` and `document` for wire drag-to-connect.
 

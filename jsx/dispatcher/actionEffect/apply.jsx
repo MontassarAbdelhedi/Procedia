@@ -1,20 +1,13 @@
 /**
- * @fileoverview Effect-related action handlers (ES3-safe).
+ * @fileoverview Effect lifecycle handlers: apply, remove, set property,
+ * rename, and enable/disable. (ES3-safe)
  * REQUIRES: json.jsx, utils.jsx
  * Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
- * Exports: _handleApplyDynamicEffect, _handleRemoveEffect, _handleSetEffectProperty, _handleRenameEffect, _handleIntrospectEffect
  */
-// actions_effect.jsx — Effect-related action handlers (ES3-safe)
+// actionEffect/apply.jsx — Effect CRUD handlers (ES3-safe)
 // REQUIRES: json.jsx, utils.jsx
 // Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
 
-/**
- * Finds a property within an effect group by iterating and matching matchName.
- * ExtendScript's property() does not accept matchName strings.
- * @param {PropertyGroup} effect The effect (PropertyGroup) to search.
- * @param {string} matchName The target matchName (e.g. "ADBE Slider Control-0001").
- * @return {Property|null}
- */
 function _findPropByMatchName(effect, matchName) {
   var pi;
   for (pi = 1; pi <= effect.numProperties; pi++) {
@@ -24,11 +17,6 @@ function _findPropByMatchName(effect, matchName) {
   return null;
 }
 
-/**
- * Applies an effect to a layer by matchName and sets its property values.
- * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, matchName, props.
- * @return {Object} Result with .ok, .data (applied), .error.
- */
 function _handleApplyDynamicEffect(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
@@ -58,11 +46,6 @@ function _handleApplyDynamicEffect(cmd) {
   return result;
 }
 
-/**
- * Removes the first effect matching matchName from a layer.
- * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, matchName.
- * @return {Object} Result with .ok, .error.
- */
 function _handleRemoveEffect(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
@@ -100,11 +83,6 @@ function _handleRemoveEffect(cmd) {
   return result;
 }
 
-/**
- * Sets a single property value on an effect matching effectMatchName on a layer.
- * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, effectMatchName, propMatchName, value.
- * @return {Object} Result with .ok, .error.
- */
 function _handleSetEffectProperty(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
@@ -145,11 +123,6 @@ function _handleSetEffectProperty(cmd) {
   return result;
 }
 
-/**
- * Enables or disables an effect on a layer by matchName.
- * @param {Object} cmd Command with params: hostingCompUUID, layerUUID/nodeUUID, matchName, enabled.
- * @return {Object} Result with .ok, .error.
- */
 function _handleSetEffectEnabled(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
@@ -188,11 +161,6 @@ function _handleSetEffectEnabled(cmd) {
   return result;
 }
 
-/**
- * Renames an effect on a layer by matchName.
- * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, effectMatchName, label.
- * @return {Object} Result with .ok, .error.
- */
 function _handleRenameEffect(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
@@ -224,148 +192,5 @@ function _handleRenameEffect(cmd) {
     }
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
-  return result;
-}
-
-/**
- * Checks which effect nodes still have their AE effect existing on the host layer.
- * Layers are identified by layer.comment matching layerNodeUUID (the path wire UUID).
- * Effects are identified by matchName on the layer's Effects collection.
- * @param {Object} cmd Command with params: entries (array of {nodeUUID, hostingCompUUID, layerNodeUUID, matchName}).
- * @return {Object} Result with .ok, .data (missingEffectNodeUUIDs), .error.
- */
-function _handlePollAliveEffects(cmd) {
-  var result = { ok: false, data: null, error: null };
-  try {
-    var params = _cmdParams(cmd);
-    var entries = params.entries || [];
-    var missingEffectNodeUUIDs = [];
-    var i;
-
-    for (i = 0; i < entries.length; i++) {
-      var entry = entries[i];
-      var comp = findCompByUUID(entry.hostingCompUUID);
-      if (!comp) {
-        missingEffectNodeUUIDs.push(entry.nodeUUID);
-        continue;
-      }
-      var layer = findLayerByUUID(comp, entry.layerNodeUUID);
-      if (!layer) {
-        missingEffectNodeUUIDs.push(entry.nodeUUID);
-        continue;
-      }
-      var targetEffectName = entry.matchName + '__' + entry.nodeUUID;
-      var found = false;
-      var ei;
-      var fx;
-      for (ei = 1; ei <= layer.Effects.numProperties; ei++) {
-        fx = layer.Effects.property(ei);
-        if (fx.name === targetEffectName) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        for (ei = 1; ei <= layer.Effects.numProperties; ei++) {
-          fx = layer.Effects.property(ei);
-          if (fx.matchName === entry.matchName) {
-            found = true;
-            break;
-          }
-        }
-      }
-      if (!found) missingEffectNodeUUIDs.push(entry.nodeUUID);
-    }
-
-    result.ok = true;
-    result.data = { missingEffectNodeUUIDs: missingEffectNodeUUIDs };
-  } catch (e) { result.error = e.toString(); }
-  return result;
-}
-
-/**
- * Introspects an effect by matchName on a temp layer to discover its property schema.
- * @param {Object} cmd Command with params: matchName.
- * @return {Object} Result with .ok, .data (matchName, properties), .error.
- */
-function _handleIntrospectEffect(cmd) {
-  var result = { ok: false, data: null, error: null };
-  var tempLayer = null;
-  try {
-    var params = _cmdParams(cmd);
-    if (!params.matchName) {
-      result.error = 'introspectEffect: matchName required';
-      return result;
-    }
-
-    var reservedComp = findReservedComp();
-    if (!reservedComp) {
-      result.error = 'Reserved Comp not found — cannot introspect';
-      return result;
-    }
-
-    tempLayer = reservedComp.layers.addSolid([0, 0, 0], '__PROCEDIA_INTROSPECT_TEMP__', 100, 100, 1);
-    tempLayer.enabled = false;
-
-    var effect = null;
-    try {
-      effect = tempLayer.Effects.addProperty(params.matchName);
-    } catch (addErr) {
-      tempLayer.remove();
-      result.error = 'Effect not found in AE: ' + params.matchName;
-      return result;
-    }
-
-    var schema = [];
-
-    function _walkProperties(parent) {
-      var wi;
-      for (wi = 1; wi <= parent.numProperties; wi++) {
-        var prop;
-        try {
-          prop = parent.property(wi);
-        } catch (e) { continue; }
-        if (!prop) continue;
-        if (prop.numProperties > 0) {
-          _walkProperties(prop);
-          continue;
-        }
-        if (typeof prop.setValue !== 'function') continue;
-        if (prop.propertyValueType === undefined || prop.propertyValueType === null) continue;
-
-        var pvt    = prop.propertyValueType;
-        var mappedType = 'string';
-
-        if (pvt === PropertyValueType.COLOR)        mappedType = 'color';
-        else if (pvt === PropertyValueType.TwoD)    mappedType = 'vector2';
-        else if (pvt === PropertyValueType.ThreeD)  mappedType = 'vector3';
-        else if (pvt === PropertyValueType.SCALAR)  mappedType = 'number';
-        else if (pvt === PropertyValueType.ANGLE)   mappedType = 'number';
-        else if (pvt === PropertyValueType.NO_VALUE) mappedType = 'boolean';
-        else if (pvt === PropertyValueType.SELECTION) mappedType = 'enum';
-
-        schema.push({
-          matchName:    prop.matchName,
-          label:        prop.name,
-          type:         mappedType,
-          defaultValue: prop.value
-        });
-      }
-    }
-
-    _walkProperties(effect);
-
-    effect.remove();
-    tempLayer.remove();
-    tempLayer = null;
-
-    result.ok = true;
-    result.data = { matchName: params.matchName, properties: schema };
-  } catch (e) {
-    if (tempLayer) {
-      try { tempLayer.remove(); } catch (ignoreErr) {}
-    }
-    result.error = e.toString();
-  }
   return result;
 }

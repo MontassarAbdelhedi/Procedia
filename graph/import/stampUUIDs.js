@@ -3,7 +3,7 @@
  *
  * Ensures that imported Procedia UUIDs are stamped on the corresponding
  * After Effects objects. The ExtendScript scanner already stamps UUIDs
- * during the read phase (actions_import.jsx), so this module mainly
+ * during the read phase (actionImport/read.jsx), so this module mainly
  * handles edge cases and verification.
  *
  * Dependencies: evalBridge
