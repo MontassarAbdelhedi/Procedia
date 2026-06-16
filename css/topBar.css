@@ -1,5 +1,5 @@
 /* topBar.css — Top bar styling
-   App logo, center action icons, right dynamic zone, and selection controls. */
+   Logo left, action buttons centered, status info right-aligned. */
 
 #top-bar {
   background: rgba(20,20,18,0.95);
@@ -11,12 +11,17 @@
   flex-shrink: 0;
 }
 
-/* --- Left section: logo --- */
-
 .topbar-left {
   display: flex;
   align-items: center;
-  min-width: 140px;
+}
+
+.topbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex: 1;
 }
 
 .topbar-logo {
@@ -44,26 +49,6 @@
   color: #B4B2A9;
   letter-spacing: 0.05em;
   user-select: none;
-}
-
-/* --- Center section: static action icons --- */
-
-.topbar-center {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-}
-
-/* --- Right section: dynamic zone --- */
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 140px;
-  gap: 2px;
 }
 
 .topbar-dynamic {
@@ -123,6 +108,15 @@
   width: 1px;
   height: 16px;
   background: #2a2a28;
-  margin: 0 3px;
+  margin: 0 5px;
   flex-shrink: 0;
+}
+
+.topbar-status {
+  font-size: 11px;
+  color: #5F5E5A;
+  white-space: nowrap;
+  padding: 0 4px;
+  line-height: 1;
+  user-select: none;
 }

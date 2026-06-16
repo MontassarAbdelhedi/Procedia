@@ -69,12 +69,6 @@ body {
   width: 0;
 }
 
-/* Bottom bar */
-#bottom-bar {
-  height: 30px;
-  flex-shrink: 0;
-}
-
 /* Global scrollbar styles */
 ::-webkit-scrollbar {
   width: 4px;

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Status bar UI module. Shows live counts of nodes (alive/ghost),
- * wires, zoom level, and selection size.
+ * wires, zoom level, and selection size in the top bar.
  * Depends on: graphState, viewport (globals).
  * Exports: statusBar.init, statusBar.refresh
  */
@@ -69,16 +69,14 @@ var statusBar = (function() {
    * Initializes the status bar by finding or creating the display element, then refreshes.
    */
   function init() {
-    _el = document.getElementById('bottombar-notif-text');
+    _el = document.getElementById('topbar-status');
     if (!_el) {
-      var bar = document.getElementById('bottom-bar');
+      var bar = document.getElementById('top-bar');
       if (!bar) return;
-      var notif = bar.querySelector('.bottombar-notif');
-      if (!notif) return;
       _el = document.createElement('span');
-      _el.className = 'bottombar-notif-text';
-      _el.id = 'bottombar-notif-text';
-      notif.appendChild(_el);
+      _el.className = 'topbar-status';
+      _el.id = 'topbar-status';
+      bar.appendChild(_el);
     }
     refresh();
   }

@@ -30,6 +30,7 @@
 
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
+      if (!graphState.isNodeVisible(node.id)) continue;
       var cx = (node.x || 0) + C.NODE_WIDTH * 0.5;
       var cy = (node.y || 0) + C.NODE_HEIGHT * 0.5;
       var mp = m.canvasToMinimap(cx, cy, frame);

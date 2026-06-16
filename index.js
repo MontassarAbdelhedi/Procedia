@@ -4,7 +4,7 @@
  * Depends on: lib/CSInterface.js, data/uuidGenerator.js, bridge/evalBridge.js,
  *             graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
  *             graph/canvas/viewport.js, ui/inspector/*, ui/nodeList/*, ui/statusBar.js,
- *             ui/topBar.js, ui/bottomBar.js, ui/sidebarToggle.js,
+ *             ui/topBar.js, ui/sidebarToggle.js,
  *             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
  *             graph/schemaCache/diff.js, graph/schemaCache/index.js,
  *             flush/dirtyFlusher.js
@@ -17,7 +17,7 @@
 //             ui/inspector/viewModel.js, ui/inspector/render.js, ui/inspector/events.js, ui/inspector/index.js,
 //             ui/nodeList/categories.js, ui/nodeList/render.js, ui/nodeList/search.js,
 //             ui/nodeList/dragdrop.js, ui/nodeList/index.js, ui/statusBar.js,
-//             ui/topBar.js, ui/bottomBar.js, ui/sidebarToggle.js,
+//             ui/topBar.js, ui/sidebarToggle.js,
 //             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
 //             graph/schemaCache/diff.js, graph/schemaCache/index.js,
 //             flush/dirtyFlusher.js
@@ -59,12 +59,12 @@ function init() {
   topBar.init();
   nodeList.init();
   inspector.init();
-  bottomBar.init();
   notificationBar.init();
   if (typeof nodeToolbar !== 'undefined' && nodeToolbar.init) nodeToolbar.init();
   statusBar.init();
   sidebarToggle.init();
   settingsModal.init();
+  if (typeof compList !== 'undefined' && compList.init) compList.init();
   evalBridge.onReady(function(ready) {
     if (!ready) {
       console.warn('[Procedia] test seed skipped — evalBridge preamble not loaded');
@@ -122,7 +122,6 @@ function init() {
       evalBridge.dispatch({ action: 'importProject' }).then(function(res) {
         if (!res.ok) {
           console.error('[Procedia] Import failed: ' + (res.error || 'unknown error'));
-          if (typeof bottomBar !== 'undefined' && bottomBar.notify) bottomBar.notify('Import failed: ' + (res.error || 'unknown error'));
           importBtn.disabled = false;
           importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
           return;
@@ -133,19 +132,11 @@ function init() {
           if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
           if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
           if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
-          if (typeof bottomBar !== 'undefined' && bottomBar.notify) {
-            var msg = 'Imported: ' + summary.comps + ' comps, ' + summary.layers + ' layers, ' + summary.effects + ' effects';
-            if (summary.footage > 0) msg += ', ' + summary.footage + ' footage';
-            if (summary.unknowns > 0) msg += ', ' + summary.unknowns + ' unknown effects';
-            if (summary.errors && summary.errors.length > 0) msg += ', ' + summary.errors.length + ' warnings';
-            bottomBar.notify(msg);
-          }
           importBtn.disabled = false;
           importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
         });
       }).catch(function(err) {
         console.error('[Procedia] Import error:', err);
-        if (typeof bottomBar !== 'undefined' && bottomBar.notify) bottomBar.notify('Import error: ' + err.message);
         importBtn.disabled = false;
         importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
       });

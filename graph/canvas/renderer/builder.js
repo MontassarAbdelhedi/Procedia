@@ -60,11 +60,16 @@ var __r_bld = (function() {
     body.className = 'node-body';
 
     if (def.params === 'dynamic') {
-      if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) {
+      if (!nodeData.dynamicSchema) {
         var loading = document.createElement('span');
         loading.className = 'node-param-loading';
         loading.textContent = 'Loading\u2026';
         body.appendChild(loading);
+      } else if (!nodeData.dynamicSchema.properties || nodeData.dynamicSchema.properties.length === 0) {
+        var empty = document.createElement('span');
+        empty.className = 'node-param-loading';
+        empty.textContent = 'No properties';
+        body.appendChild(empty);
       } else {
         var props = nodeData.dynamicSchema.properties;
         for (var i = 0; i < props.length; i++) {

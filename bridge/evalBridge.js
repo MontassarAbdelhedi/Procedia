@@ -69,6 +69,7 @@ var evalBridge = (function() {
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_effect.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_import.jsx");',
+      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_compList.jsx");',
       '$.evalFile("' + extPath + '/jsx/dispatcher/actions_graphExport.jsx");',
       // Core dispatcher — must be last (defines _handlers + dispatch/dispatchBatch)
       '$.evalFile("' + extPath + '/jsx/dispatcher/dispatcher.jsx");'
@@ -111,20 +112,13 @@ var evalBridge = (function() {
         return;
       }
 
-      console.log('[evalBridge] dispatch: ' + commandObj.action);
       var json = JSON.stringify(commandObj);
       var call = 'dispatch(' + JSON.stringify(json) + ')';
       _cs.evalScript(call, function(result) {
         try {
           var res = JSON.parse(result);
-          if (res.ok) {
-            console.log('[evalBridge] ok: ' + commandObj.action);
-          } else {
-            console.log('[evalBridge] error: ' + commandObj.action + ' — ' + res.error);
-          }
           resolve(res);
         } catch(e) {
-          console.log('[evalBridge] parse error — raw result: ' + result);
           reject(new Error('[evalBridge] parse error — raw result: ' + result));
         }
       });
@@ -147,20 +141,13 @@ var evalBridge = (function() {
         return;
       }
 
-      console.log('[evalBridge] dispatchBatch: ' + commandArray.length + ' commands');
       var json = JSON.stringify(commandArray);
       var call = 'dispatchBatch(' + JSON.stringify(json) + ')';
       _cs.evalScript(call, function(result) {
         try {
           var res = JSON.parse(result);
-          if (res.ok) {
-            console.log('[evalBridge] ok: dispatchBatch');
-          } else {
-            console.log('[evalBridge] error: dispatchBatch — ' + res.error);
-          }
           resolve(res);
         } catch(e) {
-          console.log('[evalBridge] parse error — raw result: ' + result);
           reject(new Error('[evalBridge] parse error — raw result: ' + result));
         }
       });

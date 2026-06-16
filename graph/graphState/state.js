@@ -20,6 +20,9 @@ window.__gs = {
   _onSelectionChangeCb: null,
   _graphChangeListeners: [],
 
+  _activeCompId: null,
+  _viewFilter:   null,
+
   _strippedNodeFields: {
     dirty:                true,
     dynamicSchema:        true,

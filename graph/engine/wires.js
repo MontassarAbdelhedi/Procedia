@@ -69,6 +69,22 @@ var __e_wires = (function() {
       }
     }
 
+    var activeComp = typeof graphState.getActiveComp === 'function' ? graphState.getActiveComp() : null;
+    var _replacedAutoWire = false;
+    if (activeComp && fromNodeId !== activeComp) {
+      var existingWires = graphState.getAllWires();
+      for (var _wid in existingWires) {
+        if (existingWires.hasOwnProperty(_wid)) {
+          var _w = existingWires[_wid];
+          if (_w.fromNode === fromNodeId && _w.fromPort === fromPort && _w.toNode === activeComp && _w.toPort === 'main_input') {
+            disconnectWire(_wid);
+            _replacedAutoWire = true;
+            break;
+          }
+        }
+      }
+    }
+
     var wireData = {
       id:             uuidGenerator.wire(),
       type:           wireType,
@@ -82,6 +98,22 @@ var __e_wires = (function() {
 
     graphState.addWire(wireData);
     hlp.refreshNodeUI();
+
+    if (_replacedAutoWire && activeComp && toNodeId !== activeComp) {
+      var allWiresAfter = graphState.getAllWires();
+      var alreadyWiredToComp = false;
+      for (var _awid in allWiresAfter) {
+        if (allWiresAfter.hasOwnProperty(_awid)) {
+          if (allWiresAfter[_awid].fromNode === toNodeId && allWiresAfter[_awid].toNode === activeComp && allWiresAfter[_awid].toPort === 'main_input') {
+            alreadyWiredToComp = true;
+            break;
+          }
+        }
+      }
+      if (!alreadyWiredToComp) {
+        connectWire(toNodeId, 'output', activeComp, 'main_input');
+      }
+    }
 
     if (wireType === 'parent') {
       if (fromNodeData.state === 'alive' && toNodeData.state === 'alive') {

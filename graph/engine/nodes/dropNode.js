@@ -62,6 +62,13 @@ var __e_ndrop = (function() {
       if (nodeDef.params === 'dynamic' && nodeDef.matchName) {
         hlp.resolveDynamicSchema(id, nodeDef.matchName);
       }
+      var _activeComp = graphState.getActiveComp();
+      if (_activeComp) {
+        if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
+        if (nodeDef.nodeKind !== 'data' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
+          __e_wires.connectWire(id, 'output', _activeComp, 'main_input');
+        }
+      }
       return nodeData;
     }
 
@@ -71,20 +78,42 @@ var __e_ndrop = (function() {
 
     var command = nodeDef.onDrop(nodeData);
     if (command === null) {
+      var _activeComp = graphState.getActiveComp();
+      if (_activeComp) {
+        if (nodeDef.nodeKind !== 'effector' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
+          if (__e_wires.connectWire(id, 'output', _activeComp, 'main_input')) {
+            if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
+          }
+        } else {
+          if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
+        }
+      }
       return nodeData;
     }
 
-    (function(nId, cmd) {
+    (function(nId, nDef, cmd) {
       evalBridge.dispatch(cmd).then(function(res) {
         if (res.ok) {
           graphState.updateNode(nId, { state: 'alive' });
+          var _activeComp = graphState.getActiveComp();
+          if (_activeComp) {
+            if (nDef.nodeKind !== 'effector' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
+              if (__e_wires.connectWire(nId, 'output', _activeComp, 'main_input')) {
+                if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(nId);
+              }
+            } else {
+              if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(nId);
+            }
+          }
+          if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+          if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
         } else {
           console.error('[engine] onDrop dispatch failed: ' + res.error);
           graphState.updateNode(nId, { state: 'error' });
         }
         hlp.refreshNodeUI();
       });
-    }(id, command));
+    }(id, nodeDef, command));
 
     return nodeData;
   }

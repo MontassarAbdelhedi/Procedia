@@ -25,13 +25,14 @@ var renderer = (function() {
     var nodes = graphState.getAllNodes();
 
     for (var id in _nodeElements) {
-      if (_nodeElements.hasOwnProperty(id) && !nodes[id]) {
+      if (_nodeElements.hasOwnProperty(id) && (!nodes[id] || !graphState.isNodeVisible(id))) {
         removeNode(id);
       }
     }
 
     for (var nodeId in nodes) {
       if (!nodes.hasOwnProperty(nodeId)) continue;
+      if (!graphState.isNodeVisible(nodeId)) continue;
       var nodeData = nodes[nodeId];
       var def = nodeRegistry.getDefinition(nodeData.type);
       if (!def) continue;

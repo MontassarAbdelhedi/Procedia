@@ -31,8 +31,7 @@ var topBar = (function() {
         '<button class="topbar-btn" title="Fit View"><i class="ti ti-focus-2"></i></button>' +
         '<div class="topbar-divider"></div>' +
         '<button class="topbar-btn" id="topbar-import" title="Import AE Project"><i class="ti ti-file-import"></i></button>' +
-      '</div>' +
-      '<div class="topbar-right">' +
+        '<div class="topbar-divider"></div>' +
         '<div class="topbar-dynamic" id="topbar-dynamic">' +
           '<button class="topbar-btn" id="topbar-duplicate" title="Duplicate"><i class="ti ti-copy"></i></button>' +
           '<button class="topbar-btn topbar-btn--delete" id="topbar-delete" title="Delete"><i class="ti ti-trash"></i></button>' +
@@ -41,7 +40,8 @@ var topBar = (function() {
         '<button class="topbar-btn" id="topbar-reset" title="Reset"><i class="ti ti-rotate"></i></button>' +
         '<button class="topbar-btn" id="topbar-reload" title="Reload"><i class="ti ti-refresh"></i></button>' +
         '<button class="topbar-btn" id="topbar-settings" title="Settings"><i class="ti ti-settings"></i></button>' +
-      '</div>';
+      '</div>' +
+      '<span class="topbar-status" id="topbar-status"></span>';
 
     refreshSelection([]);
 

@@ -14,6 +14,8 @@
     gs.nodeMap   = {};
     gs.wireMap   = {};
     gs.selection = [];
+    gs._viewFilter   = null;
+    gs._activeCompId = null;
 
     if (graphData && graphData.nodes) {
       for (var nodeId in graphData.nodes) {
@@ -58,6 +60,8 @@
     gs.wireMap   = {};
     gs.tempGraph = { version: '4.0', nodes: {}, wires: {} };
     gs.selection = [];
+    gs._viewFilter   = null;
+    gs._activeCompId = null;
     gs._fireGraphChange();
   }
 

@@ -374,7 +374,9 @@ var wireRenderer = (function() {
     var wires = graphState.getAllWires();
     for (var wireId in wires) {
       if (!wires.hasOwnProperty(wireId)) continue;
-      _drawWire(_ctx, wires[wireId]);
+      var w = wires[wireId];
+      if (!graphState.isNodeVisible(w.fromNode) || !graphState.isNodeVisible(w.toNode)) continue;
+      _drawWire(_ctx, w);
     }
 
     _drawCloneWires(_ctx);

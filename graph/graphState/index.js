@@ -56,6 +56,31 @@
     rebuildTempGraph:     gs.rebuildTempGraph,
     loadGraph:            gs.loadGraph,
     clearGraph:           gs.clearGraph,
+
+    setActiveComp: function(id) { gs._activeCompId = id || null; },
+    getActiveComp: function()   { return gs._activeCompId; },
+
+    setFilteredNodes: function(nodeIds) {
+      if (nodeIds === null || nodeIds === undefined) {
+        gs._viewFilter = null;
+        return;
+      }
+      var filter = {};
+      for (var i = 0; i < nodeIds.length; i++) {
+        filter[nodeIds[i]] = true;
+      }
+      gs._viewFilter = filter;
+    },
+    clearFilter: function() { gs._viewFilter = null; },
+    isNodeVisible: function(nodeId) {
+      if (!gs._viewFilter) return true;
+      return !!gs._viewFilter[nodeId];
+    },
+    addToFilteredNodes: function(nodeId) {
+      if (gs._viewFilter) {
+        gs._viewFilter[nodeId] = true;
+      }
+    },
     onGraphChange:        gs._graphChangeListeners.push.bind(gs._graphChangeListeners),
     offGraphChange:       function(cb) {
       var idx = gs._graphChangeListeners.indexOf(cb);

@@ -56,6 +56,8 @@ var _handlers = {
   'setLayerOrder':        _handleSetLayerOrder,
   'renameNode':           _handleRenameNode,
   'focusComp':            _handleFocusComp,
+  'listComps':            _handleListComps,
+  'focusCompByName':      _handleFocusCompByName,
   'applyDynamicEffect':   _handleApplyDynamicEffect,
   'pollAliveEffects':     _handlePollAliveEffects,
   'removeEffect':         _handleRemoveEffect,
