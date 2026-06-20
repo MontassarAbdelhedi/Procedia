@@ -56,6 +56,7 @@ var ShapeNode = {
         rotation:        nodeData.props.rotation,
         opacity:         nodeData.props.opacity,
         scale:           nodeData.props.scale,
+        fillColor:       nodeData.props.fillColor,
         label:           nodeData.props.label
       }
     };

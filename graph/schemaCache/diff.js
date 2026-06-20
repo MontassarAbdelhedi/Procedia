@@ -79,6 +79,10 @@ var __sc_diff = (function() {
               _state.storeSchema(matchName, res.data);
               changed++;
             }
+          }).catch(function(err) {
+            console.warn('[schemaCache] Error introspecting effect:', matchName, err);
+            _state.deleteKey(matchName);
+            changed++;
           });
         });
       })(knownMatchNames[i]);

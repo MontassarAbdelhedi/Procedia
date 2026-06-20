@@ -15,11 +15,10 @@ var canvasDrag = {};
 (function() {
 
   var HIT_THRESHOLD = 8;
-  var _previewState = null;
 
-  function _bezierPoint(t, p0, p1, p2, p3) {
+  function _bezierCoord(t, c0, c1, c2, c3) {
     var mt = 1 - t;
-    return mt*mt*mt*p0 + 3*mt*mt*t*p1 + 3*mt*t*t*p2 + t*t*t*p3;
+    return mt*mt*mt*c0 + 3*mt*mt*t*c1 + 3*mt*t*t*c2 + t*t*t*c3;
   }
 
   function _distToSegmentSq(px, py, ax, ay, bx, by) {
@@ -38,12 +37,12 @@ var canvasDrag = {};
 
   function _sampleBezier(ax, ay, bx, by, cx, cy, dx, dy, px, py) {
     var minDist = Infinity;
-    var prevX = _bezierPoint(0, ax, bx, cx, dx);
-    var prevY = _bezierPoint(0, ay, by, cy, dy);
+    var prevX = _bezierCoord(0, ax, bx, cx, dx);
+    var prevY = _bezierCoord(0, ay, by, cy, dy);
     for (var i = 1; i <= 12; i++) {
       var t = i / 12;
-      var curX = _bezierPoint(t, ax, bx, cx, dx);
-      var curY = _bezierPoint(t, ay, by, cy, dy);
+      var curX = _bezierCoord(t, ax, bx, cx, dx);
+      var curY = _bezierCoord(t, ay, by, cy, dy);
       var d = _distToSegmentSq(px, py, prevX, prevY, curX, curY);
       if (d < minDist) minDist = d;
       prevX = curX;
@@ -68,7 +67,6 @@ var canvasDrag = {};
   }
 
   canvasDrag.__HIT_THRESHOLD = HIT_THRESHOLD;
-  canvasDrag.__previewState = _previewState;
   canvasDrag._portPosInWrap = _portPosInWrap;
   canvasDrag._sampleBezier = _sampleBezier;
   canvasDrag._distToSegmentSq = _distToSegmentSq;

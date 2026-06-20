@@ -40,14 +40,11 @@
       if (losingComps.length === 0) continue;
 
       if (losingComps.length < cn.hostingComps.length) {
+        var partialUUID = wireData._pathLayerUUID !== null
+          ? wireData._pathLayerUUID
+          : __c_ghost_util._resolvePathLayerUUID(wireData.toNode);
         for (var li = 0; li < losingComps.length; li++) {
           var lostCompId = losingComps[li];
-          var partialUUID = null;
-          if (wireData._pathLayerUUID !== null) {
-            partialUUID = wireData._pathLayerUUID;
-          } else {
-            partialUUID = __c_ghost_util._resolvePathLayerUUID(wireData.toNode);
-          }
           batchCommands.push({
             action: 'deletePathLayer',
             params: {

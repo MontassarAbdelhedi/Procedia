@@ -22,6 +22,7 @@ var cycleChecker = (function() {
   function hasCycle(fromNodeId, toNodeId) {
     var visited = {};
     var stack = [toNodeId];
+    var wires = graphState.getAllWires();
 
     while (stack.length > 0) {
       var current = stack.pop();
@@ -29,7 +30,6 @@ var cycleChecker = (function() {
       if (visited[current]) continue;
       visited[current] = true;
 
-      var wires = graphState.getAllWires();
       for (var wireId in wires) {
         if (!wires.hasOwnProperty(wireId)) continue;
         var wire = wires[wireId];

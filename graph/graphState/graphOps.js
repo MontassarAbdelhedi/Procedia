@@ -58,11 +58,10 @@
   function clearGraph() {
     gs.nodeMap   = {};
     gs.wireMap   = {};
-    gs.tempGraph = { version: '4.0', nodes: {}, wires: {} };
     gs.selection = [];
     gs._viewFilter   = null;
     gs._activeCompId = null;
-    gs._fireGraphChange();
+    gs.rebuildTempGraph();
   }
 
   gs.loadGraph  = loadGraph;

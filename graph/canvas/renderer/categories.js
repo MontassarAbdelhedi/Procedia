@@ -29,7 +29,7 @@ var __r_cat = (function() {
       'Keying':             'effects',
       'Matte':              'effects',
       'Noise & Grain':      'effects',
-      'obsolete':           'effects',
+      'obsolete':           'obsolete',
       'Perspective':        'effects',
       'Simulation':         'effects',
       'Stylize':            'effects',
@@ -44,7 +44,8 @@ var __r_cat = (function() {
       'layers':  '#2E86C1',
       'effects': '#27AE60',
       'data':    '#D4AC0D',
-      'utility': '#E07B39'
+      'utility': '#E07B39',
+      'obsolete':'#7F8C8D'
     }
   };
 })();

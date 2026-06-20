@@ -36,11 +36,11 @@ var dirtyFlusher = (function() {
       if (!wireMap.hasOwnProperty(wireId)) continue;
       var wire = wireMap[wireId];
       if (wire.fromNode === nodeId && wire.type === 'layer') {
-        if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
+        if (wire._pathLayerUUID != null) {
           return wire._pathLayerUUID;
         }
         var found = _findPathLayerUUIDWithVisited(wire.toNode, visited);
-        if (found !== null) return found;
+        if (found != null) return found;
       }
     }
     return null;
@@ -57,7 +57,7 @@ var dirtyFlusher = (function() {
       if (!wireMap.hasOwnProperty(wireId)) continue;
       var wire = wireMap[wireId];
       if (wire.toNode === nodeId && wire.toPort === 'main_input') {
-        if (wire._pathLayerUUID !== null && wire._pathLayerUUID !== undefined) {
+        if (wire._pathLayerUUID != null) {
           return wire._pathLayerUUID;
         }
         return _findPathLayerUUID(wire.fromNode);

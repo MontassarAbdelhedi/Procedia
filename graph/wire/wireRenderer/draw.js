@@ -179,9 +179,9 @@
     var wires = graphState.getAllWires();
     for (var wireId in wires) {
       if (!wires.hasOwnProperty(wireId)) continue;
-      var w = wires[wireId];
-      if (!graphState.isNodeVisible(w.fromNode) || !graphState.isNodeVisible(w.toNode)) continue;
-      c._drawWire(c._ctx, w);
+      var wireObj = wires[wireId];
+      if (!graphState.isNodeVisible(wireObj.fromNode) || !graphState.isNodeVisible(wireObj.toNode)) continue;
+      c._drawWire(c._ctx, wireObj);
     }
 
     c._drawCloneWires(c._ctx);

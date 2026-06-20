@@ -23,25 +23,11 @@ function _handleParkLayer(cmd) {
       return result;
     }
     var layer = null;
-    var li;
     if (params.layerUUID) {
       layer = findLayerByUUID(hostComp, params.layerUUID);
     }
     if (!layer && params.nodeUUID) {
       layer = findLayerByUUID(hostComp, params.nodeUUID);
-    }
-    if (!layer) {
-      for (li = 1; li <= hostComp.numLayers; li++) {
-        var L = hostComp.layer(li);
-        if (params.nodeUUID && L.comment === params.nodeUUID) {
-          layer = L;
-          break;
-        }
-        if (params.layerUUID && L.comment === params.layerUUID) {
-          layer = L;
-          break;
-        }
-      }
     }
     if (!layer) {
       result.error = 'parkLayer: layer not found in host comp';
@@ -78,25 +64,17 @@ function _handleUnparkLayer(cmd) {
     var hostComp = findCompByUUID(params.hostingCompUUID);
     if (!hostComp) { result.error = 'unparkLayer: host comp not found'; return result; }
     var layer = null;
-    var lj;
     if (params.layerUUID) {
       layer = findLayerByUUID(reserved, params.layerUUID);
     }
     if (!layer && params.nodeUUID) {
-      for (lj = 1; lj <= reserved.numLayers; lj++) {
+      for (var lj = 1; lj <= reserved.numLayers; lj++) {
         var LN = reserved.layer(lj);
         if (LN.name === params.nodeUUID) { layer = LN; break; }
       }
     }
     if (!layer && params.nodeUUID) {
       layer = findLayerByUUID(reserved, params.nodeUUID);
-    }
-    if (!layer) {
-      for (lj = 1; lj <= reserved.numLayers; lj++) {
-        var L = reserved.layer(lj);
-        if (params.layerUUID && L.comment === params.layerUUID) { layer = L; break; }
-        if (params.nodeUUID && L.comment === params.nodeUUID) { layer = L; break; }
-      }
     }
     if (!layer) { result.error = 'unparkLayer: layer not found in reserved comp'; return result; }
     layer.copyToComp(hostComp);

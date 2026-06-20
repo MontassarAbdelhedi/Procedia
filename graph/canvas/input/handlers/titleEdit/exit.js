@@ -21,11 +21,11 @@
       if (input) {
         input.removeEventListener('keydown', _handlersTitleEdit._onTitleInputKeydown);
         input.removeEventListener('blur', _handlersTitleEdit._onTitleInputBlur);
+        input.parentNode.removeChild(input);
       }
     }
   }
 
   _handlersTitleEdit._exitTitleEdit = _exitTitleEdit;
-  _handlersTitleEdit.exitTitleEdit = _exitTitleEdit;
 
 })();

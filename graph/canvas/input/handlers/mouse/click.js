@@ -10,6 +10,8 @@
 
 (function() {
 
+  var _FOCUS_DELAY_MS = 280;
+
   _handlersMouse.onClick = function onClick(e) {
     if (e.button !== 0) return;
     if (_pendingFocusTimer) {
@@ -37,7 +39,7 @@
         }).catch(function(err) {
           console.warn('[handlers] click focusComp failed:', err);
         });
-      }, 280);
+      }, _FOCUS_DELAY_MS);
     }
   };
 

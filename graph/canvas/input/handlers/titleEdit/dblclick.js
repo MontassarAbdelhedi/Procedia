@@ -74,13 +74,17 @@
     nodeEl.classList.add('node--editing');
     _editingNodeId = nodeId;
     var input = nodeEl.querySelector('.node-title-input');
-    if (input) {
-      input.value = (nodeData.props && nodeData.props.label) || def.label;
-      input.addEventListener('keydown', _handlersTitleEdit._onTitleInputKeydown);
-      input.addEventListener('blur', _handlersTitleEdit._onTitleInputBlur);
-      input.focus();
-      input.select();
+    if (!input) {
+      input = document.createElement('input');
+      input.className = 'node-title-input';
+      input.type = 'text';
+      headerEl.appendChild(input);
     }
+    input.value = (nodeData.props && nodeData.props.label) || def.label;
+    input.addEventListener('keydown', _handlersTitleEdit._onTitleInputKeydown);
+    input.addEventListener('blur', _handlersTitleEdit._onTitleInputBlur);
+    input.focus();
+    input.select();
   };
 
 })();

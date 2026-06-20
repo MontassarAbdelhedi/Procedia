@@ -10,6 +10,7 @@
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 
+(function() {
 var DropShadowNode = {
   type:      'perspective/drop-shadow',
   label:     'Drop Shadow',
@@ -84,3 +85,4 @@ var DropShadowNode = {
 };
 
 nodeRegistry.register(DropShadowNode);
+})();

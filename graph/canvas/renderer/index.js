@@ -22,6 +22,7 @@ var renderer = (function() {
   function render() {
     var vp = __r_hlp.getViewport();
     if (!vp) return;
+    __r_hlp.clearWireParamCache();
     var nodes = graphState.getAllNodes();
 
     for (var id in _nodeElements) {

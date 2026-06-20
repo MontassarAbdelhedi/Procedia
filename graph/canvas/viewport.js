@@ -100,16 +100,16 @@ var viewport = (function() {
    * @param {number} screenY
    * @returns {{ x: number, y: number }}
    */
-  function screenToCanvas(screenX, screenY) {
+  function _getWrapOffset() {
     var wrap = document.getElementById('canvas-wrap');
-    var ox = 0;
-    var oy = 0;
-    if (wrap) {
-      var r = wrap.getBoundingClientRect();
-      ox = r.left;
-      oy = r.top;
-    }
-    return { x: (screenX - ox - _pan.x) / _zoom, y: (screenY - oy - _pan.y) / _zoom };
+    if (!wrap) return { x: 0, y: 0 };
+    var r = wrap.getBoundingClientRect();
+    return { x: r.left, y: r.top };
+  }
+
+  function screenToCanvas(screenX, screenY) {
+    var o = _getWrapOffset();
+    return { x: (screenX - o.x - _pan.x) / _zoom, y: (screenY - o.y - _pan.y) / _zoom };
   }
 
   /**
@@ -119,15 +119,8 @@ var viewport = (function() {
    * @returns {{ x: number, y: number }}
    */
   function canvasToScreen(canvasX, canvasY) {
-    var wrap = document.getElementById('canvas-wrap');
-    var ox = 0;
-    var oy = 0;
-    if (wrap) {
-      var r = wrap.getBoundingClientRect();
-      ox = r.left;
-      oy = r.top;
-    }
-    return { x: canvasX * _zoom + _pan.x + ox, y: canvasY * _zoom + _pan.y + oy };
+    var o = _getWrapOffset();
+    return { x: canvasX * _zoom + _pan.x + o.x, y: canvasY * _zoom + _pan.y + o.y };
   }
 
   /**
@@ -139,16 +132,9 @@ var viewport = (function() {
   function setZoom(newZoom, originX, originY) {
     var canvasOrigin = screenToCanvas(originX, originY);
     _zoom = _clamp(newZoom, MIN_ZOOM, MAX_ZOOM);
-    var wrap = document.getElementById('canvas-wrap');
-    var ox = 0;
-    var oy = 0;
-    if (wrap) {
-      var r = wrap.getBoundingClientRect();
-      ox = r.left;
-      oy = r.top;
-    }
-    _pan.x = originX - ox - canvasOrigin.x * _zoom;
-    _pan.y = originY - oy - canvasOrigin.y * _zoom;
+    var o = _getWrapOffset();
+    _pan.x = originX - o.x - canvasOrigin.x * _zoom;
+    _pan.y = originY - o.y - canvasOrigin.y * _zoom;
     applyTransform();
   }
 

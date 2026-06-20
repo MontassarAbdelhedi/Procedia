@@ -44,7 +44,7 @@ function _handleCreateTextLayer(cmd) {
         textLayer.text.sourceText.setValue(textDoc);
       }
     }
-    if (params.color && params.color.length >= 3 && params.label) {
+    if (params.label) {
       textLayer.name = params.label;
     }
     result.ok = true;

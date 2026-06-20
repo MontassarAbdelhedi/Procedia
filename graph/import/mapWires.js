@@ -68,7 +68,7 @@ var __imp_wires = (function() {
           fromNode:       fromId,
           fromPort:       'output',
           toNode:         toId,
-          toPort:         (toId === compData.uuid) ? 'main_input' : 'main_input',
+          toPort:         'main_input',
           _pathLayerUUID: isTerminal ? wireId : null,
           boundParam:     null
         };

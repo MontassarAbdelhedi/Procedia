@@ -79,7 +79,7 @@ var evalBridge = (function() {
       '$.evalFile("' + extPath + '/jsx/dispatcher/dispatcher.jsx");'
     ].join('\n');
     _cs.evalScript(script, function(result) {
-      if (result && result.indexOf('Error') !== -1) {
+      if (result && typeof result === 'string' && (result.indexOf('Error:') !== -1 || result.indexOf('SyntaxError') !== -1 || result.indexOf('ReferenceError') !== -1)) {
         _preambleError = result;
         console.error('[evalBridge] preamble load failed: ' + result);
         _flushReadyCallbacks(false);
@@ -89,14 +89,6 @@ var evalBridge = (function() {
         _flushReadyCallbacks(true);
       }
     });
-  }
-
-  /**
-   * Checks whether the bridge is initialized and the preamble has been loaded.
-   * @returns {boolean}
-   */
-  function _isBridgeAvailable() {
-    return _cs !== null && _preambleLoaded;
   }
 
   /**
@@ -158,11 +150,25 @@ var evalBridge = (function() {
     });
   }
 
+  /**
+   * Fire-and-forget: sends a command without waiting for a response.
+   * Used for beforeunload/emergency saves where the page may close before
+   * the async callback fires. The ExtendScript side still executes synchronously.
+   * @param {Object} commandObj - Command with an `action` string and optional `params`
+   */
+  function fireAndForget(commandObj) {
+    if (_cs === null || !_preambleLoaded) return;
+    var json = JSON.stringify(commandObj);
+    var call = 'dispatch(' + JSON.stringify(json) + ')';
+    _cs.evalScript(call, function(){});
+  }
+
   return {
     init:          init,
     onReady:       onReady,
     dispatch:      dispatch,
-    dispatchBatch: dispatchBatch
+    dispatchBatch: dispatchBatch,
+    fireAndForget: fireAndForget
   };
 
 })();

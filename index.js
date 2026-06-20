@@ -42,6 +42,14 @@ function init() {
   if (typeof dirtyFlusher === 'undefined') {
     console.error('[Procedia] dirtyFlusher.js did not load — check Network tab for flush/dirtyFlusher.js');
   }
+  if (typeof canvasView === 'undefined') {
+    console.error('[Procedia] canvasView did not load');
+    return;
+  }
+  if (typeof canvasInput === 'undefined') {
+    console.error('[Procedia] canvasInput did not load');
+    return;
+  }
 
   canvasView.init();
   canvasInput.init();
@@ -53,17 +61,17 @@ function init() {
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
     if (typeof nodeToolbar !== 'undefined' && nodeToolbar.refresh) nodeToolbar.refresh();
   });
-  wireRenderer.init();
-  wireTool.init();
-  minimap.init();
-  topBar.init();
-  nodeList.init();
-  inspector.init();
-  notificationBar.init();
+  if (typeof wireRenderer !== 'undefined' && wireRenderer.init) wireRenderer.init();
+  if (typeof wireTool !== 'undefined' && wireTool.init) wireTool.init();
+  if (typeof minimap !== 'undefined' && minimap.init) minimap.init();
+  if (typeof topBar !== 'undefined' && topBar.init) topBar.init();
+  if (typeof nodeList !== 'undefined' && nodeList.init) nodeList.init();
+  if (typeof inspector !== 'undefined' && inspector.init) inspector.init();
+  if (typeof notificationBar !== 'undefined' && notificationBar.init) notificationBar.init();
   if (typeof nodeToolbar !== 'undefined' && nodeToolbar.init) nodeToolbar.init();
-  statusBar.init();
-  sidebarToggle.init();
-  settingsModal.init();
+  if (typeof statusBar !== 'undefined' && statusBar.init) statusBar.init();
+  if (typeof sidebarToggle !== 'undefined' && sidebarToggle.init) sidebarToggle.init();
+  if (typeof settingsModal !== 'undefined' && settingsModal.init) settingsModal.init();
   if (typeof compList !== 'undefined' && compList.init) compList.init();
   evalBridge.onReady(function(ready) {
     if (!ready) {
@@ -146,7 +154,9 @@ function init() {
   window.addEventListener('beforeunload', function() {
     if (typeof graphState === 'undefined') return;
     var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
-    evalBridge.dispatch({ action: 'writeGraph', params: graphData });
+    if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
+      evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });
+    }
     if (typeof poller !== 'undefined' && poller.stop) poller.stop();
   });
 }

@@ -166,9 +166,10 @@ var PERSISTENCE = (function() {
       }
 
       var parkedNodeUUIDs = [];
+      var _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       for (var pi = 1; pi <= comp.numLayers; pi++) {
         var PL = comp.layer(pi);
-        if (PL.name.indexOf('__PROCEDIA_') !== 0) {
+        if (PL.name.indexOf('__PROCEDIA_') !== 0 && _uuidRe.test(PL.name)) {
           parkedNodeUUIDs.push(PL.name);
         }
       }

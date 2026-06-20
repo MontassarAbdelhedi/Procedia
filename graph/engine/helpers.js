@@ -99,15 +99,22 @@ var __e_hlp = (function() {
       props:          initialProps
     });
 
-    var allNodes = graphState.getAllNodes();
-    for (var id in allNodes) {
-      if (allNodes[id]._cloneMasterId === nodeId) {
-        graphState.updateNode(id, {
-          secondaryPorts: JSON.parse(JSON.stringify(secondaryPorts)),
-          dynamicSchema:  schema,
-          props:          JSON.parse(JSON.stringify(initialProps))
-        });
+    var _allNodes = graphState.getAllNodes();
+    var _cloneIds = [];
+    for (var _id in _allNodes) {
+      if (_allNodes[_id]._cloneMasterId === nodeId) {
+        _cloneIds.push(_id);
       }
+    }
+    for (var _ci = 0; _ci < _cloneIds.length; _ci++) {
+      var _clone = graphState.getNode(_cloneIds[_ci]);
+      if (!_clone) continue;
+      _clone.secondaryPorts = JSON.parse(JSON.stringify(secondaryPorts));
+      _clone.dynamicSchema  = schema;
+      _clone.props          = JSON.parse(JSON.stringify(initialProps));
+    }
+    if (_cloneIds.length > 0) {
+      graphState.rebuildTempGraph();
     }
   }
 
@@ -221,9 +228,33 @@ var __e_hlp = (function() {
     }
   }
 
+  /**
+   * Deep copies a node's data into a new object, skipping internal fields.
+   * Arrays are shallow-cloned with .slice(); objects are deep-cloned via JSON
+   * round-trip (safe because node data is guaranteed JSON-serializable).
+   *
+   * @param {Object} src - Source node data
+   * @returns {Object} Deep copy without id, dirty, _transplantLayerUUID
+   */
+  function _deepCopyNode(src) {
+    var copy = {};
+    for (var key in src) {
+      if (key === 'id' || key === 'dirty' || key === '_transplantLayerUUID') continue;
+      if (Array.isArray(src[key])) {
+        copy[key] = src[key].slice();
+      } else if (typeof src[key] === 'object' && src[key] !== null) {
+        copy[key] = JSON.parse(JSON.stringify(src[key]));
+      } else {
+        copy[key] = src[key];
+      }
+    }
+    return copy;
+  }
+
   return {
     buildInitialProps:   _buildInitialProps,
     refreshNodeUI:       _refreshNodeUI,
+    deepCopyNode:        _deepCopyNode,
     resolveDynamicSchema:_resolveDynamicSchema,
     applyDynamicSchema:  _applyDynamicSchema,
     findPathLayerUUID:   _findPathLayerUUID,

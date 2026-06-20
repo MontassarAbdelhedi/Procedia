@@ -101,8 +101,6 @@ var nodeToolbar = (function() {
         engine.toggleNodeDisabled(_currentNodeId);
         _updateToggleIcon();
         break;
-      case 'switch':
-        break;
     }
   }
 

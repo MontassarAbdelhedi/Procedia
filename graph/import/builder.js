@@ -165,44 +165,56 @@ var __imp_builder = (function() {
     }
 
     // 6. Set hosting comps on all alive nodes
-    for (var nid in nodeMap) {
-      if (!nodeMap.hasOwnProperty(nid)) continue;
-      var nd = nodeMap[nid];
-      if (nd.type === 'core/comp') {
-        nd.state = 'alive';
-        continue;
+    // Phase 1: mark comp nodes and directly connect their upstream layers
+    var comps = {};
+    for (var _nid in nodeMap) {
+      if (!nodeMap.hasOwnProperty(_nid)) continue;
+      if (nodeMap[_nid].type === 'core/comp') {
+        nodeMap[_nid].state = 'alive';
+        comps[_nid] = true;
       }
-      // Find which comp this node connects to by checking wires
-      for (var wid in wireMap) {
-        if (!wireMap.hasOwnProperty(wid)) continue;
-        var wd = wireMap[wid];
-        if (wd.fromNode === nid && wd.type === 'layer' && wd._pathLayerUUID !== null) {
-          var compId = wd.toNode;
-          if (nodeMap[compId] && nodeMap[compId].type === 'core/comp') {
-            if (nd.hostingComps.indexOf(compId) === -1) {
-              nd.hostingComps.push(compId);
-            }
-            if (nd.state === 'ghost') {
-              nd.state = 'alive';
-            }
+    }
+    var queue = [];
+    var queued = {};
+    for (var _wid in wireMap) {
+      if (!wireMap.hasOwnProperty(_wid)) continue;
+      var _wd = wireMap[_wid];
+      if (_wd.type !== 'layer' || _wd._pathLayerUUID === null) continue;
+      var _compId = _wd.toNode;
+      if (!comps[_compId]) continue;
+      var _fromId = _wd.fromNode;
+      var _fromNd = nodeMap[_fromId];
+      if (!_fromNd) continue;
+      if (_fromNd.hostingComps.indexOf(_compId) === -1) {
+        _fromNd.hostingComps.push(_compId);
+      }
+      if (_fromNd.state === 'ghost') _fromNd.state = 'alive';
+      if (!queued[_fromId]) { queued[_fromId] = true; queue.push(_fromId); }
+    }
+    // Phase 2: BFS upstream through layer wire chains
+    while (queue.length > 0) {
+      var _nodeId = queue.shift();
+      var _nodeData = nodeMap[_nodeId];
+      if (!_nodeData || !_nodeData.hostingComps || _nodeData.hostingComps.length === 0) continue;
+      for (var _w2id in wireMap) {
+        if (!wireMap.hasOwnProperty(_w2id)) continue;
+        var _w2 = wireMap[_w2id];
+        if (_w2.type !== 'layer') continue;
+        if (_w2.toNode !== _nodeId) continue;
+        var _upId = _w2.fromNode;
+        if (_upId === _nodeId) continue;
+        var _upNd = nodeMap[_upId];
+        if (!_upNd) continue;
+        var _changed = false;
+        for (var _hi = 0; _hi < _nodeData.hostingComps.length; _hi++) {
+          var _hc = _nodeData.hostingComps[_hi];
+          if (_upNd.hostingComps.indexOf(_hc) === -1) {
+            _upNd.hostingComps.push(_hc);
+            _changed = true;
           }
         }
-        if (wd.toNode === nid && wd.type === 'layer') {
-          var fromId = wd.fromNode;
-          if (fromId === nid) continue;
-          var fromNode = nodeMap[fromId];
-          if (fromNode && fromNode.hostingComps && fromNode.hostingComps.length > 0) {
-            for (var hi = 0; hi < fromNode.hostingComps.length; hi++) {
-              var hc = fromNode.hostingComps[hi];
-              if (nd.hostingComps.indexOf(hc) === -1) {
-                nd.hostingComps.push(hc);
-              }
-            }
-            if (nd.state === 'ghost') {
-              nd.state = 'alive';
-            }
-          }
-        }
+        if (_upNd.state === 'ghost') _upNd.state = 'alive';
+        if (_changed && !queued[_upId]) { queued[_upId] = true; queue.push(_upId); }
       }
     }
 

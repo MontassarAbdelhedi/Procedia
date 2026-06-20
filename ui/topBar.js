@@ -113,10 +113,7 @@ var topBar = (function() {
    * Hides the dynamic section (no selection).
    */
   function clearSelection() {
-    var el = document.getElementById('topbar-dynamic');
-    if (!el) return;
-    el.style.opacity = '0';
-    el.style.pointerEvents = 'none';
+    refreshSelection([]);
   }
 
   return {

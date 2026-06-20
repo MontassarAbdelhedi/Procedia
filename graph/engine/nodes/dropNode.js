@@ -35,6 +35,7 @@ var __e_ndrop = (function() {
     }
 
     var id = uuidGenerator.node();
+    var _activeComp;
 
     var nodeData = {
       id:             id,
@@ -62,7 +63,7 @@ var __e_ndrop = (function() {
       if (nodeDef.params === 'dynamic' && nodeDef.matchName) {
         hlp.resolveDynamicSchema(id, nodeDef.matchName);
       }
-      var _activeComp = graphState.getActiveComp();
+      _activeComp = graphState.getActiveComp();
       if (_activeComp) {
         if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
         if (nodeDef.nodeKind !== 'data' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
@@ -78,7 +79,7 @@ var __e_ndrop = (function() {
 
     var command = nodeDef.onDrop(nodeData);
     if (command === null) {
-      var _activeComp = graphState.getActiveComp();
+      _activeComp = graphState.getActiveComp();
       if (_activeComp) {
         if (nodeDef.nodeKind !== 'effector' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
           if (__e_wires.connectWire(id, 'output', _activeComp, 'main_input')) {

@@ -54,6 +54,9 @@
       _inpDrag.nodeId = null;
       _inpDrag.moved = false;
       _inpDrag.selectionStartPositions = null;
+      if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+      if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+      if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
     }
   };
 

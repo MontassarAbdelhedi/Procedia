@@ -9,15 +9,20 @@
 // Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
 
 function _readLayer(layer) {
-  var uuid = _import_uuid('PROC');
-  layer.comment = uuid;
+  var uuid;
+  if (layer.comment && layer.comment.indexOf('PROC-') === 0) {
+    uuid = layer.comment;
+  } else {
+    uuid = _import_uuid('PROC');
+    if (!layer.comment) layer.comment = uuid;
+  }
   var type = _layerType(layer);
   var parentUUID = null;
   if (layer.parent) {
     parentUUID = layer.parent.comment;
     if (!parentUUID || parentUUID.indexOf('PROC-') !== 0) {
       parentUUID = _import_uuid('PROC');
-      layer.parent.comment = parentUUID;
+      if (!layer.parent.comment) layer.parent.comment = parentUUID;
     }
   }
   var trackMatteType = null;
@@ -31,7 +36,7 @@ function _readLayer(layer) {
     trackMatteLayerUUID = layer.trackMatteLayer.comment;
     if (!trackMatteLayerUUID || trackMatteLayerUUID.indexOf('PROC-') !== 0) {
       trackMatteLayerUUID = _import_uuid('PROC');
-      layer.trackMatteLayer.comment = trackMatteLayerUUID;
+      if (!layer.trackMatteLayer.comment) layer.trackMatteLayer.comment = trackMatteLayerUUID;
     }
   }
   var blendingMode = 'NORMAL';
@@ -89,8 +94,13 @@ function _readLayer(layer) {
 }
 
 function _readComp(comp) {
-  var compUUID = _import_uuid('PROC');
-  comp.comment = compUUID;
+  var compUUID;
+  if (comp.comment && comp.comment.indexOf('PROC-') === 0) {
+    compUUID = comp.comment;
+  } else {
+    compUUID = _import_uuid('PROC');
+    if (!comp.comment) comp.comment = compUUID;
+  }
   var layers = [];
   for (var li = 1; li <= comp.numLayers; li++) {
     try {
@@ -112,8 +122,13 @@ function _readComp(comp) {
 }
 
 function _readFootage(item) {
-  var uuid = _import_uuid('PROC');
-  item.comment = uuid;
+  var uuid;
+  if (item.comment && item.comment.indexOf('PROC-') === 0) {
+    uuid = item.comment;
+  } else {
+    uuid = _import_uuid('PROC');
+    if (!item.comment) item.comment = uuid;
+  }
   var filePath = '';
   var type = 'unknown';
   var width = item.width;

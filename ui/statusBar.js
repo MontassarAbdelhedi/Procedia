@@ -53,7 +53,8 @@ var statusBar = (function() {
     var wires = _countWires();
     var zoom = 100;
     if (typeof viewport !== 'undefined' && viewport.getTransform) {
-      zoom = Math.round(viewport.getTransform().zoom * 100);
+      var _t = viewport.getTransform();
+      if (_t) zoom = Math.round(_t.zoom * 100);
     }
     var selCount = 0;
     if (typeof graphState !== 'undefined' && typeof graphState.getSelectionCount === 'function') {

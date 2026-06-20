@@ -30,20 +30,7 @@ var __e_nclone = (function() {
     var src = graphState.getNode(nodeId);
     if (!src) return null;
 
-    var copy = {};
-    for (var key in src) {
-      if (key === 'id' || key === 'dirty' || key === '_transplantLayerUUID') continue;
-      if (Array.isArray(src[key])) {
-        copy[key] = src[key].slice();
-      } else if (typeof src[key] === 'object' && src[key] !== null) {
-        // Deep copy via JSON round-trip. Safe because node data (props,
-        // dynamicSchema, etc.) is guaranteed JSON-serializable per the
-        // architecture spec — no functions, DOM refs, or undefined values.
-        copy[key] = JSON.parse(JSON.stringify(src[key]));
-      } else {
-        copy[key] = src[key];
-      }
-    }
+    var copy = hlp.deepCopyNode(src);
     copy.id = uuidGenerator.node();
     copy.x = src.x + 30;
     copy.y = src.y + 30;

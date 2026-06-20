@@ -31,7 +31,7 @@ var __e_state = (function() {
     for (var i = ids.length - 1; i >= 0; i--) {
       var nd = allNodes[ids[i]];
       var def = nodeRegistry.getDefinition(nd.type);
-      if (def && def.onDelete) evalBridge.dispatch(def.onDelete(nd));
+      if (def && def.onDelete) { var dataCmd = def.onDelete(nd); if (dataCmd) evalBridge.dispatch(dataCmd); }
     }
 
     graphState.clearGraph();
@@ -65,10 +65,11 @@ var __e_state = (function() {
       hlp.propagateDataValue(nodeId, key, value);
     }
 
-    var allNodes = graphState.getAllNodes();
-    for (var id in allNodes) {
-      if (allNodes[id]._cloneMasterId === nodeId && allNodes[id].nodeKind === 'data' && key !== 'label') {
-        hlp.propagateDataValue(id, key, value);
+    var cloneIds = graphState.getCloneIds(nodeId);
+    for (var ci = 0; ci < cloneIds.length; ci++) {
+      var cloneData = graphState.getNode(cloneIds[ci]);
+      if (cloneData && cloneData.nodeKind === 'data' && key !== 'label') {
+        hlp.propagateDataValue(cloneIds[ci], key, value);
       }
     }
 

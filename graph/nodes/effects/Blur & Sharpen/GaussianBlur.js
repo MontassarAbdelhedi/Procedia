@@ -10,6 +10,7 @@
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 
+(function() {
 var GaussianBlurNode = {
   type:      'blur-sharpen/gaussian-blur',
   label:     'Gaussian Blur',
@@ -109,3 +110,4 @@ var GaussianBlurNode = {
 };
 
 nodeRegistry.register(GaussianBlurNode);
+})();

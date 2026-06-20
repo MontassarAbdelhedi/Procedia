@@ -19,7 +19,11 @@
     var x1 = from.x, y1 = from.y;
     var x2 = to.x, y2 = to.y;
 
-    var style = (typeof settings !== 'undefined' && settings.get) ? settings.get('wireStyle') : 'bezier';
+    var _hasSettings = typeof settings !== 'undefined' && settings.get;
+    if (typeof settings !== 'undefined' && !settings.get) {
+      console.warn('[hitTest] settings exists but has no .get method — falling back to bezier');
+    }
+    var style = _hasSettings ? settings.get('wireStyle') : 'bezier';
 
     if (style === 'direct') {
       return canvasDrag._distToSegmentSq(wrapX, wrapY, x1, y1, x2, y2) <= canvasDrag.__HIT_THRESHOLD * canvasDrag.__HIT_THRESHOLD;

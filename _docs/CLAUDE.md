@@ -731,7 +731,7 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 - Never split mid-task. Declare the split as its own step before writing any code.
 - After any file change, the first verification item is always: panel loads without console errors
 
-**Load order in `index.html`:** (103 script tags, 11 groups)
+**Load order in `index.html`:** (121 script tags, 11 groups)
 ```html
 <!-- 1. CEP interface -->
 <script src="lib/CSInterface.js"></script>
@@ -871,7 +871,7 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 
 <!-- 10. UI chrome — no graph dependencies -->
 <script src="ui/topBar.js"></script>
-<script src="ui/bottomBar.js"></script>
+
 <script src="ui/statusBar.js"></script>
 <script src="ui/sidebarToggle.js"></script>
 
@@ -1023,7 +1023,7 @@ Effect nodes (`nodeKind: 'effector'`) declare `params: 'dynamic'`. On first drop
 
 ```
 procedia/
-├── index.html                              ← Script load order (103 tags). Single source of truth.
+├── index.html                              ← Script load order (121 tags). Single source of truth.
 ├── index.js                                ← Panel entry point.
 │
 ├── graph/
@@ -1060,7 +1060,7 @@ procedia/
 │   │   ├── state.js                        ← resetAll(), setNodeProperty()
 │   │   └── index.js                        ← Public API — aggregates all engine IIFEs
 │   │
-│   ├── cascade/                            ← Ghost cascade algorithm (3 files)
+│   ├── cascade/                            ← Ghost cascade algorithm (7 files: utils + cascadeGhost/5 + index)
 │   │   ├── utils.js                        ← hasCompDownstream, collectPathUpstream
 │   │   ├── cascadeGhost/                    ← 5 files (collect, commands, update, cleanup, ghost)
 │   │   └── index.js                        ← Aggregates into cascadeAlgorithm global
@@ -1104,7 +1104,7 @@ procedia/
 │   ├── nodeList/                           ← 5 files (categories, render, search, dragdrop, index)
 │   ├── nodePicker/                         ← 5 files (compatibility, render, filter, events, index)
 │   ├── inspector/                          ← 5 files (viewModel, render, colorPicker, events, index)
-│   ├── topBar.js, bottomBar.js, statusBar.js
+│   ├── topBar.js, statusBar.js
 │   ├── settings.js, settingsModal.js
 │   └── sidebarToggle.js
 │

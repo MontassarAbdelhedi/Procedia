@@ -48,7 +48,9 @@
       var srcWire  = gs.wireMap[wireId];
       var copyWire = {};
       for (var wfield in srcWire) {
-        copyWire[wfield] = srcWire[wfield];
+        if (!gs._strippedWireFields[wfield]) {
+          copyWire[wfield] = srcWire[wfield];
+        }
       }
       newWires[wireId] = copyWire;
     }

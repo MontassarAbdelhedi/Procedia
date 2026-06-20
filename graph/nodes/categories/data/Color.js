@@ -23,6 +23,7 @@ var ColorNode = {
   ],
 
   params: [
+    { key: 'label', type: 'string', default: 'Color', label: 'Label' },
     { key: 'color', type: 'color',  default: [1, 1, 1, 1], label: 'Color' }
   ],
 

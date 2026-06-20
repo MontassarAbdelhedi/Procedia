@@ -137,9 +137,7 @@ var __e_wires = (function() {
       for (var pk in fromNodeData.props) {
         if (!fromNodeData.props.hasOwnProperty(pk)) continue;
         if (pk === 'label') continue;
-        graphState.updateProp(toNodeId, toPort, fromNodeData.props[pk]);
-        if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
-        break;
+        hlp.propagateDataValue(fromNodeId, pk, fromNodeData.props[pk]);
       }
       return true;
     }

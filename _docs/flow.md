@@ -214,7 +214,7 @@
 
 57. **Sidebar collapse** — `ui/sidebarToggle.js` `init()` creates edge handle elements on left/right of canvas-wrap → hover/toggle adds/removes collapsed CSS classes on `#left-bar` / `#right-bar`.
 
-58. **Bottom bar** — `ui/bottomBar.js` displays persistent notification text in `#bottom-bar`.
+58. **Notifications** — `notifications/notificationBar.js` displays toast notifications; bottom bar removed (absorbed into notification system).
 
 ## Global State Reset
 

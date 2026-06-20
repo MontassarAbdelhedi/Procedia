@@ -22,10 +22,10 @@
 
     var canvasWrap = document.getElementById('canvas-wrap');
     if (!canvasWrap) return;
-    var t = canvasView.getTransform();
-    var newX = -(canvasX * t.scale) + canvasWrap.clientWidth  / 2;
-    var newY = -(canvasY * t.scale) + canvasWrap.clientHeight / 2;
-    canvasView.setPan(newX, newY);
+    var t = viewport.getTransform();
+    var newX = -(canvasX * t.zoom) + canvasWrap.clientWidth  / 2;
+    var newY = -(canvasY * t.zoom) + canvasWrap.clientHeight / 2;
+    viewport.setPan(newX, newY);
   };
 
   m.fitAll = function() {

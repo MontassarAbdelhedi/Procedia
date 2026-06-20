@@ -10,6 +10,7 @@
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 
+(function() {
 var DropShadowNode = {
   type:      'blur-sharpen/drop-shadow',
   label:     'Drop Shadow',
@@ -109,3 +110,4 @@ var DropShadowNode = {
 };
 
 nodeRegistry.register(DropShadowNode);
+})();

@@ -192,12 +192,6 @@ var __r_bld = (function() {
     labelEl.textContent = (nodeData.props && nodeData.props.label) || def.label;
     header.appendChild(labelEl);
 
-    var titleInput = document.createElement('input');
-    titleInput.className = 'node-title-input';
-    titleInput.type = 'text';
-    titleInput.value = (nodeData.props && nodeData.props.label) || def.label;
-    header.appendChild(titleInput);
-
     var stateDot = document.createElement('div');
     stateDot.className = 'node-state-dot';
     header.appendChild(stateDot);
@@ -247,8 +241,18 @@ var __r_bld = (function() {
       el.appendChild(newBody);
     }
 
-    var oldInputPorts = el.querySelector('.ports-input');
-    if (oldInputPorts) oldInputPorts.parentNode.removeChild(oldInputPorts);
+    var oldOutput = el.querySelector('.ports-output');
+    if (oldOutput) el.removeChild(oldOutput);
+    var newOutput = buildPortsOutput(nodeId, def);
+    if (newOutput) el.appendChild(newOutput);
+
+    var oldParentTop = el.querySelector('.port-parent-top');
+    if (oldParentTop) el.removeChild(oldParentTop);
+    var oldParentBottom = el.querySelector('.port-parent-bottom');
+    if (oldParentBottom) el.removeChild(oldParentBottom);
+    var newParentPorts = buildParentPorts(nodeId, def);
+    if (newParentPorts.top) el.appendChild(newParentPorts.top);
+    if (newParentPorts.bottom) el.appendChild(newParentPorts.bottom);
   }
 
   return {

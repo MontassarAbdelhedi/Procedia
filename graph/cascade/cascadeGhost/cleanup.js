@@ -68,8 +68,8 @@
         });
       }
       evalBridge.dispatchBatch(parentBatch);
-      for (var pci = 0; pci < parentCleanups.length; pci++) {
-        delete allWiresAfter[parentCleanups[pci].wireId];
+      for (var pci2 = 0; pci2 < parentCleanups.length; pci2++) {
+        delete allWiresAfter[parentCleanups[pci2].wireId];
       }
     }
 

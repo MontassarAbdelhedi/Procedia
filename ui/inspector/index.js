@@ -44,7 +44,12 @@ var inspector = (function() {
   function showEmpty() {
     var emptyEl = document.getElementById('inspector-empty');
     var contentEl = document.getElementById('inspector-content');
-    if (emptyEl) emptyEl.classList.add('visible');
+    if (emptyEl) {
+      emptyEl.classList.add('visible');
+      emptyEl.innerHTML =
+        '<i class="ti ti-cursor-text inspector-empty-icon"></i>' +
+        '<span class="inspector-empty-text">select a node</span>';
+    }
     if (contentEl) {
       contentEl.classList.remove('visible');
       contentEl.innerHTML = '';

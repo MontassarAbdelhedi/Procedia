@@ -17,13 +17,14 @@
     node.props[key] = value;
     node.dirty = true;
 
-    for (var id in gs.nodeMap) {
-      if (gs.nodeMap[id]._cloneMasterId === uuid) {
-        if (!gs.nodeMap[id].props) gs.nodeMap[id].props = {};
-        gs.nodeMap[id].props[key] = value;
-        gs.nodeMap[id].dirty = true;
-      }
+    var cloneIds = gs.getCloneIds(uuid);
+    for (var ci = 0; ci < cloneIds.length; ci++) {
+      if (!gs.nodeMap[cloneIds[ci]].props) gs.nodeMap[cloneIds[ci]].props = {};
+      gs.nodeMap[cloneIds[ci]].props[key] = value;
+      gs.nodeMap[cloneIds[ci]].dirty = true;
     }
+
+    gs.rebuildTempGraph();
   }
 
   function clearDirty(uuid) {

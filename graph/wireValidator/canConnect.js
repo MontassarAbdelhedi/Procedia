@@ -43,10 +43,10 @@
     var fromDef = nodeRegistry.getDefinition(fromNode.type);
     var toDef = nodeRegistry.getDefinition(toNode.type);
     if (!fromDef) {
-      return { valid: false, reason: 'Source port not found' };
+      return { valid: false, reason: 'Unknown source node type' };
     }
     if (!toDef) {
-      return { valid: false, reason: 'Target port not found' };
+      return { valid: false, reason: 'Unknown target node type' };
     }
 
     var fromPortDef = wv._findPortDef(fromDef, fromNode, fromPort);

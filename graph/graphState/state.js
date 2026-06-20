@@ -27,6 +27,19 @@ window.__gs = {
     dirty:                true,
     dynamicSchema:        true,
     secondaryPorts:       true,
-    _transplantLayerUUID: true
+    _transplantLayerUUID: true,
+    hasParkedLayer:       true
+  },
+
+  _strippedWireFields: {
+    _pathLayerUUID: true
+  },
+
+  getCloneIds: function(masterId) {
+    var ids = [];
+    for (var _id in window.__gs.nodeMap) {
+      if (window.__gs.nodeMap[_id]._cloneMasterId === masterId) ids.push(_id);
+    }
+    return ids;
   }
 };

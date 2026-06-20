@@ -54,7 +54,6 @@ var graphExporter = (function() {
 
     var parkedLayers = [];
     var allNodes = graphState.getAllNodes();
-    var ghostCount = 0;
     for (var id in allNodes) {
       if (allNodes.hasOwnProperty(id)) {
         var n = allNodes[id];
@@ -62,7 +61,6 @@ var graphExporter = (function() {
           if (n.hasParkedLayer) {
             parkedLayers.push(n.id);
           }
-          ghostCount++;
         }
       }
     }

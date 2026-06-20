@@ -18,7 +18,7 @@ var __c_ghost_util = __c_util;
 
 (function() {
 
-  __c_ghost._collectCascadeSet = function _collectCascadeSet(sourceNodeId, deletedWireId) {
+  __c_ghost._collectCascadeSet = function _collectCascadeSet(sourceNodeId) {
     var visitedSet = {};
     var effectors = [];
     var affected = [];

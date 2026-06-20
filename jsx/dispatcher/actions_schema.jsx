@@ -101,7 +101,7 @@ function _handleWriteGraph(cmd) {
   if (typeof PERSISTENCE === 'undefined' || !PERSISTENCE.writeGraph) {
     return { ok: false, data: null, error: 'PERSISTENCE module not loaded' };
   }
-  var params = (cmd && cmd.params) ? cmd.params : null;
-  if (!params) return { ok: false, data: null, error: 'writeGraph: params required' };
+  var params = _cmdParams(cmd);
+  if (!params.nodes) return { ok: false, data: null, error: 'writeGraph: params required' };
   return PERSISTENCE.writeGraph(params);
 }

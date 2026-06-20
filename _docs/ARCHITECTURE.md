@@ -120,7 +120,7 @@ flowchart TB
 
   subgraph "UI Panels"
     UI_TOP[ui/topBar.js - selection info]
-    UI_BOTTOM[ui/bottomBar.js - graph info]
+
     UI_STATUS[ui/statusBar.js - connection status]
     UI_TOGGLE[ui/sidebarToggle.js]
     UI_SETTINGS[ui/settings.js + settingsModal.js]

@@ -19,6 +19,8 @@
 
 var _handlersKeyboard = (function() {
 
+  window.addEventListener('blur', function() { _inpSpaceHeld = false; });
+
   function onKeyDown(e) {
     if (_editingNodeId) {
       if (e.key === 'Enter') {

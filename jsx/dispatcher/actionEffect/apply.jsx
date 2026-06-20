@@ -190,6 +190,9 @@ function _handleRenameEffect(cmd) {
         }
       }
     }
+    if (found) {
+      fx.name = params.label;
+    }
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
   return result;

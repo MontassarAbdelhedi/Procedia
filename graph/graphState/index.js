@@ -56,6 +56,7 @@
     rebuildTempGraph:     gs.rebuildTempGraph,
     loadGraph:            gs.loadGraph,
     clearGraph:           gs.clearGraph,
+    getCloneIds:          gs.getCloneIds,
 
     setActiveComp: function(id) { gs._activeCompId = id || null; },
     getActiveComp: function()   { return gs._activeCompId; },

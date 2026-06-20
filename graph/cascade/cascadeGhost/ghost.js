@@ -35,8 +35,7 @@
     var sourceNodeData = graphState.getNode(sourceNodeId);
     if (!sourceNodeData) return;
 
-    var remainingForSource = __c_ghost_util._hasCompDownstreamExcluding(sourceNodeId, deletedWireId, {});
-    var result = __c_ghost._collectCascadeSet(sourceNodeId, deletedWireId);
+    var result = __c_ghost._collectCascadeSet(sourceNodeId);
 
     if (result.cascadeSet.length === 0) {
       graphState.removeWire(deletedWireId);

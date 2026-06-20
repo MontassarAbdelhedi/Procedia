@@ -55,7 +55,7 @@ var compList = (function() {
    * @param {string} compId The comp node UUID.
    * @return {Array} Array of node UUIDs (includes the comp itself).
    */
-  function _calcDownstream(compId) {
+  function _calcUpstreamNodes(compId) {
     var visited = {};
     var queue = [compId];
     if (typeof graphState === 'undefined' || typeof graphState.getAllWires !== 'function') {
@@ -84,7 +84,7 @@ var compList = (function() {
   function _applyFilter(compId) {
     try {
       if (compId) {
-        var nodeIds = _calcDownstream(compId);
+        var nodeIds = _calcUpstreamNodes(compId);
 
         graphState.setFilteredNodes(nodeIds);
       } else {

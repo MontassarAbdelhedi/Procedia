@@ -148,12 +148,11 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 
 <!-- 10. UI chrome — no graph dependencies -->
 117. ui/topBar.js
-118. ui/bottomBar.js
-119. ui/statusBar.js
-120. ui/sidebarToggle.js
+118. ui/statusBar.js
+119. ui/sidebarToggle.js
 
 <!-- 11. Entry point — depends on everything -->
-121. index.js
+120. index.js
 ```
 
 ---
@@ -163,14 +162,14 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 ```
 procedia/
 │
-├── index.html                          ← DOM shell + 103 script tags (single source of truth for load order)
+├── index.html                          ← DOM shell + 121 script tags (single source of truth for load order)
 ├── index.js                            ← Panel entry point — init(), wires up all systems
 │                                         Calls: evalBridge.init(), schemaCache.init(),
 │                                                canvasView.init(), canvasInput.init(),
 │                                                wireRenderer.init(), wireTool.init(),
 │                                                topBar.init(), nodeList.init(),
 │                                                inspector.init(), settingsModal.init(),
-│                                                bottomBar.init(), sidebarToggle.init(),
+│                                                sidebarToggle.init(),
 │                                                poller.start()
 │                                         Depends on: everything
 │
@@ -413,8 +412,6 @@ procedia/
 │   │                                      Reset/Reload/AutoLayout/Settings buttons
 │   │                                     Exposes: topBar.init(), topBar.refreshSelection()
 │   │                                     Depends on: (none)
-│   ├── bottomBar.js                    ← Bottom bar: centered notification text only
-│   │                                     Exposes: bottomBar.init(), bottomBar.notify()
 │   │                                     Depends on: (none)
 │   ├── statusBar.js                    ← Status bar: node/wire/alive/ghost counts, zoom level
 │   │                                     Depends on: graph/graphState/, viewport.js
@@ -483,7 +480,7 @@ procedia/
 │                                         Severities: info, warning, error, success
 │                                         Depends on: (none — pure DOM)
 │
-├── css/                                ← 13 stylesheets (dark theme design tokens)
+├── css/                                ← 12 stylesheets (dark theme design tokens)
 │   ├── tabler-icons.min.css            ← Tabler icon font CSS
 │   ├── tokens.css                      ← Design tokens (colors, spacing, typography)
 │   ├── base.css                        ← Global resets and layout
@@ -492,7 +489,7 @@ procedia/
 │   ├── rightBar.css                    ← Right panel (inspector) styles
 │   ├── canvas.css                      ← Canvas grid & container styles
 │   ├── node.css                        ← Node card styles
-│   ├── bottomBar.css                   ← Bottom bar styles
+
 │   ├── settingsModal.css               ← Settings modal styles
 │   ├── nodePicker.css                  ← Node picker popup styles
 │   ├── notificationBar.css             ← Notification toast styles

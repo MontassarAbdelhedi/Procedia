@@ -11,6 +11,33 @@
 
 var __r_hlp = (function() {
 
+  var _wireParamMap = null;
+
+  /**
+   * Builds a lookup map: {nodeId: {paramKey: true}} from all data wires.
+   * Called once per render cycle.
+   */
+  function _buildWireParamMap() {
+    var map = {};
+    var wires = graphState.getAllWires();
+    for (var wireId in wires) {
+      if (!wires.hasOwnProperty(wireId)) continue;
+      var wire = wires[wireId];
+      if (wire.type !== 'data') continue;
+      if (!map[wire.toNode]) map[wire.toNode] = {};
+      var key = wire.boundParam || wire.toPort;
+      if (key) map[wire.toNode][key] = true;
+    }
+    return map;
+  }
+
+  /**
+   * Clears the wire param cache so it is rebuilt on next render.
+   */
+  function clearWireParamCache() {
+    _wireParamMap = null;
+  }
+
   /**
    * Returns the canvas-nodes DOM element (the viewport for nodes).
    * @returns {HTMLElement|null}
@@ -21,19 +48,14 @@ var __r_hlp = (function() {
 
   /**
    * Checks whether a specific parameter of a node has an incoming wire.
+   * Uses a cached lookup map built once per render cycle.
    * @param {string} nodeId
    * @param {string} paramKey
    * @returns {boolean}
    */
   function isParamWired(nodeId, paramKey) {
-    var wires = graphState.getAllWires();
-    for (var wireId in wires) {
-      if (!wires.hasOwnProperty(wireId)) continue;
-      var wire = wires[wireId];
-      if (wire.toNode !== nodeId) continue;
-      if (wire.boundParam === paramKey || wire.toPort === paramKey) return true;
-    }
-    return false;
+    if (!_wireParamMap) _wireParamMap = _buildWireParamMap();
+    return !!(paramKey && _wireParamMap[nodeId] && _wireParamMap[nodeId][paramKey]);
   }
 
   /**
@@ -111,6 +133,7 @@ var __r_hlp = (function() {
   return {
     getViewport:     getViewport,
     isParamWired:    isParamWired,
+    clearWireParamCache: clearWireParamCache,
     rgbaToHex:       rgbaToHex,
     fillParamValue:  fillParamValue,
     getStateClasses: getStateClasses,

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Graph export action handlers (ES3-safe).
  * Writes graph snapshot JSON to disk in real-time.
- * REQUIRES: json.jsx
+ * REQUIRES: json.jsx, actions_schema.jsx
  * Load BEFORE: dispatcher.jsx
  * Exports: _handleWriteGraphExport
  */

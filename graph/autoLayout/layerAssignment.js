@@ -40,6 +40,10 @@
       }
     }
 
+    if (maxIter === 0) {
+      console.warn('[autoLayout] layer assignment exhausted iterations — possible cycle in subgraph');
+    }
+
     return layer;
   }
 

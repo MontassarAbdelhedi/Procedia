@@ -27,24 +27,7 @@ var __e_ndup = (function() {
     for (var i = 0; i < sel.length; i++) {
       var src = graphState.getNode(sel[i]);
       if (!src) continue;
-      var copy = {};
-      for (var key in src) {
-        if (key === 'id' || key === 'dirty' || key === '_transplantLayerUUID') continue;
-        if (Array.isArray(src[key])) {
-          copy[key] = src[key].slice();
-        } else if (typeof src[key] === 'object' && src[key] !== null) {
-          // Deep copy via JSON round-trip. Low risk because:
-          // - Node plugins are first-party (no external plugin ecosystem)
-          // - `props` and `dynamicSchema` are populated by the framework,
-          //   not arbitrary user code
-          // - Architectural spec guarantees JSON-serializable data only
-          // - Any undefined/function from framework code would be a bug
-          //   caught in development, not silently introduced at runtime
-          copy[key] = JSON.parse(JSON.stringify(src[key]));
-        } else {
-          copy[key] = src[key];
-        }
-      }
+      var copy = hlp.deepCopyNode(src);
       copy.id = uuidGenerator.node();
       copy.x = src.x + 30;
       copy.y = src.y + 30;

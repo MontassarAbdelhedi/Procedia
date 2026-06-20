@@ -56,15 +56,24 @@
       return 'Matte conditions not met: upstream nodes not found';
     }
 
-    if (!topUpstream.hostingComps || !topUpstream.hostingComps[0] ||
-        !matteUpstream.hostingComps || !matteUpstream.hostingComps[0]) {
+    if (!topUpstream.hostingComps || !matteUpstream.hostingComps) {
       return 'Matte conditions not met: both upstream layers must share the same first-level hosting comp';
     }
-    if (topUpstream.hostingComps[0] !== matteUpstream.hostingComps[0]) {
+    var _sharedComp = null;
+    for (var _ti = 0; _ti < topUpstream.hostingComps.length; _ti++) {
+      for (var _mi = 0; _mi < matteUpstream.hostingComps.length; _mi++) {
+        if (topUpstream.hostingComps[_ti] === matteUpstream.hostingComps[_mi]) {
+          _sharedComp = topUpstream.hostingComps[_ti];
+          break;
+        }
+      }
+      if (_sharedComp) break;
+    }
+    if (!_sharedComp) {
       return 'Matte conditions not met: both upstream layers must share the same first-level hosting comp';
     }
 
-    var sharedComp = topUpstream.hostingComps[0];
+    var sharedComp = _sharedComp;
     var outputFound = false;
     for (var wId in wireMap) {
       if (!wireMap.hasOwnProperty(wId)) continue;

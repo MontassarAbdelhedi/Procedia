@@ -133,6 +133,7 @@ var settingsModal = (function() {
     if (layoutDir) {
       layoutDir.addEventListener('change', function() {
         settings.set('layoutDirection', layoutDir.value);
+        _applySettings();
       });
     }
 
@@ -142,6 +143,7 @@ var settingsModal = (function() {
         settings.set('layoutHSpacing', parseInt(hSpacing.value, 10));
         var valEl = document.getElementById('settings-layout-hspacing-val');
         if (valEl) valEl.textContent = hSpacing.value;
+        _applySettings();
       });
     }
 
@@ -151,6 +153,7 @@ var settingsModal = (function() {
         settings.set('layoutVSpacing', parseInt(vSpacing.value, 10));
         var valEl = document.getElementById('settings-layout-vspacing-val');
         if (valEl) valEl.textContent = vSpacing.value;
+        _applySettings();
       });
     }
   }

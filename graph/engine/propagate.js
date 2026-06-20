@@ -20,6 +20,93 @@ var __e_prop = (function() {
   var hlp = __e_hlp;
 
   /**
+   * Merges a hosting comp into a hostingComps array, deduplicating.
+   * @param {string[]} existing - Current hosting comps
+   * @param {string} newComp - New comp UUID to add
+   * @returns {string[]} New array with the comp added
+   */
+  function _mergeHostingComps(existing, newComp) {
+    for (var mi = 0; mi < existing.length; mi++) {
+      if (existing[mi] === newComp) return existing;
+    }
+    var result = existing.slice();
+    result.push(newComp);
+    return result;
+  }
+
+  /**
+   * Builds the onAlive command for a node based on its nodeKind.
+   * @param {Object} nodeData - The node data
+   * @param {Object} def - The node definition
+   * @param {string} hostingCompUUID - Hosting comp UUID
+   * @param {string} pathLayerUUID - Terminal wire layer UUID
+   * @returns {Object|null} Command object or null
+   */
+  function _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID) {
+    if (nodeData.nodeKind === 'affected') {
+      if (nodeData.hasParkedLayer) {
+        return {
+          action: 'unparkLayer',
+          params: {
+            nodeUUID:        nodeData.id,
+            hostingCompUUID: hostingCompUUID,
+            layerUUID:       pathLayerUUID
+          }
+        };
+      }
+      var cmd = def.onAlive(nodeData, hostingCompUUID);
+      if (cmd !== null) cmd.params.layerUUID = pathLayerUUID;
+      return cmd;
+    }
+    if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending') {
+      return def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
+    }
+    return null;
+  }
+
+  /**
+   * Dispatches an onAlive command and handles errors.
+   * @param {string} nodeId - Node ID for error reporting
+   * @param {Object|null} command - Command to dispatch
+   */
+  function _dispatchCommand(nodeId, command) {
+    if (command === null) return;
+    (function(nId, cmd) {
+      evalBridge.dispatch(cmd).then(function(res) {
+        if (!res.ok) {
+          console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
+          graphState.updateNode(nId, { state: 'error' });
+        }
+      });
+    }(nodeId, command));
+  }
+
+  /**
+   * Recursively propagates alive upstream through layer wires.
+   * @param {string} nodeId - Current node ID
+   * @param {string} hostingCompUUID - Hosting comp UUID
+   * @param {string} pathLayerUUID - Terminal wire layer UUID
+   */
+  function _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID) {
+    var wireMap = graphState.getAllWires();
+    for (var puId in wireMap) {
+      if (!wireMap.hasOwnProperty(puId)) continue;
+      var puw = wireMap[puId];
+      if (puw.toNode !== nodeId || puw.type !== 'layer') continue;
+      var puData = graphState.getNode(puw.fromNode);
+      if (!puData) continue;
+      if (puData.nodeKind === 'data') continue;
+      if (puData.nodeKind === 'matte') continue;
+      var alreadyAlive = false;
+      for (var pui = 0; pui < puData.hostingComps.length; pui++) {
+        if (puData.hostingComps[pui] === hostingCompUUID) { alreadyAlive = true; break; }
+      }
+      if (alreadyAlive) continue;
+      _propagateAlive(puw.fromNode, hostingCompUUID, pathLayerUUID);
+    }
+  }
+
+  /**
    * Propagates 'alive' state upstream from a composition node through layer
    * wires. Handles transplant restamping, unparking parked layers, and
    * dispatching onAlive commands for affected, effector, and blending nodes.
@@ -40,135 +127,47 @@ var __e_prop = (function() {
     if (!def) return;
 
     if (nodeData._transplantLayerUUID) {
-      var restampCmd = {
+      evalBridge.dispatch({
         action: 'restampLayer',
         params: {
           hostingCompUUID: hostingCompUUID,
           oldUUID:         nodeData._transplantLayerUUID,
           newUUID:         pathLayerUUID
         }
-      };
-      evalBridge.dispatch(restampCmd);
-
-      var transplantHostingComps = nodeData.hostingComps.slice();
-      transplantHostingComps.push(hostingCompUUID);
+      });
       graphState.updateNode(nodeId, {
         state:                'alive',
-        hostingComps:         transplantHostingComps,
+        hostingComps:         _mergeHostingComps(nodeData.hostingComps, hostingCompUUID),
         _transplantLayerUUID: null
       });
-
-      var transplantWires = graphState.getAllWires();
-      for (var twId in transplantWires) {
-        if (!transplantWires.hasOwnProperty(twId)) continue;
-        var tw = transplantWires[twId];
-        if (tw.toNode !== nodeId || tw.type !== 'layer') continue;
-        var tUpstreamData = graphState.getNode(tw.fromNode);
-        if (!tUpstreamData) continue;
-        if (tUpstreamData.nodeKind === 'data') continue;
-        if (tUpstreamData.nodeKind === 'matte') continue;
-        var alreadyAlive = false;
-        for (var ti = 0; ti < tUpstreamData.hostingComps.length; ti++) {
-          if (tUpstreamData.hostingComps[ti] === hostingCompUUID) { alreadyAlive = true; break; }
-        }
-        if (alreadyAlive) continue;
-        _propagateAlive(tw.fromNode, hostingCompUUID, nodeData.id);
-      }
-
-      if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending') {
-        var txCmd = def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
-        if (txCmd !== null) {
-          (function(nId, cmd) {
-            evalBridge.dispatch(cmd).then(function(res) {
-              if (!res.ok) {
-                console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
-                graphState.updateNode(nId, { state: 'error' });
-              }
-            });
-          }(nodeId, txCmd));
-        }
-      }
-
+      _propagateUpstream(nodeId, hostingCompUUID, nodeData.id);
+      _dispatchCommand(nodeId, _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID));
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
       return;
     }
 
-    var command = null;
-
-    if (nodeData.nodeKind === 'affected') {
-      if (nodeData.hasParkedLayer) {
-        command = {
-          action: 'unparkLayer',
-          params: {
-            nodeUUID:        nodeData.id,
-            hostingCompUUID: hostingCompUUID,
-            layerUUID:       pathLayerUUID
-          }
-        };
-      } else {
-        command = def.onAlive(nodeData, hostingCompUUID);
-        if (command !== null) {
-          command.params.layerUUID = pathLayerUUID;
-        }
-      }
-    } else if (nodeData.nodeKind === 'effector') {
-      command = def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
-    } else if (nodeData.nodeKind === 'blending') {
-      command = def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
-    } else {
+    if (cascadeAlgorithm.isCompNode(nodeId)) {
+      graphState.updateNode(nodeId, {
+        state:          'alive',
+        hostingComps:   _mergeHostingComps(nodeData.hostingComps, hostingCompUUID),
+        hasParkedLayer: false
+      });
+      _dispatchCommand(nodeId, _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID));
+      if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
       return;
     }
 
-    var updatedHostingComps = nodeData.hostingComps.slice();
-    updatedHostingComps.push(hostingCompUUID);
+    var command = _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID);
+    if (command === null) return;
+
     graphState.updateNode(nodeId, {
       state:          'alive',
-      hostingComps:   updatedHostingComps,
+      hostingComps:   _mergeHostingComps(nodeData.hostingComps, hostingCompUUID),
       hasParkedLayer: false
     });
 
-    if (cascadeAlgorithm.isCompNode(nodeId)) {
-      if (command !== null) {
-        (function(nId, cmd) {
-          evalBridge.dispatch(cmd).then(function(res) {
-            if (!res.ok) {
-              console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
-              graphState.updateNode(nId, { state: 'error' });
-            }
-          });
-        }(nodeId, command));
-      }
-      if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
-      return;
-    }
-
-    var wireMap = graphState.getAllWires();
-    for (var wireId in wireMap) {
-      if (!wireMap.hasOwnProperty(wireId)) continue;
-      var wire = wireMap[wireId];
-      if (wire.toNode !== nodeId || wire.type !== 'layer') continue;
-      var upstreamData = graphState.getNode(wire.fromNode);
-      if (!upstreamData) continue;
-      if (upstreamData.nodeKind === 'data') continue;
-      if (upstreamData.nodeKind === 'matte') continue;
-      var alreadyAlive = false;
-      for (var i = 0; i < upstreamData.hostingComps.length; i++) {
-        if (upstreamData.hostingComps[i] === hostingCompUUID) { alreadyAlive = true; break; }
-      }
-      if (alreadyAlive) continue;
-      _propagateAlive(wire.fromNode, hostingCompUUID, pathLayerUUID);
-    }
-
-    if (command !== null) {
-      (function(nId, cmd) {
-        evalBridge.dispatch(cmd).then(function(res) {
-          if (!res.ok) {
-            console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
-            graphState.updateNode(nId, { state: 'error' });
-          }
-        });
-      }(nodeId, command));
-    }
+    _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID);
+    _dispatchCommand(nodeId, command);
   }
 
   /**

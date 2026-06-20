@@ -35,65 +35,15 @@ var __ins_events = (function() {
   }
 
   /**
-   * Handles the 'input' event on a color swatch picker.
-   * Converts hex to RGBA, syncs the sibling text input, and applies to engine.
-   * @param {HTMLElement} swatch The color swatch input element.
-   */
-  function _onColorSwatchInput(swatch) {
-    var nodeId = swatch.getAttribute('data-node-id');
-    var key    = swatch.getAttribute('data-param-key');
-    if (!nodeId || !key) return;
-
-    var alpha = 1;
-    var nodeData = graphState.getNode(nodeId);
-    if (nodeData && nodeData.props && Array.isArray(nodeData.props[key])) {
-      alpha = nodeData.props[key][3] !== undefined ? nodeData.props[key][3] : 1;
-    }
-
-    var rgba = __ins_vm.hexToRgba(swatch.value, alpha);
-
-    var textInput = swatch.parentNode.querySelector('.inspector-color-input');
-    if (textInput) textInput.value = __ins_vm.formatValueForInput({ type: 'color' }, rgba);
-
-    engine.setNodeProperty(nodeId, key, rgba);
-  }
-
-  /**
-   * Syncs the color swatch to match the current node property after a text edit.
-   * @param {HTMLElement} target The color text input element.
-   */
-  function _syncColorSwatch(target) {
-    var swatch = target.parentNode.querySelector('.inspector-color-swatch');
-    if (!swatch) return;
-    var nodeId = target.getAttribute('data-node-id');
-    var key    = target.getAttribute('data-param-key');
-    if (!nodeId || !key) return;
-    var nodeData = graphState.getNode(nodeId);
-    if (nodeData && Array.isArray(nodeData.props[key])) {
-      swatch.value = __ins_vm.rgbaToHex(nodeData.props[key]);
-    }
-  }
-
-  /**
-   * Handles the 'input' event on inspector text inputs (and color swatches).
+   * Handles the 'input' event on inspector param inputs.
    * @param {Event} e The input event.
    */
   function _onInspectorInput(e) {
     var target = e.target;
     if (!target || !target.classList) return;
-
-    if (target.classList.contains('inspector-color-swatch')) {
-      _onColorSwatchInput(target);
-      return;
-    }
-
     if (!target.classList.contains('inspector-param-input')) return;
     if (target.type === 'checkbox') return;
     _applyChange(target);
-
-    if (target.classList.contains('inspector-color-input')) {
-      _syncColorSwatch(target);
-    }
   }
 
   /**
@@ -120,9 +70,9 @@ var __ins_events = (function() {
       if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
       if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     } else if (action === 'remove') {
+      engine.deleteNode(nodeId);
       var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
       evalBridge.dispatch({ action: 'writeGraph', params: graphData });
-      engine.deleteNode(nodeId);
     }
   }
 

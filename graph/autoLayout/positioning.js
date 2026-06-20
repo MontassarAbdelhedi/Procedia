@@ -27,7 +27,7 @@
         var nh = nodeHeights[nid] || 100;
 
         if (direction === 'TB') {
-          positions[nid] = { x: currentY, y: li * (C.NODE_W + hSpacing) };
+          positions[nid] = { x: currentY, y: li * (C.NODE_W + vSpacing) };
         } else {
           positions[nid] = { x: li * (C.NODE_W + hSpacing), y: currentY };
         }
@@ -83,7 +83,6 @@
       if (positions[id]) continue;
       if (result[id]) continue;
 
-      var nh = C._getNodeHeight(id, nodeMap[id]);
       result[id] = { x: gridX, y: gridY };
       gridCol++;
       if (gridCol >= GRID_COLS) {

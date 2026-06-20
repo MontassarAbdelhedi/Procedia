@@ -88,8 +88,6 @@ var __nl_cat = (function() {
 
     var used = {};
 
-    var OPEN_CATEGORIES = {};
-
     for (var o = 0; o < CATEGORY_ORDER.length; o++) {
       var key = CATEGORY_ORDER[o];
       if (key === 'Effects') {
@@ -115,8 +113,7 @@ var __nl_cat = (function() {
         };
         CATEGORIES.push(effectsCat);
       } else if (groups[key]) {
-        var open = OPEN_CATEGORIES[key] === true;
-        CATEGORIES.push(buildCategory(key, groups[key], open));
+        CATEGORIES.push(buildCategory(key, groups[key], false));
         used[key] = true;
       }
     }

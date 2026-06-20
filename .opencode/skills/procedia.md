@@ -15,7 +15,7 @@
 | **AE side** | ExtendScript (.jsx) — **strict ES3**: `var`, named fns, string concat, `for` loops. No `const`/`let`/arrow/forEach/template literals/Promise/destructuring/spread/default params/`Object.keys` |
 | **Bridge** | `csInterface.evalScript()` — string in, string out, always async. Only `bridge/evalBridge.js` calls it |
 | **Dispatcher** | Only `jsx/dispatcher/dispatcher.jsx` contains AE API calls. Nodes return `{ action, params }` command objects |
-| **Load order** | `index.html` is the single truth. No bundler. 103 `<script>` tags in exact order. Every file has `// DEPENDS ON:` header |
+| **Load order** | `index.html` is the single truth. No bundler. 121 `<script>` tags in exact order. Every file has `// DEPENDS ON:` header |
 | **State** | `graph/graphState/` is the only module that mutates `nodeMap`, `wireMap` |
 | **Identifiers** | UUID only. `comp.comment` = node UUID. `layer.comment` = **terminal wire UUID** (not node UUID) |
 | **Persistence** | Written only on: AE save, AE quit, panel unload |
@@ -63,23 +63,32 @@
 
 ## Bugs Resolved
 
-| Bug | Fix |
-|-----|-----|
-| Deleting text node not removing AE layer | Ensured `onDelete` dispatches `deleteParkedLayer` |
-| Deleting hosting comp doesn't trigger parking | Cascade handles comp deletion → parks affected layers |
-| Renaming layers not updating in timeline | `renameNode` action sets `layer.name` from node label |
-| Double-click on wire to remove it | Wire interaction handler added |
-| Notification system missing | `notifications/notificationBar.js` added |
-| Footage node (video) | Implemented in `core/Footage.js` |
+All 84+ issues from `code-review-report.md` have been fixed. Key categories:
+
+| Area | Issues Fixed |
+|------|-------------|
+| AE metadata preservation | Import no longer overwrites existing non-PROC comments |
+| Null safety | `statusBar.js`, `poller.js` — guarded against null renderer/viewport |
+| Dead/duplicate code | Removed `OPEN_CATEGORIES`, dead color swatch fns, dead ternary, dead IIFE |
+| Shadowing/hoisting | Renamed `var w → wireObj`, `var pci → pci2` in cascade cleanup |
+| Error messages | `canConnect.js` corrected misleading "Source port not found" messages |
+| Matte validation | `matteValidator.js` iterates all comps instead of comparing only `[0]` |
+| Promise chains | `schemaCache/diff.js` added `.catch()` to prevent one failure breaking the chain |
+| Cycle detection | `layerAssignment.js` warns when iterations exhausted |
+| Obsolete category | Mapped `'obsolete'` to distinct grey token (`#7F8C8D`) |
+| Import guards | `index.js` added `typeof` guards for all module `.init()` calls |
+| Missing params | `Color.js` added `label` param |
+| Ghost cascade | `commands.js` hoists `partialUUID` outside losing-comps loop |
+| Dirty checks | `state.js` strips `hasParkedLayer`; `dirtyFlusher.js` uses `!= null` |
 
 ## What To Do (Roadmap)
 
+- [ ] `_docs/forMont.md` — see full task list
 - [ ] Footage nodes: image and audio variants
 - [ ] Rework inspector — each node exports its own inspector definition
 - [ ] Fix false alert: unwiring effector from affected node triggers "effect deleted outside Procedia"
 - [ ] Add Procedia folder check on every Comp node drop
 - [ ] Test import: unnecessary blending node case
-- [ ] `_docs/forMont.md` — see full task list
 
 ## What Has Been Done (v4)
 
@@ -97,12 +106,19 @@
 - Graph exporter
 - Footage node (video)
 - Dynamic node loader (474 node definitions across 25 categories)
+- Code review: 84+ issues fixed (all CRITICAL, HIGH, MEDIUM, LOW from `code-review-report.md`)
+- Null guards, IIFE removal, bezier rename, ES3 hoisting fixes
+- AE metadata preservation during import
+- Obsolete category visual token mapping
+- Promise `.catch()` for schema cache diff chains
+- Cycle warning in layer assignment
+- Shared `deepCopyNode` helper extracted to `engine/helpers.js`
 
 ## Key File Map
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Load order truth + DOM shell (103 scripts) |
+| `index.html` | Load order truth + DOM shell (121 scripts) |
 | `index.js` | Entry point |
 | `bridge/evalBridge.js` | Only evalScript caller |
 | `jsx/dispatcher/dispatcher.jsx` | Only AE API writer |
@@ -110,7 +126,7 @@
 | `graph/graphState/` | In-memory state (only mutator) |
 | `graph/nodeRegistry.js` | Node definition registry |
 | `graph/schemaCache/` | Dynamic effect schema cache |
-| `graph/cascade/` | Ghost cascade algorithm (3 files) |
+| `graph/cascade/` | Ghost cascade algorithm (7 files: utils + cascadeGhost/5 + index) |
 | `graph/canvas/renderer/` | DOM sync renderer (5 files) |
 | `graph/canvas/input/` | Canvas event handlers (6 files) |
 | `graph/canvas/minimap/` | Minimap (6 files) |
