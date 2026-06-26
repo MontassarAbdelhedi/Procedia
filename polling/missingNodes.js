@@ -32,6 +32,12 @@ var pollerHelpers = (function() {
         if (!hasMainInput) continue;
       }
 
+      // Only poll terminal wires (entering a comp node). Non-terminal wires
+      // have _pathLayerUUID set to their own wire ID, which never matches
+      // any layer's .comment (always the terminal wire UUID).
+      var toNode = graphState.getNode(wires[id].toNode);
+      if (!toNode || toNode.type !== 'core/comp') continue;
+
       uuids.push(wires[id]._pathLayerUUID);
     }
     return uuids;

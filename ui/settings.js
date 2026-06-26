@@ -14,6 +14,7 @@ var settings = (function() {
     minimap:          true,
     wireStyle:        'bezier',
     animatedDash:     false,
+    snapToGrid:       false,
     layoutDirection:  'LR',
     layoutHSpacing:   80,
     layoutVSpacing:   40

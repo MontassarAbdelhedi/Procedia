@@ -20,6 +20,7 @@ flowchart TB
     EVAL_BRIDGE --> JSX_INIT[jsx/json.jsx + jsx/utils.jsx]
     JSX_INIT --> JSX_DISPATCHER[jsx/dispatcher/dispatcher.jsx]
     JSX_DISPATCHER --> JSX_COMP[actions_comp.jsx]
+    JSX_DISPATCHER --> JSX_COMPLIST[actions_compList.jsx]
     JSX_DISPATCHER --> JSX_LAYER[actions_layer.jsx]
     JSX_DISPATCHER --> JSX_PROP[actions_property.jsx]
     JSX_DISPATCHER --> JSX_EFFECT[actionEffect/]
@@ -43,11 +44,14 @@ flowchart TB
 
   subgraph "Node Definitions"
     NODES_REG[nodeRegistry.js]
-    NODES_REG --> CORE[core/Comp.js]
-    NODES_REG --> LAYERS[layers/ Text | Null | Shape | Adjustment]
-    NODES_REG --> EFFECTS[effects/ FillEffect | GaussianBlur | DropShadow]
-    NODES_REG --> DATA[data/ Color | Number]
-    NODES_REG --> UTILITY[utility/ Blending | MatteLuma | MatteAlpha]
+    NODES_REG --> CORE[Core/Comp.js]
+    NODES_REG --> MERGE[Core/Merge.js]
+    NODES_REG --> MULTI[Core/Multimerge.js]
+    NODES_REG --> LAYERS[Layers/ Text | Null | Shape | Adjustment]
+    NODES_REG --> SHAPES[Shapes/Rectangle.js]
+    NODES_REG --> EFFECTS[Effects/Blur & Sharpen/ FillEffect | GaussianBlur | DropShadow]
+    NODES_REG --> DATA[Data/ Color | Number]
+    NODES_REG --> UTILITY[Effects/utility/ Blending | MatteLuma | MatteAlpha]
   end
 
   subgraph "Schema Cache"

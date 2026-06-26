@@ -135,9 +135,10 @@ var __ins_render = (function() {
   function renderFootageActions(view) {
     var nodeData = graphState.getNode(view.nodeId);
     var hasFootage = nodeData && nodeData.props && nodeData.props.filePath;
+    var isError = view.state.indexOf('error') !== -1;
     var statusHtml = hasFootage
       ? '<span class="inspector-filename">' + _escapeAttr(nodeData.props.filePath.split('\\').pop().split('/').pop()) + '</span>'
-      : '<span class="inspector-filename muted">no file selected</span>';
+      : '<span class="inspector-filename muted">' + (isError ? 'no file imported \u2014 browse to fix' : 'no file selected') + '</span>';
     return (
       '<div class="inspector-group">' +
         '<div class="inspector-group-label">Footage Import</div>' +

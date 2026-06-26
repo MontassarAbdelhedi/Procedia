@@ -28,6 +28,8 @@
       }
     }
 
+    var isComp = def.type === 'core/comp';
+
     var nodeData = {
       id:                   nodeId,
       type:                 def.type,
@@ -42,7 +44,7 @@
       hasParkedLayer:       false,
       dynamicSchema:        null,
       secondaryPorts:       null,
-      _transplantLayerUUID: wire._pathLayerUUID
+      _transplantLayerUUID: isComp ? null : (toNodeData.type === 'core/comp' ? wire._pathLayerUUID : undefined)
     };
 
     graphState.addNode(nodeData);
@@ -51,11 +53,18 @@
       __e_hlp.resolveDynamicSchema(nodeId, def.matchName);
     }
 
-    graphState.removeWire(wireId);
-
-    engine.connectWire(wire.fromNode, wire.fromPort, nodeId, 'main_input');
-
-    engine.connectWire(nodeId, 'output', wire.toNode, wire.toPort);
+    if (isComp) {
+      if (def.onDrop) {
+        evalBridge.dispatch(def.onDrop(nodeData));
+      }
+      engine.disconnectWire(wireId);
+      engine.connectWire(nodeId, 'output', wire.toNode, wire.toPort);
+      engine.connectWire(wire.fromNode, wire.fromPort, nodeId, 'main_input');
+    } else {
+      graphState.removeWire(wireId);
+      engine.connectWire(wire.fromNode, wire.fromPort, nodeId, 'main_input');
+      engine.connectWire(nodeId, 'output', wire.toNode, wire.toPort);
+    }
 
     return nodeData;
   };

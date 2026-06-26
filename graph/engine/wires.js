@@ -153,10 +153,9 @@ var __e_wires = (function() {
     }
 
     if (toNodeData.hostingComps.length > 0) {
-      var pathLayerUUID = hlp.findPathLayerUUID(toNodeId);
-      if (pathLayerUUID) {
-        prop.propagateAlive(fromNodeId, toNodeData.hostingComps[0], pathLayerUUID);
-      }
+      var terminalUUID = hlp.findPathLayerUUID(fromNodeId) || wireData.id;
+      graphState.updateWire(wireData.id, { _pathLayerUUID: terminalUUID });
+      prop.propagateAlive(fromNodeId, toNodeData.hostingComps[0], terminalUUID);
       return true;
     }
 

@@ -6,14 +6,19 @@
   background: #111110;
 }
 
-/* --- Dot grid --- */
+/* --- Dot grid (multi-level infinite grid) --- */
 
 #canvas-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, #222220 1px, transparent 1px);
-  background-size: 24px 24px;
   pointer-events: none;
+}
+
+.grid-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat;
 }
 
 #node-graph {
@@ -71,6 +76,41 @@
 
 .sidebar-handle.visible {
   opacity: 1;
+}
+
+/* --- Wire insert button --- */
+
+.wire-insert-btn {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  z-index: 30;
+  background: #1a1a18;
+  border: 1px solid #3a3a38;
+  border-radius: 50%;
+  color: #b4b2ac;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  pointer-events: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+.wire-insert-btn:hover {
+  background: #2a2a28;
+  color: #06D6A0;
+  border-color: #06D6A0;
+}
+
+.wire-insert-btn:active {
+  background: #3a3a38;
 }
 
 /* --- Rubber band selection rectangle --- */

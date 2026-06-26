@@ -115,6 +115,10 @@ var __nl_dragdrop = (function() {
       if (!def) return;
 
       var pos = viewport.screenToCanvas(e.clientX, e.clientY);
+      if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
+        pos.x = viewport.snapToGrid(pos.x);
+        pos.y = viewport.snapToGrid(pos.y);
+      }
 
       if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt && canvasDrag.canInsertOnWire) {
         var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);

@@ -6,7 +6,7 @@
  * Dispatches: createNullLayer, parkLayer, deleteParkedLayer, setLayerProperty.
  */
 
-// graph/nodes/categories/layers/Null.js
+// graph/nodes/categories/Layers/Null.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 

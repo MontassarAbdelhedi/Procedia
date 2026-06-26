@@ -14,6 +14,7 @@ var __r_cat = (function() {
     tokens: {
       'Core':    'core',
       'Layers':  'layers',
+      'Shapes':  'shapes',
       'Effects': 'effects',
       'Data':    'data',
       '3D Channel':         'effects',
@@ -42,6 +43,7 @@ var __r_cat = (function() {
     colors: {
       'core':    '#534AB7',
       'layers':  '#2E86C1',
+      'shapes':  '#1ABC9C',
       'effects': '#27AE60',
       'data':    '#D4AC0D',
       'utility': '#E07B39',

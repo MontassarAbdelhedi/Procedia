@@ -6,7 +6,7 @@
  * Dispatches: createShapeLayer, parkLayer, deleteParkedLayer, setLayerProperty.
  */
 
-// graph/nodes/categories/layers/Shape.js
+// graph/nodes/categories/Layers/Shape.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 

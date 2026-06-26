@@ -27,7 +27,8 @@ function _handleApplyDynamicEffect(cmd) {
     if (!layerUUID) { result.error = 'applyDynamicEffect: layerUUID required'; return result; }
     var layer = findLayerByUUID(comp, layerUUID);
     if (!layer) { result.error = 'applyDynamicEffect: layer not found'; return result; }
-    var effect = layer.Effects.addProperty(params.matchName);
+    var effects = layer.Effects;
+    var effect = effects.addProperty(params.matchName);
     if (params.nodeUUID) {
       effect.name = params.matchName + '__' + params.nodeUUID;
     }
@@ -39,6 +40,9 @@ function _handleApplyDynamicEffect(cmd) {
           if (prop) prop.setValue(params.props[pk]);
         } catch (propErr) {}
       }
+    }
+    if (!params._moveToBottom) {
+      effect.moveToBeginning();
     }
     result.ok = true;
     result.data = { applied: params.matchName };
@@ -55,6 +59,10 @@ function _handleRemoveEffect(cmd) {
     var layerUUID = params.layerUUID || params.layerNodeUUID;
     if (!layerUUID) { result.error = 'removeEffect: layerUUID required'; return result; }
     var layer = findLayerByUUID(comp, layerUUID);
+    if (!layer) {
+      var reserved = findReservedComp();
+      if (reserved) layer = findLayerByUUID(reserved, layerUUID);
+    }
     if (!layer) { result.error = 'removeEffect: layer not found'; return result; }
     var targetEffectName = params.matchName + '__' + params.nodeUUID;
     var effects = layer.Effects;

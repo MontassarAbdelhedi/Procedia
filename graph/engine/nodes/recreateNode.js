@@ -123,6 +123,9 @@ var __e_nrec = (function() {
           })(nodeId, cmd);
         }
 
+      } else if (nodeData.nodeKind === 'merge' || nodeData.nodeKind === 'multimerge') {
+        graphState.updateNode(nodeId, { state: 'alive' });
+
       } else if (nodeData.nodeKind === 'matte') {
         var matteTopUUID = null;
         var matteLayerUUID = null;

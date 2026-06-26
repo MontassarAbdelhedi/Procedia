@@ -33,13 +33,15 @@ window.__gs = {
 
   _strippedWireFields: {
     _pathLayerUUID: true
-  },
-
-  getCloneIds: function(masterId) {
-    var ids = [];
-    for (var _id in window.__gs.nodeMap) {
-      if (window.__gs.nodeMap[_id]._cloneMasterId === masterId) ids.push(_id);
-    }
-    return ids;
   }
 };
+
+(function(gs) {
+  gs.getCloneIds = function(masterId) {
+    var ids = [];
+    for (var _id in gs.nodeMap) {
+      if (gs.nodeMap[_id]._cloneMasterId === masterId) ids.push(_id);
+    }
+    return ids;
+  };
+})(window.__gs);

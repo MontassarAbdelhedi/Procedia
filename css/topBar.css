@@ -9,11 +9,14 @@
   padding: 0 10px;
   gap: 0;
   flex-shrink: 0;
+  justify-content: space-between;
+  position: relative;
 }
 
 .topbar-left {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
 }
 
 .topbar-center {
@@ -21,7 +24,18 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  flex: 1;
+  flex: 0 0 auto;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .topbar-logo {

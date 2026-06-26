@@ -6,7 +6,7 @@
  * Dispatches: createAdjustmentLayer, parkLayer, deleteParkedLayer, setLayerProperty.
  */
 
-// graph/nodes/categories/layers/Adjustment.js
+// graph/nodes/categories/Layers/Adjustment.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 

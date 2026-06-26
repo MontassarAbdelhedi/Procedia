@@ -31,6 +31,7 @@ var _handlersMouse = {};
 (function() {
 
   _handlersMouse.onMouseDown = function onMouseDown(e) {
+    _hoveredWireId = null;
     if (_editingNodeId) {
       var clickNodeEl = e.target;
       var boundary = document.getElementById('canvas-nodes');
@@ -106,17 +107,6 @@ var _handlersMouse = {};
         }
       }
       return;
-    }
-
-    if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt) {
-      var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
-      if (hitWire) {
-        _selectedWireId = hitWire.id;
-        graphState.clearSelection();
-        renderer.render();
-        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-        return;
-      }
     }
 
     _selectedWireId = null;

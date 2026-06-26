@@ -10,6 +10,25 @@
 
 var topBar = (function() {
 
+  function _refreshCollapseBtn(btn) {
+    if (!btn || typeof graphState === 'undefined') return;
+    var all = graphState.getAllNodes();
+    var anyCollapsed = false;
+    for (var id in all) {
+      if (all.hasOwnProperty(id) && all[id].collapsed) {
+        anyCollapsed = true;
+        break;
+      }
+    }
+    if (anyCollapsed) {
+      btn.title = 'Expand All';
+      btn.innerHTML = '<i class="ti ti-chevrons-down"></i>';
+    } else {
+      btn.title = 'Collapse All';
+      btn.innerHTML = '<i class="ti ti-chevrons-up"></i>';
+    }
+  }
+
   /**
    * Builds the top-bar DOM and wires all button event listeners.
    */
@@ -28,7 +47,8 @@ var topBar = (function() {
         '<button class="topbar-btn" title="Redo"><i class="ti ti-arrow-forward-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
         '<button class="topbar-btn" id="topbar-autolayout" title="Auto Layout"><i class="ti ti-sitemap"></i></button>' +
-        '<button class="topbar-btn" title="Fit View"><i class="ti ti-focus-2"></i></button>' +
+        '<button class="topbar-btn" id="topbar-fitview" title="Fit View"><i class="ti ti-focus-2"></i></button>' +
+        '<button class="topbar-btn" id="topbar-collapseall" title="Collapse All"><i class="ti ti-chevrons-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
         '<button class="topbar-btn" id="topbar-import" title="Import AE Project"><i class="ti ti-file-import"></i></button>' +
         '<div class="topbar-divider"></div>' +
@@ -41,7 +61,7 @@ var topBar = (function() {
         '<button class="topbar-btn" id="topbar-reload" title="Reload"><i class="ti ti-refresh"></i></button>' +
         '<button class="topbar-btn" id="topbar-settings" title="Settings"><i class="ti ti-settings"></i></button>' +
       '</div>' +
-      '<span class="topbar-status" id="topbar-status"></span>';
+      '<div class="topbar-right"><span class="topbar-status" id="topbar-status"></span></div>';
 
     refreshSelection([]);
 
@@ -63,6 +83,41 @@ var topBar = (function() {
         if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
         if (typeof minimap !== 'undefined' && minimap.fitAll) minimap.fitAll();
       });
+    }
+
+    var fitBtn = document.getElementById('topbar-fitview');
+    if (fitBtn && typeof minimap !== 'undefined' && minimap.fitAll) {
+      fitBtn.addEventListener('click', function() {
+        minimap.fitAll();
+        if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
+      });
+    }
+
+    var collapseBtn = document.getElementById('topbar-collapseall');
+    if (collapseBtn && typeof graphState !== 'undefined') {
+      collapseBtn.addEventListener('click', function() {
+        var all = graphState.getAllNodes();
+        var anyCollapsed = false;
+        for (var id in all) {
+          if (all.hasOwnProperty(id) && all[id].collapsed) {
+            anyCollapsed = true;
+            break;
+          }
+        }
+        var target = !anyCollapsed;
+        for (var id2 in all) {
+          if (all.hasOwnProperty(id2)) {
+            graphState.updateNode(id2, { collapsed: target });
+          }
+        }
+        _refreshCollapseBtn(collapseBtn);
+        if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
+      });
+      _refreshCollapseBtn(collapseBtn);
     }
 
     document.getElementById('topbar-reset').addEventListener('click', function() {
@@ -116,11 +171,17 @@ var topBar = (function() {
     refreshSelection([]);
   }
 
+  function refreshCollapseBtn() {
+    var btn = document.getElementById('topbar-collapseall');
+    if (btn) _refreshCollapseBtn(btn);
+  }
+
   return {
     init: init,
     refreshSelection: refreshSelection,
     showSelection: showSelection,
-    clearSelection: clearSelection
+    clearSelection: clearSelection,
+    refreshCollapseBtn: refreshCollapseBtn
   };
 
 })();

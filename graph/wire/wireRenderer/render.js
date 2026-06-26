@@ -60,6 +60,7 @@
     c._stopAnim();
 
     c._drawAll(preview);
+    c._updateInsertBtn();
   };
 
   c.renderSplitPreview = function(previewState) {
@@ -109,6 +110,64 @@
     c._ctx.stroke();
 
     c._ctx.restore();
+  };
+
+  c._insertBtn = null;
+
+  c._showInsertBtn = function(x, y) {
+    if (!c._insertBtn) {
+      c._insertBtn = document.createElement('button');
+      c._insertBtn.className = 'wire-insert-btn';
+      c._insertBtn.textContent = '+';
+      c._insertBtn.title = 'Add node at midpoint';
+      c._insertBtn.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+      });
+      c._insertBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var wireId = c._insertBtn.dataset.wireId;
+        if (!wireId) return;
+        var wire = graphState.getWire(wireId);
+        if (!wire) return;
+        var btnRect = c._insertBtn.getBoundingClientRect();
+        var screenX = btnRect.left + btnRect.width / 2;
+        var screenY = btnRect.top + btnRect.height / 2;
+        if (typeof nodePicker !== 'undefined' && nodePicker.show) {
+          nodePicker.show(screenX, screenY, null, null, null, wireId);
+        }
+      });
+      var wrap = document.getElementById('canvas-wrap');
+      if (wrap) wrap.appendChild(c._insertBtn);
+    }
+    c._insertBtn.dataset.wireId = typeof _hoveredWireId !== 'undefined' && _hoveredWireId ? _hoveredWireId : '';
+    c._insertBtn.style.left = (x - 12) + 'px';
+    c._insertBtn.style.top = (y - 12) + 'px';
+    c._insertBtn.style.display = 'flex';
+    c._insertBtn.style.opacity = '1';
+  };
+
+  c._hideInsertBtn = function() {
+    if (c._insertBtn) {
+      c._insertBtn.style.display = 'none';
+    }
+  };
+
+  c._updateInsertBtn = function() {
+    if (typeof _hoveredWireId === 'undefined' || !_hoveredWireId) {
+      c._hideInsertBtn();
+      return;
+    }
+    var wire = graphState.getWire(_hoveredWireId);
+    if (!wire) {
+      c._hideInsertBtn();
+      return;
+    }
+    var mid = c._wireMidpoint(wire);
+    if (!mid) {
+      c._hideInsertBtn();
+      return;
+    }
+    c._showInsertBtn(mid.x, mid.y);
   };
 
   c.init = function() {

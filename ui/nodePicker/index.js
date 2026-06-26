@@ -37,15 +37,33 @@ var nodePicker = (function() {
    * Shows the node picker popup at a screen position.
    * @param {number} screenX Screen X coordinate.
    * @param {number} screenY Screen Y coordinate.
-   * @param {string} fromNodeId Source node ID.
-   * @param {string} fromPortId Source port ID.
+   * @param {string} fromNodeId Forward: source node ID. Reverse: target node ID.
+   * @param {string} fromPortId Forward: source port ID. Reverse: target port ID.
    * @param {string} wireType The wire type to filter compatible nodes.
+   * @param {string} [insertWireId] Optional wire ID for wire-insertion mode.
+   * @param {Object} [opts] Optional settings. Set opts.reverse=true for reverse mode.
    * @return {Promise|null} A promise that resolves with the created node or null.
    */
-  function show(screenX, screenY, fromNodeId, fromPortId, wireType) {
+  function show(screenX, screenY, fromNodeId, fromPortId, wireType, insertWireId, opts) {
     if (_state.active) close(null);
+    var isReverse = opts && opts.reverse;
 
-    _state.compatible = __np_compat.compatibleNodes(wireType);
+    if (insertWireId) {
+      var allDefs = nodeRegistry.getAll();
+      var compatibles = [];
+      for (var type in allDefs) {
+        if (!allDefs.hasOwnProperty(type)) continue;
+        var def = allDefs[type];
+        if (typeof canvasDrag !== 'undefined' && canvasDrag.canInsertOnWire && canvasDrag.canInsertOnWire(insertWireId, def)) {
+          compatibles.push(def);
+        }
+      }
+      _state.compatible = compatibles;
+    } else if (isReverse) {
+      _state.compatible = __np_compat.compatibleOutputNodes(wireType);
+    } else {
+      _state.compatible = __np_compat.compatibleNodes(wireType);
+    }
     var filtered = __np_filter.applyFilter(_state.compatible, '');
     _state.filtered = filtered.filtered;
     _state.selIndex = filtered.selIndex;
@@ -102,9 +120,25 @@ var nodePicker = (function() {
         var def = nodeRegistry.getDefinition(type);
         if (!def) { resolve(null); return; }
         var canvasPos = viewport.screenToCanvas(screenX, screenY);
-        var node = engine.dropNode(def, canvasPos.x, canvasPos.y);
-        if (!node) { resolve(null); return; }
-        engine.connectWire(fromNodeId, fromPortId, node.id, 'main_input');
+        if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
+          canvasPos.x = viewport.snapToGrid(canvasPos.x);
+          canvasPos.y = viewport.snapToGrid(canvasPos.y);
+        }
+        var node;
+        if (insertWireId && typeof canvasDrag !== 'undefined' && canvasDrag.insertNodeOnWire) {
+          node = canvasDrag.insertNodeOnWire(insertWireId, def, canvasPos.x, canvasPos.y);
+        } else {
+          node = engine.dropNode(def, canvasPos.x, canvasPos.y);
+          if (node) {
+            if (isReverse) {
+              // Reverse: connect new node's output to the original input port
+              engine.connectWire(node.id, 'output', fromNodeId, fromPortId);
+            } else {
+              // Forward: connect original source to new node's main_input
+              engine.connectWire(fromNodeId, fromPortId, node.id, 'main_input');
+            }
+          }
+        }
         graphState.setSelection(node.id);
         renderer.render();
         if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);

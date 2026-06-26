@@ -78,9 +78,17 @@ var __r_bld = (function() {
         }
       }
     } else {
+      var secondaryPortMap = {};
+      if (def.ports) {
+        for (var p = 0; p < def.ports.length; p++) {
+          if (def.ports[p].category === 'secondaryInput') secondaryPortMap[def.ports[p].id] = true;
+        }
+      }
       for (var j = 0; j < def.params.length; j++) {
         var param = def.params[j];
-        body.appendChild(buildParamRow(nodeId, param, nodeData.props[param.key]));
+        if (param.hidden) continue;
+        var portId = secondaryPortMap[param.key] ? param.key : null;
+        body.appendChild(buildParamRow(nodeId, param, nodeData.props[param.key], portId));
       }
     }
 
@@ -108,6 +116,42 @@ var __r_bld = (function() {
     dot.setAttribute('data-node-id', nodeId);
     dot.setAttribute('data-port-id', 'output');
     container.appendChild(dot);
+
+    return container;
+  }
+
+  /**
+   * Builds port dot elements for explicit mainInput ports (e.g. input_a, input_b on Merge).
+   * Only renders ports that are NOT named 'main_input' (that one goes in the header).
+   * @param {string} nodeId
+   * @param {object} def - Node definition.
+   * @returns {HTMLElement|null}
+   */
+  function buildMainInputPorts(nodeId, def) {
+    var ports = hlp.getExplicitInputPorts(def);
+    if (ports.length === 0) return null;
+
+    var container = document.createElement('div');
+    container.className = 'node-input-ports';
+
+    for (var i = 0; i < ports.length; i++) {
+      var port = ports[i];
+      var row = document.createElement('div');
+      row.className = 'node-input-port-row';
+
+      var dot = document.createElement('div');
+      dot.className = 'port-dot ' + (port.type || 'layer');
+      dot.setAttribute('data-node-id', nodeId);
+      dot.setAttribute('data-port-id', port.id);
+      row.appendChild(dot);
+
+      var label = document.createElement('span');
+      label.className = 'node-input-port-label';
+      label.textContent = port.label || port.id;
+      row.appendChild(label);
+
+      container.appendChild(row);
+    }
 
     return container;
   }
@@ -198,6 +242,9 @@ var __r_bld = (function() {
 
     card.appendChild(header);
 
+    var inputPorts = buildMainInputPorts(nodeId, def);
+    if (inputPorts) card.appendChild(inputPorts);
+
     card.appendChild(buildParamBody(nodeId, nodeData, def));
 
     var outputPorts = buildPortsOutput(nodeId, def);
@@ -231,6 +278,18 @@ var __r_bld = (function() {
     var labelEl = el.querySelector('.node-label');
     if (labelEl) {
       labelEl.textContent = (nodeData.props && nodeData.props.label) || def.label;
+    }
+
+    var oldInputs = el.querySelector('.node-input-ports');
+    var newInputs = buildMainInputPorts(nodeId, def);
+    if (oldInputs) {
+      if (newInputs) {
+        el.replaceChild(newInputs, oldInputs);
+      } else {
+        el.removeChild(oldInputs);
+      }
+    } else if (newInputs) {
+      el.insertBefore(newInputs, el.querySelector('.node-body') || null);
     }
 
     var oldBody = el.querySelector('.node-body');

@@ -1,0 +1,27 @@
+/* tipField.css — Floating usage tip between comp list and minimap */
+
+#tip-field {
+  position: absolute;
+  bottom: 12px;
+  z-index: 50;
+  padding: 4px 10px;
+  background: rgba(30,30,28,0.92);
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+  color: #6A6965;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+#tip-field:hover {
+  background: rgba(40,40,38,0.95);
+  border-color: #3a3a38;
+  color: #B4B2A9;
+}

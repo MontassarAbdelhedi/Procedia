@@ -124,6 +124,18 @@
       }
     }
 
+    if (toNode.nodeKind === 'multimerge' && toPort === 'main_input') {
+      if (fromNode.nodeKind !== 'affected') {
+        return { valid: false, reason: 'Multimerge node input must come directly from an affected node' };
+      }
+    }
+
+    if (toNode.nodeKind === 'merge' && (toPort === 'input_a' || toPort === 'input_b')) {
+      if (fromNode.nodeKind !== 'affected') {
+        return { valid: false, reason: 'Merge node input must come directly from an affected node' };
+      }
+    }
+
     var matteReason = wv._validateMatteConditions(fromNodeId, fromPort, toNodeId, toPort);
     if (matteReason) {
       return { valid: false, reason: matteReason };

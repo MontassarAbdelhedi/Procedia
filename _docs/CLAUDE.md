@@ -1071,11 +1071,12 @@ procedia/
 │   │
 │   ├── nodes/
 │   │   ├── loadNodes.js                    ← Dynamic script loader for 474 node definitions
-│   │   └── categories/                     ← 25 AE effect categories + core/layers/data/utility
-│   │       ├── core/        Comp.js, Footage.js
-│   │       ├── layers/      Text.js, Null.js, Shape.js, Adjustment.js
-│   │       ├── data/        Color.js, Number.js
-│   │       ├── utility/     Blending.js, MatteLuma.js, MatteAlpha.js, Compander.js, GrowBounds.js, ...
+│   │   └── categories/                     ← 25 AE effect categories + Core/Layers/Data/Shapes/Effects/utility
+│   │       ├── Core/        Comp.js, Footage.js, Merge.js, Multimerge.js
+│   │       ├── Layers/      Text.js, Null.js, Shape.js, Adjustment.js
+│   │       ├── Data/        Color.js, Number.js
+│   │       ├── Shapes/      Rectangle.js
+│   │       ├── Effects/utility/     Blending.js, MatteLuma.js, MatteAlpha.js, Compander.js, GrowBounds.js, ...
 │   │       └── Blur & Sharpen/  3D Channel/  Audio/  Boris FX Mocha/  Channel/
 │   │           Color Correction/  Distort/  Expression Controls/  Generate/
 │   │           Immersive Video/  Keying/  Matte/  Noise & Grain/  obsolete/

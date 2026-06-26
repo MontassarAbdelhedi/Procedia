@@ -1,8 +1,9 @@
 /**
  * @fileoverview Node compatibility filtering for the node picker.
- * Finds all node definitions that can accept a given wire type.
+ * Finds all node definitions compatible with a given wire type,
+ * either as input (forward wiring) or output (reverse wiring).
  * Depends on: nodeRegistry (global).
- * Exports: __np_compat.compatibleNodes
+ * Exports: __np_compat.compatibleNodes, __np_compat.compatibleOutputNodes
  */
 // ui/nodePicker/compatibility.js
 // DEPENDS ON: graph/nodeRegistry.js
@@ -32,8 +33,32 @@ var __np_compat = (function() {
     return results;
   }
 
+  /**
+   * Returns all node definitions that have an output port matching the given wire type.
+   * Used for reverse wiring (drag from input port → pick node to connect into it).
+   * @param {string} wireType The wire type to match.
+   * @return {Array} Array of compatible node definitions.
+   */
+  function compatibleOutputNodes(wireType) {
+    var all = nodeRegistry.getAll();
+    var results = [];
+    for (var type in all) {
+      var def = all[type];
+      if (!def.ports) continue;
+      for (var i = 0; i < def.ports.length; i++) {
+        var p = def.ports[i];
+        if (p.category === 'output' && p.type === wireType) {
+          results.push(def);
+          break;
+        }
+      }
+    }
+    return results;
+  }
+
   return {
-    compatibleNodes: compatibleNodes
+    compatibleNodes: compatibleNodes,
+    compatibleOutputNodes: compatibleOutputNodes
   };
 
 })();

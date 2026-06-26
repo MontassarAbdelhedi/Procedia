@@ -136,7 +136,7 @@ var __c_util = (function() {
         if (!wires.hasOwnProperty(wireId)) continue;
         var wire = wires[wireId];
         if (wire.fromNode !== nodeId || wire.type !== 'layer') continue;
-        if (wire._pathLayerUUID !== null) return wire._pathLayerUUID;
+        if (isCompNode(wire.toNode)) return wire.id;
         var found = traverse(wire.toNode);
         if (found !== null) return found;
       }

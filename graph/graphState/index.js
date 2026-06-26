@@ -13,7 +13,9 @@
  *          setSelection, getSelection, addToSelection, removeFromSelection,
  *          toggleSelection, isSelected, clearSelection, replaceSelection,
  *          getSelectionCount, onSelectionChange,
- *          rebuildTempGraph, loadGraph, clearGraph
+ *          rebuildTempGraph, loadGraph, clearGraph, getCloneIds,
+ *          setActiveComp, getActiveComp, setFilteredNodes, clearFilter,
+ *          isNodeVisible, addToFilteredNodes, onGraphChange, offGraphChange
  */
 // graph/graphState/index.js
 // DEPENDS ON: graph/graphState/state.js, graph/graphState/tempGraph.js,

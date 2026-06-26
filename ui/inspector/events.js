@@ -140,8 +140,52 @@ var __ins_events = (function() {
         if (nodeData) {
           nodeData.props.filePath = res.data.filePath;
           nodeData.props.label = res.data.itemName;
-          graphState.updateNode(nodeId, { props: nodeData.props, state: 'alive' });
+
+          var wires = graphState.getAllWires();
+          var hostingCompUUID = null;
+          var layerUUID = null;
+          for (var wId in wires) {
+            if (!wires.hasOwnProperty(wId)) continue;
+            var w = wires[wId];
+            if (w.fromNode === nodeId && w.type === 'layer' && w._pathLayerUUID) {
+              layerUUID = w._pathLayerUUID;
+              hostingCompUUID = w.toNode;
+              break;
+            }
+          }
+
+          if (hostingCompUUID && layerUUID) {
+            evalBridge.dispatch({
+              action: 'createFootageLayer',
+              params: {
+                nodeUUID: nodeId,
+                hostingCompUUID: hostingCompUUID,
+                layerUUID: layerUUID,
+                label: nodeData.props.label
+              }
+            }).then(function(createRes) {
+              if (createRes.ok) {
+                graphState.updateNode(nodeId, { props: nodeData.props, state: 'alive', hasParkedLayer: false });
+                if (typeof pollerNotifier !== 'undefined' && pollerNotifier.clearNotified) {
+                  pollerNotifier.clearNotified(nodeId);
+                }
+              } else {
+                console.error('[inspector] createFootageLayer failed:', createRes.error);
+                graphState.updateNode(nodeId, { props: nodeData.props, state: 'error' });
+              }
+              renderer.render();
+              if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+              if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+              if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+            });
+          } else {
+            graphState.updateNode(nodeId, { props: nodeData.props, state: 'alive' });
+            renderer.render();
+            if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+            if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+          }
         }
+        return;
       }
       if (res.ok && res.data && res.data.cancelled) {
         btn.innerHTML = '<i class="ti ti-folder-open"></i> Browse &amp; Import';

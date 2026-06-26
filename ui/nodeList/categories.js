@@ -14,6 +14,7 @@ var __nl_cat = (function() {
     'Core':            '#534AB7',
     'Data':            '#D4AC0D',
     'Layers':          '#185FA5',
+    'Shapes':          '#1ABC9C',
     'Effects':         '#27AE60',
     '3D Channel':      '#27AE60',
     'Audio':           '#27AE60',
@@ -43,7 +44,7 @@ var __nl_cat = (function() {
   };
 
   var CATEGORY_ORDER = [
-    'Core', 'Data', 'Layers', 'Effects'
+    'Core', 'Data', 'Layers', 'Shapes', 'Effects'
   ];
 
   var EFFECTS_SUBCATEGORIES = {

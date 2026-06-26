@@ -538,6 +538,32 @@
   border-color: #4a4a48;
 }
 
+/* ── Explicit input port rows (e.g. Merge input_a, input_b) ── */
+
+.node-input-ports {
+  padding: 2px 8px;
+}
+
+.node-input-port-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  position: relative;
+}
+
+.node-input-port-row .port-dot {
+  width: 10px;
+  height: 10px;
+}
+
+.node-input-port-label {
+  font-size: 10px;
+  color: #888780;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* ── Node floating toolbar ────────────────────────────────── */
 
 .node-toolbar {

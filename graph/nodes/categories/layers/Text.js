@@ -6,7 +6,7 @@
  * Dispatches: createTextLayer, parkLayer, deleteParkedLayer, setLayerProperty.
  */
 
-// graph/nodes/categories/layers/Text.js
+// graph/nodes/categories/Layers/Text.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 

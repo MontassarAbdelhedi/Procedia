@@ -14,6 +14,18 @@
 
 (function() {
 
+  /**
+   * Snaps a canvas coordinate to the grid if snap-to-grid is enabled.
+   * @param {number} v
+   * @returns {number}
+   */
+  function _maybeSnap(v) {
+    if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
+      return viewport.snapToGrid(v);
+    }
+    return v;
+  }
+
   _handlersMouse.onMouseMove = function onMouseMove(e) {
     if (_inpPan.active) {
       var dx = e.clientX - _inpPan.startScreen.x;
@@ -30,7 +42,19 @@
       return;
     }
 
-    if (!_inpDrag.active) return;
+    if (!_inpDrag.active) {
+      var hitWire = (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt)
+        ? canvasDrag.findWireAt(e.clientX, e.clientY)
+        : null;
+      var newWireId = hitWire ? hitWire.id : null;
+      if (newWireId !== _hoveredWireId) {
+        _hoveredWireId = newWireId;
+        if (typeof wireRenderer !== 'undefined' && wireRenderer._updateInsertBtn) {
+          wireRenderer._updateInsertBtn();
+        }
+      }
+      return;
+    }
 
     var currentCanvas = viewport.screenToCanvas(e.clientX, e.clientY);
     var dx = currentCanvas.x - _inpDrag.dragStartCanvas.x;
@@ -38,8 +62,8 @@
     if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
       _inpDrag.moved = true;
     }
-    var newX = _inpDrag.nodeStartPos.x + dx;
-    var newY = _inpDrag.nodeStartPos.y + dy;
+    var newX = _maybeSnap(_inpDrag.nodeStartPos.x + dx);
+    var newY = _maybeSnap(_inpDrag.nodeStartPos.y + dy);
 
     graphState.updateNode(_inpDrag.nodeId, { x: newX, y: newY });
 
@@ -49,8 +73,8 @@
         if (selection[i] === _inpDrag.nodeId) continue;
         var startPos = _inpDrag.selectionStartPositions[selection[i]];
         if (!startPos) continue;
-        var newSelX = startPos.x + dx;
-        var newSelY = startPos.y + dy;
+        var newSelX = _maybeSnap(startPos.x + dx);
+        var newSelY = _maybeSnap(startPos.y + dy);
         graphState.updateNode(selection[i], { x: newSelX, y: newSelY });
         var selEl = renderer.getNodeElement(selection[i]);
         if (selEl) {

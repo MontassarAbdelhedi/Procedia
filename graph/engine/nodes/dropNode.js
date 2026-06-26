@@ -58,7 +58,9 @@ var __e_ndrop = (function() {
 
     if (nodeDef.nodeKind === 'data' ||
         nodeDef.nodeKind === 'blending' ||
-        nodeDef.nodeKind === 'matte') {
+        nodeDef.nodeKind === 'matte' ||
+        nodeDef.nodeKind === 'merge' ||
+        nodeDef.nodeKind === 'multimerge') {
       graphState.updateNode(id, { state: 'alive' });
       if (nodeDef.params === 'dynamic' && nodeDef.matchName) {
         hlp.resolveDynamicSchema(id, nodeDef.matchName);

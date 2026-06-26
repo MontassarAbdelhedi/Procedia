@@ -15,6 +15,7 @@ var settingsModal = (function() {
   var _minimapCheckbox = null;
   var _wireStyleSelect = null;
   var _animatedDashCheckbox = null;
+  var _snapToGridCheckbox = null;
 
   /**
    * Creates the settings modal DOM and appends it to the body.
@@ -68,6 +69,17 @@ var settingsModal = (function() {
 
           '<div class="settings-group">' +
             '<div class="settings-row">' +
+              '<span class="settings-label">Snap to Grid</span>' +
+              '<label class="settings-toggle">' +
+                '<input type="checkbox" id="settings-snap-to-grid">' +
+                '<span class="settings-toggle-slider"></span>' +
+              '</label>' +
+            '</div>' +
+            '<div class="settings-hint">Snap node positions to 24px grid units when dragging</div>' +
+          '</div>' +
+
+          '<div class="settings-group">' +
+            '<div class="settings-row">' +
               '<span class="settings-label">Layout Direction</span>' +
               '<select id="settings-layout-direction" class="settings-select">' +
                 '<option value="LR">Left to Right</option>' +
@@ -94,6 +106,10 @@ var settingsModal = (function() {
             '<div class="settings-hint">Spacing between layers and nodes in auto layout</div>' +
           '</div>' +
 
+          '<div class="settings-group" style="padding-top: 4px; border-top: 1px solid #2a2a28;">' +
+            '<button id="settings-replay-tutorial" style="background:none;border:1px solid #2a2a28;color:#B4B2A9;font-size:12px;padding:6px 12px;border-radius:4px;cursor:pointer;width:100%;transition:color 0.15s,background 0.15s;" onmouseover="this.style.background=\'#2a2a28\';this.style.color=\'#d4d2cc\'" onmouseout="this.style.background=\'transparent\';this.style.color=\'#B4B2A9\'">Replay Tutorial</button>' +
+          '</div>' +
+
         '</div>' +
       '</div>';
 
@@ -113,6 +129,7 @@ var settingsModal = (function() {
     _minimapCheckbox = document.getElementById('settings-minimap');
     _wireStyleSelect = document.getElementById('settings-wire-style');
     _animatedDashCheckbox = document.getElementById('settings-animated-dash');
+    _snapToGridCheckbox = document.getElementById('settings-snap-to-grid');
 
     _minimapCheckbox.addEventListener('change', function() {
       settings.set('minimap', _minimapCheckbox.checked);
@@ -126,6 +143,11 @@ var settingsModal = (function() {
 
     _animatedDashCheckbox.addEventListener('change', function() {
       settings.set('animatedDash', _animatedDashCheckbox.checked);
+      _applySettings();
+    });
+
+    _snapToGridCheckbox.addEventListener('change', function() {
+      settings.set('snapToGrid', _snapToGridCheckbox.checked);
       _applySettings();
     });
 
@@ -144,6 +166,14 @@ var settingsModal = (function() {
         var valEl = document.getElementById('settings-layout-hspacing-val');
         if (valEl) valEl.textContent = hSpacing.value;
         _applySettings();
+      });
+    }
+
+    var replayBtn = document.getElementById('settings-replay-tutorial');
+    if (replayBtn) {
+      replayBtn.addEventListener('click', function() {
+        close();
+        if (typeof walkthrough !== 'undefined' && walkthrough.show) walkthrough.show();
       });
     }
 
@@ -166,6 +196,7 @@ var settingsModal = (function() {
     _minimapCheckbox.checked = prefs.minimap !== false;
     _wireStyleSelect.value = prefs.wireStyle || 'bezier';
     _animatedDashCheckbox.checked = prefs.animatedDash === true;
+    _snapToGridCheckbox.checked = prefs.snapToGrid === true;
 
     var layoutDir = document.getElementById('settings-layout-direction');
     if (layoutDir) layoutDir.value = prefs.layoutDirection || 'LR';

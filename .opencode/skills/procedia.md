@@ -139,6 +139,11 @@ All 84+ issues from `code-review-report.md` have been fixed. Key categories:
 | `notifications/notificationBar.js` | Toast notification UI |
 | `data/effectSchemaCache.json` | Disk cache (must pre-exist) |
 
+## Terminology
+
+- **Add node at midpoint** — Adding a node by clicking the `+` button on hovered wire midpoint
+- **Insert node on wire** — Adding a node by dragging a new node from the sidebar onto a wire (drag-to-insert)
+
 ## Verification Checklist (Every Task)
 
 - Panel loads without console errors

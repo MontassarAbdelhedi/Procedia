@@ -47,6 +47,7 @@ var _inpRubber = {
 
 var _inpSpaceHeld = false;
 var _selectedWireId = null;
+var _hoveredWireId = null;
 var _editingNodeId = null;
 var _pendingFocusTimer = null;
 var INP_MIN_RUBBER = 5;

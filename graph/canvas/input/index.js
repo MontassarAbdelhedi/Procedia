@@ -33,6 +33,15 @@ var canvasInput = (function() {
     wrap.addEventListener('dblclick',  inputHandlers.onDblClick);
     wrap.addEventListener('wheel',     inputHandlers.onWheel, { passive: false });
 
+    wrap.addEventListener('mouseleave', function() {
+      if (_hoveredWireId !== null) {
+        _hoveredWireId = null;
+        if (typeof wireRenderer !== 'undefined' && wireRenderer._updateInsertBtn) {
+          wireRenderer._updateInsertBtn();
+        }
+      }
+    });
+
     document.addEventListener('keydown', inputHandlers.onKeyDown);
     document.addEventListener('keyup',   inputHandlers.onKeyUp);
   }

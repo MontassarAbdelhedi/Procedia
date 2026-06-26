@@ -143,7 +143,8 @@ var __e_hlp = (function() {
       if (!wireMap.hasOwnProperty(wireId)) continue;
       var wire = wireMap[wireId];
       if (wire.fromNode === nodeId && wire.type === 'layer') {
-        if (wire._pathLayerUUID !== null) return wire._pathLayerUUID;
+        var toNodeData = graphState.getNode(wire.toNode);
+        if (toNodeData && toNodeData.type === 'core/comp') return wire.id;
         var found = _findPathLayerUUIDWithVisited(wire.toNode, visited);
         if (found !== null) return found;
       }

@@ -1,66 +1,79 @@
 # Procedia — All Scenarios & Flow of Command
 
-> **Convention for node actions:** Each node type defines lifecycle hooks (`onDrop`, `onAlive`, `onGhost`, `onDelete`, `onPropertyChange`) that **return command objects** (action + params). The engine dispatches these via `evalBridge.dispatch()` (`bridge/evalBridge.js:99`) → `csInterface.evalScript()` → `dispatcher.jsx:85 dispatch(jsonStr)` routes by action string to the registered `_handle*` function (`dispatcher.jsx:40-78`). Below are all 12 node definitions and their exact hook→handler lines.
+> **Convention for node actions:** Each node type defines lifecycle hooks (`onDrop`, `onAlive`, `onGhost`, `onDelete`, `onPropertyChange`, `onDisable`, `onEnable`) that **return command objects** (action + params). The engine dispatches these via `evalBridge.dispatch()` (`bridge/evalBridge.js:99`) → `csInterface.evalScript()` → `dispatcher.jsx:85 dispatch(jsonStr)` routes by action string to the registered `_handle*` function (`dispatcher.jsx:40-78`). Below are all 17 node definitions and their exact hook→handler lines.
 
 ## Node Definitions — Lifecycle Hooks & Corresponding AE Handlers
 
 | Node type | File | Hook | Returns action | Panel definition line | Dispatcher handler line |
-|---|---|---|---|---|---|
-| `core/comp` | `Comp.js` | `onDrop` | `createComp` | `Comp.js:37-49` | `actions_comp.jsx:30 _handleCreateComp` |
-| `core/comp` | `Comp.js` | `onAlive` | `createComp` | `Comp.js:67-79` | `actions_comp.jsx:30 _handleCreateComp` |
-| `core/comp` | `Comp.js` | `onDelete` | `deleteComp` | `Comp.js:52-59` | `actions_comp.jsx:60 _handleDeleteComp` |
-| `core/comp` | `Comp.js` | `onPropertyChange` | `setCompProperty` | `Comp.js:88-98` | `actions_comp.jsx:83 _handleSetCompProperty` |
-| `core/footage` | `Footage.js` | `onDrop` | `importFootage` | `Footage.js:40-52` | `actions_footage.jsx:_handleImportFootage` |
-| `core/footage` | `Footage.js` | `onAlive` | `addCompAsLayer` | `Footage.js:60-73` | `actions_layer.jsx:_handleAddCompAsLayer` |
-| `core/footage` | `Footage.js` | `onDelete` | `removeFootageLayer` | `Footage.js:80-87` | `actions_footage.jsx:_handleRemoveFootage` |
-| `layers/text` | `Text.js` | `onDrop` | `null` (no-op) | `Text.js:38-40` | — |
-| `layers/text` | `Text.js` | `onAlive` | `createTextLayer` | `Text.js:48-63` | `actions_layer.jsx:18 _handleCreateTextLayer` |
-| `layers/text` | `Text.js` | `onGhost` | `parkLayer` | `Text.js:71-79` | `actions_park.jsx:16 _handleParkLayer` |
-| `layers/text` | `Text.js` | `onDelete` | `deleteParkedLayer` | `Text.js:86-93` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
-| `layers/text` | `Text.js` | `onPropertyChange` | `setLayerProperty` | `Text.js:103-113` | `actions_property.jsx:17 _handleSetLayerProperty` |
-| `layers/null` | `Null.js` | `onDrop` | `null` (no-op) | `Null.js:36-38` | — |
-| `layers/null` | `Null.js` | `onAlive` | `createNullLayer` | `Null.js:46-59` | `actions_layer.jsx:63 _handleCreateNullLayer` |
-| `layers/null` | `Null.js` | `onGhost` | `parkLayer` | `Null.js:67-75` | `actions_park.jsx:16 _handleParkLayer` |
-| `layers/null` | `Null.js` | `onDelete` | `deleteParkedLayer` | `Null.js:82-89` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
-| `layers/null` | `Null.js` | `onPropertyChange` | `setLayerProperty` | `Null.js:99-109` | `actions_property.jsx:17 _handleSetLayerProperty` |
-| `layers/shape` | `Shape.js` | `onDrop` | `null` (no-op) | `Shape.js:37` | — |
-| `layers/shape` | `Shape.js` | `onAlive` | `createShapeLayer` | `Shape.js:45-58` | `actions_layer.jsx:109 _handleCreateShapeLayer` |
-| `layers/shape` | `Shape.js` | `onGhost` | `parkLayer` | `Shape.js:66-74` | `actions_park.jsx:16 _handleParkLayer` |
-| `layers/shape` | `Shape.js` | `onDelete` | `deleteParkedLayer` | `Shape.js:81-88` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
-| `layers/shape` | `Shape.js` | `onPropertyChange` | `setLayerProperty` | `Shape.js:98-108` | `actions_property.jsx:17 _handleSetLayerProperty` |
-| `layers/adjustment` | `Adjustment.js` | `onDrop` | `null` (no-op) | `Adjustment.js:36` | — |
-| `layers/adjustment` | `Adjustment.js` | `onAlive` | `createAdjustmentLayer` | `Adjustment.js:44-57` | `actions_layer.jsx:89 _handleCreateAdjustmentLayer` |
-| `layers/adjustment` | `Adjustment.js` | `onGhost` | `parkLayer` | `Adjustment.js:65-73` | `actions_park.jsx:16 _handleParkLayer` |
-| `layers/adjustment` | `Adjustment.js` | `onDelete` | `deleteParkedLayer` | `Adjustment.js:80-87` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
-| `layers/adjustment` | `Adjustment.js` | `onPropertyChange` | `setLayerProperty` | `Adjustment.js:97-107` | `actions_property.jsx:17 _handleSetLayerProperty` |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onDrop` | `null` (no-op) | `FillEffect.js:29` | — |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onAlive` | `applyDynamicEffect` | `FillEffect.js:38-49` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onGhost` | `removeEffect` | `FillEffect.js:58-68` | `actionEffect/apply.jsx _handleRemoveEffect` |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onDelete` | `null` (no-op) | `FillEffect.js:71` | — |
-| `effects/fill` | `Blur & Sharpen/FillEffect.js` | `onPropertyChange` | `setEffectProperty` | `FillEffect.js:82-94` | `actionEffect/apply.jsx _handleSetEffectProperty` |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onDrop` | `null` (no-op) | `GaussianBlur.js:29` | — |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onAlive` | `applyDynamicEffect` | `GaussianBlur.js:38-49` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onGhost` | `removeEffect` | `GaussianBlur.js:58-68` | `actionEffect/apply.jsx _handleRemoveEffect` |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onDelete` | `null` (no-op) | `GaussianBlur.js:71` | — |
-| `effects/gaussian-blur` | `Blur & Sharpen/GaussianBlur.js` | `onPropertyChange` | `setEffectProperty` | `GaussianBlur.js:82-94` | `actionEffect/apply.jsx _handleSetEffectProperty` |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onDrop` | `null` (no-op) | `DropShadow.js:29` | — |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onAlive` | `applyDynamicEffect` | `DropShadow.js:38-49` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onGhost` | `removeEffect` | `DropShadow.js:58-68` | `actionEffect/apply.jsx _handleRemoveEffect` |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onDelete` | `null` (no-op) | `DropShadow.js:71` | — |
-| `effects/drop-shadow` | `Blur & Sharpen/DropShadow.js` | `onPropertyChange` | `setEffectProperty` | `DropShadow.js:82-94` | `actionEffect/apply.jsx _handleSetEffectProperty` |
-| `data/color` | `Color.js` | all hooks | `null` (no-op) | `Color.js:31-39` | — |
-| `data/number` | `Number.js` | all hooks | `null` (no-op) | `Number.js:31-39` | — |
-| `utility/blending` | `Blending.js` | all hooks | `null` (no-op) | `Blending.js:32-40` | — |
-| `utility/matte-luma` | `MatteLuma.js` | `onDrop` | `null` (no-op) | `MatteLuma.js:32` | — |
-| `utility/matte-luma` | `MatteLuma.js` | `onAlive` | `setLumaMatte` | `MatteLuma.js:41-51` | `actions_matte.jsx:16 _handleSetLumaMatte` |
-| `utility/matte-luma` | `MatteLuma.js` | `onGhost` | `clearMatte` | `MatteLuma.js:60-69` | `actions_matte.jsx:61 _handleClearMatte` |
-| `utility/matte-luma` | `MatteLuma.js` | `onDelete` | `null` (no-op) | `MatteLuma.js:72` | — |
-| `utility/matte-luma` | `MatteLuma.js` | `onPropertyChange` | `setLayerProperty` | `MatteLuma.js:83-93` | `actions_property.jsx:17 _handleSetLayerProperty` |
-| `utility/matte-alpha` | `MatteAlpha.js` | `onDrop` | `null` (no-op) | `MatteAlpha.js:32` | — |
-| `utility/matte-alpha` | `MatteAlpha.js` | `onAlive` | `setAlphaMatte` | `MatteAlpha.js:41-51` | `actions_matte.jsx:39 _handleSetAlphaMatte` |
-| `utility/matte-alpha` | `MatteAlpha.js` | `onGhost` | `clearMatte` | `MatteAlpha.js:60-69` | `actions_matte.jsx:61 _handleClearMatte` |
-| `utility/matte-alpha` | `MatteAlpha.js` | `onDelete` | `null` (no-op) | `MatteAlpha.js:72` | — |
-| `utility/matte-alpha` | `MatteAlpha.js` | `onPropertyChange` | `setLayerProperty` | `MatteAlpha.js:83-93` | `actions_property.jsx:17 _handleSetLayerProperty` |
+|---|---|---|---|---|---|---|
+| `core/comp` | `Core/Comp.js` | `onDrop` | `createComp` | `Comp.js:41-53` | `actions_comp.jsx:30 _handleCreateComp` |
+| `core/comp` | `Core/Comp.js` | `onAlive` | `createComp` | `Comp.js:71-92` | `actions_comp.jsx:30 _handleCreateComp` |
+| `core/comp` | `Core/Comp.js` | `onDelete` | `deleteComp` | `Comp.js:56-63` | `actions_comp.jsx:60 _handleDeleteComp` |
+| `core/comp` | `Core/Comp.js` | `onPropertyChange` | `setCompProperty` | `Comp.js:101-111` | `actions_comp.jsx:83 _handleSetCompProperty` |
+| `core/comp` | `Core/Comp.js` | `onDisable` | `setLayerEnabled` | `Comp.js:119-129` | — |
+| `core/comp` | `Core/Comp.js` | `onEnable` | `setLayerEnabled` | `Comp.js:137-147` | — |
+| `core/footage` | `Core/Footage.js` | `onDrop` | `null` (no-op) | `Footage.js:23-25` | — |
+| `core/footage` | `Core/Footage.js` | `onAlive` | `createFootageLayer` | `Footage.js:27-36` | — |
+| `core/footage` | `Core/Footage.js` | `onGhost` | `parkLayer` | `Footage.js:38-46` | `actions_park.jsx:16 _handleParkLayer` |
+| `core/footage` | `Core/Footage.js` | `onDelete` | `deleteFootageItem` | `Footage.js:48-55` | — |
+| `core/footage` | `Core/Footage.js` | `onPropertyChange` | `setLayerProperty` | `Footage.js:57-67` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `layers/text` | `Layers/Text.js` | `onDrop` | `null` (no-op) | `Text.js:42-44` | — |
+| `layers/text` | `Layers/Text.js` | `onAlive` | `createTextLayer` | `Text.js:52-67` | `actions_layer.jsx:18 _handleCreateTextLayer` |
+| `layers/text` | `Layers/Text.js` | `onGhost` | `parkLayer` | `Text.js:75-83` | `actions_park.jsx:16 _handleParkLayer` |
+| `layers/text` | `Layers/Text.js` | `onDelete` | `deleteParkedLayer` | `Text.js:90-97` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
+| `layers/text` | `Layers/Text.js` | `onPropertyChange` | `setLayerProperty` | `Text.js:107-117` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `layers/null` | `Layers/Null.js` | `onDrop` | `null` (no-op) | `Null.js:40-42` | — |
+| `layers/null` | `Layers/Null.js` | `onAlive` | `createNullLayer` | `Null.js:50-63` | `actions_layer.jsx:63 _handleCreateNullLayer` |
+| `layers/null` | `Layers/Null.js` | `onGhost` | `parkLayer` | `Null.js:71-79` | `actions_park.jsx:16 _handleParkLayer` |
+| `layers/null` | `Layers/Null.js` | `onDelete` | `deleteParkedLayer` | `Null.js:86-93` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
+| `layers/null` | `Layers/Null.js` | `onPropertyChange` | `setLayerProperty` | `Null.js:103-113` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `layers/shape` | `Layers/Shape.js` | `onDrop` | `null` (no-op) | `Shape.js:41` | — |
+| `layers/shape` | `Layers/Shape.js` | `onAlive` | `createShapeLayer` | `Shape.js:49-63` | `actions_layer.jsx:109 _handleCreateShapeLayer` |
+| `layers/shape` | `Layers/Shape.js` | `onGhost` | `parkLayer` | `Shape.js:71-79` | `actions_park.jsx:16 _handleParkLayer` |
+| `layers/shape` | `Layers/Shape.js` | `onDelete` | `deleteParkedLayer` | `Shape.js:86-93` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
+| `layers/shape` | `Layers/Shape.js` | `onPropertyChange` | `setLayerProperty` | `Shape.js:103-113` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `layers/adjustment` | `Layers/Adjustment.js` | `onDrop` | `null` (no-op) | `Adjustment.js:40` | — |
+| `layers/adjustment` | `Layers/Adjustment.js` | `onAlive` | `createAdjustmentLayer` | `Adjustment.js:48-61` | `actions_layer.jsx:89 _handleCreateAdjustmentLayer` |
+| `layers/adjustment` | `Layers/Adjustment.js` | `onGhost` | `parkLayer` | `Adjustment.js:69-77` | `actions_park.jsx:16 _handleParkLayer` |
+| `layers/adjustment` | `Layers/Adjustment.js` | `onDelete` | `deleteParkedLayer` | `Adjustment.js:84-91` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
+| `layers/adjustment` | `Layers/Adjustment.js` | `onPropertyChange` | `setLayerProperty` | `Adjustment.js:101-111` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `effects/fill` | `Effects/Blur & Sharpen/FillEffect.js` | `onDrop` | `null` (no-op) | `FillEffect.js:43` | — |
+| `effects/fill` | `Effects/Blur & Sharpen/FillEffect.js` | `onAlive` | `applyDynamicEffect` | `FillEffect.js:52-63` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
+| `effects/fill` | `Effects/Blur & Sharpen/FillEffect.js` | `onGhost` | `removeEffect` | `FillEffect.js:72-82` | `actionEffect/apply.jsx _handleRemoveEffect` |
+| `effects/fill` | `Effects/Blur & Sharpen/FillEffect.js` | `onDelete` | `null` (no-op) | `FillEffect.js:85` | — |
+| `effects/fill` | `Effects/Blur & Sharpen/FillEffect.js` | `onPropertyChange` | `setEffectProperty` | `FillEffect.js:96-108` | `actionEffect/apply.jsx _handleSetEffectProperty` |
+| `effects/gaussian-blur` | `Effects/Blur & Sharpen/GaussianBlur.js` | `onDrop` | `null` (no-op) | `GaussianBlur.js:44` | — |
+| `effects/gaussian-blur` | `Effects/Blur & Sharpen/GaussianBlur.js` | `onAlive` | `applyDynamicEffect` | `GaussianBlur.js:53-64` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
+| `effects/gaussian-blur` | `Effects/Blur & Sharpen/GaussianBlur.js` | `onGhost` | `removeEffect` | `GaussianBlur.js:73-83` | `actionEffect/apply.jsx _handleRemoveEffect` |
+| `effects/gaussian-blur` | `Effects/Blur & Sharpen/GaussianBlur.js` | `onDelete` | `null` (no-op) | `GaussianBlur.js:86` | — |
+| `effects/gaussian-blur` | `Effects/Blur & Sharpen/GaussianBlur.js` | `onPropertyChange` | `setEffectProperty` | `GaussianBlur.js:97-109` | `actionEffect/apply.jsx _handleSetEffectProperty` |
+| `effects/drop-shadow` | `Effects/Blur & Sharpen/DropShadow.js` | `onDrop` | `null` (no-op) | `DropShadow.js:44` | — |
+| `effects/drop-shadow` | `Effects/Blur & Sharpen/DropShadow.js` | `onAlive` | `applyDynamicEffect` | `DropShadow.js:53-64` | `actionEffect/apply.jsx _handleApplyDynamicEffect` |
+| `effects/drop-shadow` | `Effects/Blur & Sharpen/DropShadow.js` | `onGhost` | `removeEffect` | `DropShadow.js:73-83` | `actionEffect/apply.jsx _handleRemoveEffect` |
+| `effects/drop-shadow` | `Effects/Blur & Sharpen/DropShadow.js` | `onDelete` | `null` (no-op) | `DropShadow.js:86` | — |
+| `effects/drop-shadow` | `Effects/Blur & Sharpen/DropShadow.js` | `onPropertyChange` | `setEffectProperty` | `DropShadow.js:97-109` | `actionEffect/apply.jsx _handleSetEffectProperty` |
+| `data/color` | `Data/Color.js` | all hooks | `null` (no-op) | `Color.js:35-43` | — |
+| `data/number` | `Data/Number.js` | all hooks | `null` (no-op) | `Number.js:35-43` | — |
+| `utility/blending` | `Effects/utility/Blending.js` | all hooks | `null` (no-op) | `Blending.js:36-44` | — |
+| `utility/matte-luma` | `Effects/utility/MatteLuma.js` | `onDrop` | `null` (no-op) | `MatteLuma.js:36` | — |
+| `utility/matte-luma` | `Effects/utility/MatteLuma.js` | `onAlive` | `setLumaMatte` | `MatteLuma.js:45-55` | `actions_matte.jsx:16 _handleSetLumaMatte` |
+| `utility/matte-luma` | `Effects/utility/MatteLuma.js` | `onGhost` | `clearMatte` | `MatteLuma.js:64-73` | `actions_matte.jsx:61 _handleClearMatte` |
+| `utility/matte-luma` | `Effects/utility/MatteLuma.js` | `onDelete` | `null` (no-op) | `MatteLuma.js:76` | — |
+| `utility/matte-luma` | `Effects/utility/MatteLuma.js` | `onPropertyChange` | `setLayerProperty` | `MatteLuma.js:87-97` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `utility/matte-alpha` | `Effects/utility/MatteAlpha.js` | `onDrop` | `null` (no-op) | `MatteAlpha.js:36` | — |
+| `utility/matte-alpha` | `Effects/utility/MatteAlpha.js` | `onAlive` | `setAlphaMatte` | `MatteAlpha.js:45-55` | `actions_matte.jsx:39 _handleSetAlphaMatte` |
+| `utility/matte-alpha` | `Effects/utility/MatteAlpha.js` | `onGhost` | `clearMatte` | `MatteAlpha.js:64-73` | `actions_matte.jsx:61 _handleClearMatte` |
+| `utility/matte-alpha` | `Effects/utility/MatteAlpha.js` | `onDelete` | `null` (no-op) | `MatteAlpha.js:76` | — |
+| `utility/matte-alpha` | `Effects/utility/MatteAlpha.js` | `onPropertyChange` | `setLayerProperty` | `MatteAlpha.js:87-97` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `core/merge` | `Core/Merge.js` | all hooks | `null` (no-op) | `Merge.js:24-28` | — |
+| `core/multimerge` | `Core/Multimerge.js` | all hooks | `null` (no-op) | `Multimerge.js:23-27` | — |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onDrop` | `null` (no-op) | `Rectangle.js:55` | — |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onAlive` | `createRectangleLayer` | `Rectangle.js:57-76` | — |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onGhost` | `parkLayer` | `Rectangle.js:78-86` | `actions_park.jsx:16 _handleParkLayer` |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onDelete` | `deleteParkedLayer` | `Rectangle.js:88-95` | `actions_park.jsx:114 _handleDeleteParkedLayer` |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onPropertyChange` | `setLayerProperty` | `Rectangle.js:97-107` | `actions_property.jsx:17 _handleSetLayerProperty` |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onDisable` | `setLayerEnabled` | `Rectangle.js:109-119` | — |
+| `shapes/rectangle` | `Shapes/Rectangle.js` | `onEnable` | `setLayerEnabled` | `Rectangle.js:121-131` | — |
 
 ## Startup & Shutdown
 

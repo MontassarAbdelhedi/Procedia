@@ -58,7 +58,8 @@ var __e_prop = (function() {
       if (cmd !== null) cmd.params.layerUUID = pathLayerUUID;
       return cmd;
     }
-    if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending') {
+    if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending' ||
+        nodeData.nodeKind === 'merge' || nodeData.nodeKind === 'multimerge') {
       return def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
     }
     return null;
@@ -76,6 +77,16 @@ var __e_prop = (function() {
         if (!res.ok) {
           console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
           graphState.updateNode(nId, { state: 'error' });
+          var nd = graphState.getNode(nId);
+          if (nd && nd.type === 'core/footage' && cmd.action === 'createFootageLayer') {
+            if (typeof notificationBar !== 'undefined' && notificationBar.push) {
+              notificationBar.push({
+                message: 'Footage node "' + (nd.props.label || 'Footage') + '" has no file imported',
+                severity: 'error',
+                duration: 5000
+              });
+            }
+          }
         }
       });
     }(nodeId, command));
@@ -102,6 +113,7 @@ var __e_prop = (function() {
         if (puData.hostingComps[pui] === hostingCompUUID) { alreadyAlive = true; break; }
       }
       if (alreadyAlive) continue;
+      graphState.updateWire(puw.id, { _pathLayerUUID: puw.id });
       _propagateAlive(puw.fromNode, hostingCompUUID, pathLayerUUID);
     }
   }
@@ -140,8 +152,10 @@ var __e_prop = (function() {
         hostingComps:         _mergeHostingComps(nodeData.hostingComps, hostingCompUUID),
         _transplantLayerUUID: null
       });
-      _propagateUpstream(nodeId, hostingCompUUID, nodeData.id);
-      _dispatchCommand(nodeId, _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID));
+      _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID);
+      var transplantCmd = _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID);
+      if (transplantCmd) transplantCmd.params._moveToBottom = true;
+      _dispatchCommand(nodeId, transplantCmd);
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
       return;
     }
@@ -158,7 +172,11 @@ var __e_prop = (function() {
     }
 
     var command = _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID);
-    if (command === null) return;
+
+    if (command === null &&
+        nodeData.nodeKind !== 'merge' &&
+        nodeData.nodeKind !== 'multimerge' &&
+        nodeData.nodeKind !== 'blending') return;
 
     graphState.updateNode(nodeId, {
       state:          'alive',
@@ -167,7 +185,69 @@ var __e_prop = (function() {
     });
 
     _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID);
-    _dispatchCommand(nodeId, command);
+    if (command !== null) _dispatchCommand(nodeId, command);
+
+    if (command !== null &&
+        (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending')) {
+      _ensureDownstreamOrder(nodeId, hostingCompUUID, pathLayerUUID);
+    }
+
+    if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
+  }
+
+  /**
+   * Ensures correct effect order for non-terminal (midstream) insertion.
+   * When a new effector goes alive between an upstream source and an already-alive
+   * downstream effector chain, all downstream effector effects are removed in
+   * upstream-to-downstream order, the new effect is added (position 1), then
+   * re-added in upstream-to-downstream order (with _moveToBottom) so the stream
+   * ordering is preserved without relying on ExtendScript moveToBeginning().
+   *
+   * @param {string} nodeId - The newly-alive effector node ID
+   * @param {string} hostingCompUUID - Hosting comp UUID
+   * @param {string} pathLayerUUID - Terminal wire layer UUID
+   */
+  function _ensureDownstreamOrder(nodeId, hostingCompUUID, pathLayerUUID) {
+    var chain = [];
+
+    function _collect(nId) {
+      var wm = graphState.getAllWires();
+      for (var wId in wm) {
+        if (!wm.hasOwnProperty(wId)) continue;
+        var w = wm[wId];
+        if (w.fromNode !== nId || w.type !== 'layer') continue;
+        var dData = graphState.getNode(w.toNode);
+        if (!dData) continue;
+        if (dData.nodeKind !== 'effector' && dData.nodeKind !== 'blending') continue;
+
+        var found = false;
+        for (var i = 0; i < dData.hostingComps.length; i++) {
+          if (dData.hostingComps[i] === hostingCompUUID) { found = true; break; }
+        }
+        if (!found) continue;
+
+        var dDef = nodeRegistry.getDefinition(dData.type);
+        if (!dDef || !dDef.onGhost || !dDef.onAlive) continue;
+
+        var rCmd = dDef.onGhost(dData, hostingCompUUID, pathLayerUUID);
+        if (rCmd) evalBridge.dispatch(rCmd);
+
+        chain.push({ node: dData, def: dDef });
+
+        _collect(dData.id);
+      }
+    }
+
+    _collect(nodeId);
+
+    for (var ci = 0; ci < chain.length; ci++) {
+      var cItem = chain[ci];
+      var aCmd = cItem.def.onAlive(cItem.node, hostingCompUUID, pathLayerUUID);
+      if (aCmd) {
+        aCmd.params._moveToBottom = true;
+        evalBridge.dispatch(aCmd);
+      }
+    }
   }
 
   /**

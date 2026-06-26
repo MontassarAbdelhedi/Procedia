@@ -1,0 +1,133 @@
+/* walkthrough.css — First-run tutorial overlay
+   Full-screen spotlight overlay with element highlighting and step-by-step navigation. */
+
+/* --- Overlay --- */
+.walkthrough-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* --- Spotlight hole (outline creates the dark curtain) --- */
+.walkthrough-spotlight {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 8px;
+  outline: 9999px solid rgba(0, 0, 0, 0.65);
+  transition: all 0.15s ease;
+  will-change: left, top, width, height;
+  z-index: 2001;
+}
+
+/* --- Instruction card --- */
+.walkthrough-card {
+  position: fixed;
+  z-index: 2002;
+  pointer-events: auto;
+  background: #1a1a18;
+  border: 1px solid #2a2a28;
+  border-radius: 10px;
+  width: 340px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  transition: opacity 0.1s ease;
+}
+
+/* --- Step indicator --- */
+.walkthrough-step-indicator {
+  font-size: 10px;
+  color: #5F5E5A;
+}
+
+/* --- Progress dots --- */
+.walkthrough-dots {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.walkthrough-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #333331;
+  transition: background 0.2s ease;
+}
+
+.walkthrough-dot.active {
+  background: #534AB7;
+}
+
+.walkthrough-dot.done {
+  background: #444441;
+}
+
+/* --- Card body --- */
+.walkthrough-body {
+  padding: 14px 22px 8px 22px;
+}
+
+.walkthrough-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #d4d2cc;
+  margin-bottom: 8px;
+}
+
+.walkthrough-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #B4B2A9;
+  margin-bottom: 6px;
+}
+
+/* --- Card footer with buttons --- */
+.walkthrough-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid #2a2a28;
+  margin-top: 12px;
+}
+
+.walkthrough-footer-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.walkthrough-btn-dismiss {
+  background: none;
+  border: none;
+  color: #888780;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.walkthrough-btn-dismiss:hover {
+  color: #d4d2cc;
+  background: #2a2a28;
+}
+
+.walkthrough-btn-next {
+  background: #534AB7;
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 18px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.walkthrough-btn-next:hover {
+  background: #655CD0;
+}

@@ -95,6 +95,9 @@ var __e_ndel = (function() {
                 break;
               }
             }
+            if (!effPathUUID) {
+              effPathUUID = hlp.findPathLayerUUID(nodeId);
+            }
             affGhostCmd = def ? def.onGhost(nodeData, affHostUUID, effPathUUID) : null;
           }
           if (affGhostCmd) affBatch.push(affGhostCmd);

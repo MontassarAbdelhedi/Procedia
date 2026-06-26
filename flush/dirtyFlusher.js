@@ -82,10 +82,22 @@ var dirtyFlusher = (function() {
     // sets a new dirty flag won't be erased by a stale .then() callback.
     graphState.clearDirty(nodeId);
 
-    var hostingCompUUID = nodeData.hostingComps[0];
+    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
+      ? nodeData.hostingComps[0] : null;
     var upstreamNodeUUID = null;
+    var pathLayerUUID = null;
     if (nodeData.nodeKind === 'effector') {
       upstreamNodeUUID = _resolveUpstreamNodeUUID(nodeId);
+      if (!upstreamNodeUUID) {
+        upstreamNodeUUID = _findPathLayerUUID(nodeId);
+      }
+    } else if (nodeData.nodeKind === 'affected') {
+      pathLayerUUID = _findPathLayerUUID(nodeId);
+    }
+
+    // Recover from error state so subsequent flushes can succeed.
+    if (nodeData.state === 'error') {
+      graphState.updateNode(nodeId, { state: 'alive' });
     }
 
     var commands = [];
@@ -98,6 +110,9 @@ var dirtyFlusher = (function() {
         cmd = def.onPropertyChange(key, nodeData.props[key], nodeData, hostingCompUUID);
       }
       if (cmd !== null && cmd !== undefined) {
+        if (pathLayerUUID && cmd.params && !cmd.params.layerUUID) {
+          cmd.params.layerUUID = pathLayerUUID;
+        }
         commands.push(cmd);
       }
     }
@@ -137,8 +152,10 @@ var dirtyFlusher = (function() {
       if (!nodeMap.hasOwnProperty(nodeId)) continue;
       var nodeData = nodeMap[nodeId];
       if (!nodeData || nodeData.dirty !== true) continue;
-      if (nodeData.state !== 'alive') continue;
-      if (!nodeData.hostingComps || nodeData.hostingComps.length === 0) continue;
+      if (nodeData.state !== 'alive' && nodeData.state !== 'error') continue;
+      if (!nodeData.hostingComps || nodeData.hostingComps.length === 0) {
+        if (nodeData.type !== 'core/comp') continue;
+      }
 
       var def = nodeRegistry.getDefinition(nodeData.type);
       (function(id, data, definition) {

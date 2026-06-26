@@ -6,7 +6,7 @@
  * All lifecycle handlers return null — no AE actions are dispatched.
  */
 
-// graph/nodes/categories/data/Color.js
+// graph/nodes/categories/Data/Color.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 

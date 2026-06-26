@@ -59,12 +59,14 @@ function init() {
     if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
     if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
+    if (typeof topBar !== 'undefined' && topBar.refreshCollapseBtn) topBar.refreshCollapseBtn();
     if (typeof nodeToolbar !== 'undefined' && nodeToolbar.refresh) nodeToolbar.refresh();
   });
   if (typeof wireRenderer !== 'undefined' && wireRenderer.init) wireRenderer.init();
   if (typeof wireTool !== 'undefined' && wireTool.init) wireTool.init();
   if (typeof minimap !== 'undefined' && minimap.init) minimap.init();
   if (typeof topBar !== 'undefined' && topBar.init) topBar.init();
+  if (typeof topBar !== 'undefined' && topBar.refreshCollapseBtn) topBar.refreshCollapseBtn();
   if (typeof nodeList !== 'undefined' && nodeList.init) nodeList.init();
   if (typeof inspector !== 'undefined' && inspector.init) inspector.init();
   if (typeof notificationBar !== 'undefined' && notificationBar.init) notificationBar.init();
@@ -73,6 +75,7 @@ function init() {
   if (typeof sidebarToggle !== 'undefined' && sidebarToggle.init) sidebarToggle.init();
   if (typeof settingsModal !== 'undefined' && settingsModal.init) settingsModal.init();
   if (typeof compList !== 'undefined' && compList.init) compList.init();
+  if (typeof tipField !== 'undefined' && tipField.init) tipField.init();
   evalBridge.onReady(function(ready) {
     if (!ready) {
       console.warn('[Procedia] test seed skipped — evalBridge preamble not loaded');
@@ -112,6 +115,8 @@ function init() {
       if (typeof graphExporter !== 'undefined' && graphExporter.init) graphExporter.init();
       if (typeof poller !== 'undefined' && poller.start) poller.start();
       if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    }).then(function() {
+      if (typeof walkthrough !== 'undefined' && walkthrough.init) walkthrough.init();
     });
   });
 

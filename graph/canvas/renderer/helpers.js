@@ -125,9 +125,25 @@ var __r_hlp = (function() {
    */
   function hasMainInput(def) {
     for (var mi = 0; mi < def.ports.length; mi++) {
-      if (def.ports[mi].category === 'mainInput') return true;
+      if (def.ports[mi].id === 'main_input') return true;
     }
     return false;
+  }
+
+  /**
+   * Returns all ports in the definition with category 'mainInput' that are NOT named 'main_input'.
+   * Used to render additional input port dots for nodes with multiple explicit inputs (e.g. Merge).
+   * @param {object} def - Node definition.
+   * @returns {Array} Array of port definition objects.
+   */
+  function getExplicitInputPorts(def) {
+    var ports = [];
+    for (var i = 0; i < def.ports.length; i++) {
+      if (def.ports[i].category === 'mainInput' && def.ports[i].id !== 'main_input') {
+        ports.push(def.ports[i]);
+      }
+    }
+    return ports;
   }
 
   return {
@@ -137,6 +153,7 @@ var __r_hlp = (function() {
     rgbaToHex:       rgbaToHex,
     fillParamValue:  fillParamValue,
     getStateClasses: getStateClasses,
-    hasMainInput:    hasMainInput
+    hasMainInput:    hasMainInput,
+    getExplicitInputPorts: getExplicitInputPorts
   };
 })();

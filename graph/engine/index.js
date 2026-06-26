@@ -14,7 +14,7 @@
  * Load before: index.js
  *
  * Exports: dropNode, connectWire, deleteNode, deleteSelectedNodes,
- *          duplicateSelectedNodes, recreateNode, resetAll,
+ *          duplicateSelectedNodes, cloneNode, recreateNode, resetAll,
  *          toggleLockSelectedNodes, disconnectWire, setNodeProperty,
  *          _firePathCreation, _applyDynamicSchema
  */

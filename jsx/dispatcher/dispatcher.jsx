@@ -44,6 +44,7 @@ var _handlers = {
   'createNullLayer':      _handleCreateNullLayer,
   'createAdjustmentLayer': _handleCreateAdjustmentLayer,
   'createShapeLayer':     _handleCreateShapeLayer,
+  'createRectangleLayer': _handleCreateRectangleLayer,
   'addCompAsLayer':       _handleAddCompAsLayer,
   'clearLayerParent':     _handleClearLayerParent,
   'parkLayer':            _handleParkLayer,

@@ -28,7 +28,7 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 13. graph/graphExporter.js
 14. ui/settings.js
 
-<!-- 3. Node definitions — loaded via dynamic script loader -->
+<!-- 3. Node definitions — depend on nodeRegistry; loaded via dynamic script loader -->
 15. graph/nodes/loadNodes.js
 
 <!-- 4. Schema cache -->
@@ -150,9 +150,14 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 117. ui/topBar.js
 118. ui/statusBar.js
 119. ui/sidebarToggle.js
+120. ui/compList.js
+121. ui/tipField.js
 
-<!-- 11. Entry point — depends on everything -->
-120. index.js
+<!-- 11. Walkthrough tutorial — no graph dependencies -->
+122. ui/walkthrough.js
+
+<!-- 12. Entry point — depends on everything -->
+123. index.js
 ```
 
 ---
@@ -162,7 +167,7 @@ Scripts load in this exact top-to-bottom sequence. No bundler. No ES modules.
 ```
 procedia/
 │
-├── index.html                          ← DOM shell + 121 script tags (single source of truth for load order)
+├── index.html                          ← DOM shell + 123 script tags (single source of truth for load order)
 ├── index.js                            ← Panel entry point — init(), wires up all systems
 │                                         Calls: evalBridge.init(), schemaCache.init(),
 │                                                canvasView.init(), canvasInput.init(),
@@ -296,10 +301,11 @@ procedia/
 │   │   │                                  Reads node manifest, injects tags in order at runtime
 │   │   │                                  Depends on: graph/nodeRegistry.js
 │   │   └── categories/                 ← 25 categories of node definitions (474 .js files)
-│   │       ├── core/                   ← 2 files: Comp.js, Footage.js
-│   │       ├── layers/                 ← 4 files: Text.js, Null.js, Shape.js, Adjustment.js
-│   │       ├── data/                   ← 2 files: Color.js, Number.js
-│   │       ├── utility/                ← 8 files: Blending.js, MatteLuma.js, MatteAlpha.js,
+│   │       ├── Core/                   ← 4 files: Comp.js, Footage.js, Merge.js, Multimerge.js
+│   │       ├── Layers/                 ← 4 files: Text.js, Null.js, Shape.js, Adjustment.js
+│   │       ├── Data/                   ← 2 files: Color.js, Number.js
+│   │       ├── Shapes/                 ← 1 file: Rectangle.js
+│   │       ├── Effects/utility/        ← 8 files: Blending.js, MatteLuma.js, MatteAlpha.js,
 │   │       │                              Compander.js, GrowBounds.js, HDRToneMap.js,
 │   │       │                              ProfileToProfile.js, CCOverbrights.js
 │   │       ├── Blur & Sharpen/         ← 20 files (includes FillEffect, GaussianBlur, DropShadow)
@@ -480,7 +486,7 @@ procedia/
 │                                         Severities: info, warning, error, success
 │                                         Depends on: (none — pure DOM)
 │
-├── css/                                ← 12 stylesheets (dark theme design tokens)
+├── css/                                ← 16 stylesheets (dark theme design tokens)
 │   ├── tabler-icons.min.css            ← Tabler icon font CSS
 │   ├── tokens.css                      ← Design tokens (colors, spacing, typography)
 │   ├── base.css                        ← Global resets and layout
@@ -493,7 +499,11 @@ procedia/
 │   ├── settingsModal.css               ← Settings modal styles
 │   ├── nodePicker.css                  ← Node picker popup styles
 │   ├── notificationBar.css             ← Notification toast styles
-│   └── colorPicker.css                 ← Color picker widget styles
+│   ├── compList.css                    ← Comp list panel styles
+│   ├── tipField.css                    ← Node tip tooltip styles
+│   ├── walkthrough.css                 ← Walkthrough tutorial overlay styles
+│   ├── colorPicker.css                 ← Color picker widget styles
+│   └── bottomBar.css                   ← Bottom bar styles
 │
 ├── fonts/
 │   ├── tabler-icons.ttf                ← Tabler icon font
@@ -540,6 +550,7 @@ procedia/
         │                                  _handleDeleteParkedLayer, _handlePollAliveNodes
         ├── actions_matte.jsx           ← Track-matte handlers
         │                                  _handleSetLumaMatte, _handleSetAlphaMatte, _handleClearMatte
+        ├── actions_compList.jsx        ← Comp list panel UI handlers
         ├── actionEffect/               ← 3 files (apply, introspect, pollAlive)
         │                                  _handleApplyDynamicEffect, _handleRemoveEffect,
         │                                  _handleSetEffectProperty, _handleIntrospectEffect
@@ -648,12 +659,12 @@ The following files exist on disk but were absent from prior documentation:
 | `jsx/dispatcher/actions_graphExport.jsx` | Graph export handlers | ✅ Added |
 | `jsx/dispatcher/actionImport/` (3 files) | Import handlers | ✅ Added |
 | `jsx/tools/buildEffectsCatalog.jsx` | Catalog build tool | ✅ Added |
-| `graph/nodes/categories/core/Footage.js` | Footage node definition | ✅ Added |
-| `graph/nodes/categories/utility/` (5 extra) | Utility nodes beyond Blending/Matte | ✅ Added |
+| `graph/nodes/categories/Core/Footage.js` | Footage node definition | ✅ Added |
+| `graph/nodes/categories/Effects/utility/` (5 extra) | Utility nodes beyond Blending/Matte | ✅ Added |
 | `data/effectsCatalog.json` | Effects catalog | ✅ Added |
 | `data/graphExport.json` | Graph export data | ✅ Added |
 | `fonts/` (3 files) | Tabler icon font files | ✅ Added |
-| `graph/nodes/categories/Blur & Sharpen/` | 20 effect nodes (replaces `effects/`) | ✅ Added |
+| `graph/nodes/categories/Effects/Blur & Sharpen/` | 20 effect nodes (replaces flat `Effects/`) | ✅ Added |
 | 23 additional category dirs | 450+ AE effect node definitions | ✅ Noted |
 
 **Previously documented but since split into directories:**
@@ -667,7 +678,7 @@ The following files exist on disk but were absent from prior documentation:
 | `ui/nodeList.js` | `ui/nodeList/categories.js`, `render.js`, `search.js`, `dragdrop.js`, `index.js` | ✅ Updated |
 | `ui/nodePicker.js` | `ui/nodePicker/compatibility.js`, `render.js`, `filter.js`, `events.js`, `index.js` | ✅ Updated |
 | `ui/inspector.js` | `ui/inspector/viewModel.js`, `render.js`, `colorPicker.js`, `events.js`, `index.js` | ✅ Updated |
-| `graph/nodes/categories/effects/` | `graph/nodes/categories/Blur & Sharpen/` | ✅ Updated |
+| `graph/nodes/categories/Effects/` | `graph/nodes/categories/Effects/Blur & Sharpen/` | ✅ Updated |
 
 ---
 

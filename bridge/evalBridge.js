@@ -2,7 +2,7 @@
  * Bridge between the panel UI and After Effects via CSInterface.evalScript.
  * The ONLY module permitted to call csInterface.evalScript().
  * Depends on: lib/CSInterface.js, data/uuidGenerator.js
- * Exports: evalBridge object with init, onReady, dispatch, dispatchBatch
+ * Exports: evalBridge object with init, onReady, dispatch, dispatchBatch, fireAndForget
  */
 // bridge/evalBridge.js
 // DEPENDS ON: lib/CSInterface.js, data/uuidGenerator.js

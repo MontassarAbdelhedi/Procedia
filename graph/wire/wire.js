@@ -24,7 +24,8 @@ var wireTool = (function () {
     fromNode: null,
     fromPort: null,
     wireType: null,
-    fromPos: null
+    fromPos: null,
+    direction: 'forward'
   };
   /**
    * Finds a port definition by ID, first checking the node definition's ports
@@ -129,7 +130,13 @@ var wireTool = (function () {
     if (!nodeData) return;
     var def = nodeRegistry.getDefinition(nodeData.type);
     var portDef = _findPortDef(def, nodeData, portId);
-    if (!_isSourcePort(portDef)) return;
+    if (_isSourcePort(portDef)) {
+      _drag.direction = 'forward';
+    } else if (_isTargetPort(portDef)) {
+      _drag.direction = 'reverse';
+    } else {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     _drag.active = true;
@@ -165,6 +172,7 @@ var wireTool = (function () {
     if (!_drag.active) return;
     var fromNode = _drag.fromNode;
     var fromPort = _drag.fromPort;
+    var direction = _drag.direction;
     _drag.active = false;
     _drag.fromNode = null;
     _drag.fromPort = null;
@@ -179,6 +187,44 @@ var wireTool = (function () {
       target = target.parentElement;
     }
     wireRenderer.render(null);
+
+    if (direction === 'reverse') {
+      // Reverse wiring: drag started from an input port
+      if (!portEl) {
+        // Empty canvas drop — show reverse node picker
+        if (typeof nodePicker !== 'undefined' && nodePicker.show) {
+          var wrap = document.getElementById('canvas-wrap');
+          if (wrap) {
+            var wr = wrap.getBoundingClientRect();
+            if (e.clientX >= wr.left && e.clientX <= wr.right &&
+              e.clientY >= wr.top && e.clientY <= wr.bottom) {
+              nodePicker.show(e.clientX, e.clientY, fromNode, fromPort, _drag.wireType, null, { reverse: true });
+            }
+          }
+        }
+        return;
+      }
+      var foundNodeId = portEl.getAttribute('data-node-id');
+      var foundPort = portEl.getAttribute('data-port-id');
+      if (!foundNodeId || !foundPort || foundNodeId === fromNode) return;
+      var foundNodeData = graphState.getNode(foundNodeId);
+      if (!foundNodeData) return;
+      var foundDef = nodeRegistry.getDefinition(foundNodeData.type);
+      var foundPortDef = _findPortDef(foundDef, foundNodeData, foundPort);
+      if (_isSourcePort(foundPortDef)) {
+        // Dropped on a source port — connect directly (swapped direction)
+        engine.connectWire(foundNodeId, foundPort, fromNode, fromPort);
+      } else if (_isTargetPort(foundPortDef)) {
+        // Dropped on a target port — scan the found node for a matching output port
+        var resolvedOutput = _resolveOutputForWire(foundDef, _drag.wireType);
+        if (resolvedOutput) {
+          engine.connectWire(foundNodeId, resolvedOutput, fromNode, fromPort);
+        }
+      }
+      return;
+    }
+
+    // Forward wiring: drag started from a source port
     if (!portEl) {
       // Empty canvas drop — show node picker if inside canvas-wrap bounds
       if (typeof nodePicker !== 'undefined' && nodePicker.show) {
@@ -203,6 +249,21 @@ var wireTool = (function () {
     if (!_isTargetPort(toPortDef)) return;
     engine.connectWire(fromNode, fromPort, toNodeId, toPort);
     wireRenderer.render(null);
+  }
+
+  /**
+   * Scans a node definition for an output port matching the given wire type.
+   * @param {Object} def - Node definition
+   * @param {string} wireType - Wire type to match
+   * @returns {string|null} The matching output port ID, or null
+   */
+  function _resolveOutputForWire(def, wireType) {
+    if (!def || !def.ports) return null;
+    for (var i = 0; i < def.ports.length; i++) {
+      var p = def.ports[i];
+      if (p.category === 'output' && p.type === wireType) return p.id;
+    }
+    return null;
   }
   /**
    * Initializes the wire tool by attaching event listeners to the canvas wrap

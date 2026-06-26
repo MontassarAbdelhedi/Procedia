@@ -41,7 +41,9 @@ var __c_ghost_util = __c_util;
       if (nodeData.state !== 'alive') continue;
       if (nodeData.nodeKind === 'data' ||
           nodeData.nodeKind === 'blending' ||
-          nodeData.nodeKind === 'matte') continue;
+          nodeData.nodeKind === 'matte' ||
+          nodeData.nodeKind === 'merge' ||
+          nodeData.nodeKind === 'multimerge') continue;
 
       if (nodeData.nodeKind === 'effector') {
         effectors.push(nodeData);

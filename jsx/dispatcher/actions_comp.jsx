@@ -86,9 +86,37 @@ function _handleSetCompProperty(cmd) {
     var params = _cmdParams(cmd);
     var comp = findCompByUUID(params.nodeUUID);
     if (!comp) { result.error = 'setCompProperty: comp not found'; return result; }
-    if (params.key === 'width')         comp.width = params.value;
-    else if (params.key === 'height')   comp.height = params.value;
-    else if (params.key === 'frameRate') comp.frameRate = params.value;
+    if (params.key === 'width') {
+      var oldW = comp.width;
+      var dX = (params.value - oldW) / 2;
+      for (var wi = 1; wi <= comp.layers.length; wi++) {
+        var wL = comp.layer(wi);
+        if (wL && wL.position) {
+          var wPos = wL.position.value;
+          if (wL.position.dimensions === 2) {
+            wL.position.setValue([wPos[0] + dX, wPos[1]]);
+          } else if (wL.position.dimensions === 3) {
+            wL.position.setValue([wPos[0] + dX, wPos[1], wPos[2]]);
+          }
+        }
+      }
+      comp.width = params.value;
+    } else if (params.key === 'height') {
+      var oldH = comp.height;
+      var dY = (params.value - oldH) / 2;
+      for (var hi = 1; hi <= comp.layers.length; hi++) {
+        var hL = comp.layer(hi);
+        if (hL && hL.position) {
+          var hPos = hL.position.value;
+          if (hL.position.dimensions === 2) {
+            hL.position.setValue([hPos[0], hPos[1] + dY]);
+          } else if (hL.position.dimensions === 3) {
+            hL.position.setValue([hPos[0], hPos[1] + dY, hPos[2]]);
+          }
+        }
+      }
+      comp.height = params.value;
+    } else if (params.key === 'frameRate') comp.frameRate = params.value;
     else if (params.key === 'duration')  comp.duration = params.value;
     else if (params.key === 'bgColor')   comp.bgColor = params.value;
     else if (params.key === 'label')     comp.name = String(params.value);

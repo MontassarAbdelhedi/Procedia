@@ -18,7 +18,32 @@ var viewport = (function() {
   var _zoom = 1.0;
   var MIN_ZOOM = 0.1;
   var MAX_ZOOM = 4.0;
-  var GRID_BASE = 24;
+
+  /**
+   * Grid levels for the infinite-zoom dot grid.
+   * Each level has a base spacing (px in canvas space), dot radius, and RGB color.
+   * Opacity is computed per-level based on the on-screen dot spacing
+   * (base * zoom) so that dots remain at a comfortable visual density.
+   */
+  var GRID_LEVELS = [
+    { base: 24,  radius: 1,   color: '34,34,32' },
+    { base: 72,  radius: 1.5, color: '48,48,44' },
+    { base: 216, radius: 2,   color: '62,62,55' },
+  ];
+
+  var _gridLayers = [];
+
+  /** Grid snap size in canvas-space pixels (same as the finest grid level). */
+  var SNAP_SIZE = GRID_LEVELS[0].base;
+
+  /**
+   * Snaps a canvas-space coordinate to the nearest grid unit.
+   * @param {number} value
+   * @returns {number}
+   */
+  function snapToGrid(value) {
+    return Math.round(value / SNAP_SIZE) * SNAP_SIZE;
+  }
 
   /**
    * Clamps a value between min and max.
@@ -32,8 +57,44 @@ var viewport = (function() {
   }
 
   /**
+   * Returns a grid-layer opacity based on the on-screen dot spacing.
+   * Dots look best when spacing is roughly 14–40px on screen.
+   * Below 4px they're too dense (fade out); above 120px they're too sparse.
+   * @param {number} base - Base spacing of this grid level in canvas px.
+   * @param {number} zoom - Current zoom level.
+   * @returns {number} Opacity between 0 and 1.
+   */
+  function _gridOpacity(base, zoom) {
+    var spacing = base * zoom;
+    if (spacing < 4) return 0;
+    if (spacing < 14) return (spacing - 4) / 10;
+    if (spacing < 40) return 1;
+    if (spacing < 120) return (120 - spacing) / 80;
+    return 0;
+  }
+
+  /**
+   * Creates the grid-layer DOM elements inside #canvas-grid.
+   */
+  function _initGrids() {
+    var container = document.getElementById('canvas-grid');
+    if (!container) return;
+    if (_gridLayers.length > 0) return;
+    for (var i = 0; i < GRID_LEVELS.length; i++) {
+      var level = GRID_LEVELS[i];
+      var el = document.createElement('div');
+      el.className = 'grid-layer';
+      el.style.backgroundImage =
+        'radial-gradient(circle, rgba(' + level.color + ',1) ' + level.radius + 'px, transparent ' + level.radius + 'px)';
+      container.appendChild(el);
+      _gridLayers.push({ el: el, base: level.base });
+    }
+  }
+
+  /**
    * Applies the current pan/zoom to the canvas-nodes element (via CSS transform)
-   * and updates the grid background. Also triggers minimap and wire re-render.
+   * and updates all grid layers with per-level opacity, size, and position.
+   * Also triggers minimap and wire re-render.
    */
   function applyTransform() {
     var el = document.getElementById('canvas-nodes');
@@ -41,13 +102,14 @@ var viewport = (function() {
       el.style.transform =
         'translate(' + _pan.x + 'px, ' + _pan.y + 'px) scale(' + _zoom + ')';
     }
-    var grid = document.getElementById('canvas-grid');
-    if (grid) {
-      var size = GRID_BASE * _zoom;
+    for (var i = 0; i < _gridLayers.length; i++) {
+      var layer = _gridLayers[i];
+      var size = layer.base * _zoom;
       var ox = ((_pan.x % size) + size) % size;
       var oy = ((_pan.y % size) + size) % size;
-      grid.style.backgroundSize = size + 'px ' + size + 'px';
-      grid.style.backgroundPosition = ox + 'px ' + oy + 'px';
+      layer.el.style.opacity = _gridOpacity(layer.base, _zoom);
+      layer.el.style.backgroundSize = size + 'px ' + size + 'px';
+      layer.el.style.backgroundPosition = ox + 'px ' + oy + 'px';
     }
     if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
     if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
@@ -139,9 +201,10 @@ var viewport = (function() {
   }
 
   /**
-   * Initialises the viewport by applying the initial transform.
+   * Initialises the viewport by creating grid layers and applying the initial transform.
    */
   function init() {
+    _initGrids();
     applyTransform();
   }
 
@@ -154,7 +217,9 @@ var viewport = (function() {
     canvasToScreen: canvasToScreen,
     applyTransform: applyTransform,
     reset:          reset,
-    init:           init
+    init:           init,
+    SNAP_SIZE:      SNAP_SIZE,
+    snapToGrid:     snapToGrid
   };
 
 })();

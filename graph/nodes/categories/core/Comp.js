@@ -6,7 +6,7 @@
  * Dispatches: createComp, deleteComp, setCompProperty.
  */
 
-// graph/nodes/categories/core/Comp.js
+// graph/nodes/categories/Core/Comp.js
 // DEPENDS ON: graph/nodeRegistry.js
 // MUST LOAD BEFORE: index.js
 

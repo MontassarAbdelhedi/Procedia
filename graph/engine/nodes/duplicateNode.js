@@ -33,7 +33,7 @@ var __e_ndup = (function() {
       copy.y = src.y + 30;
       copy.dirty = false;
       copy.hostingComps = [];
-      if (src.nodeKind !== 'data') {
+      if (src.nodeKind !== 'data' && src.nodeKind !== 'merge' && src.nodeKind !== 'multimerge') {
         copy.state = 'ghost';
       }
       graphState.addNode(copy);

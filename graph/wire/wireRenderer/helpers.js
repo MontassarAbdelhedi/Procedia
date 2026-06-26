@@ -101,6 +101,17 @@ var wireRenderer = (function() {
     };
   };
 
+  _s._wireMidpoint = function(wire) {
+    var from = _s._portPosInWrap(wire.fromNode, wire.fromPort);
+    if (!from) return null;
+    var to = _s._portPosInWrap(wire.toNode, wire.toPort);
+    if (!to) return null;
+    return {
+      x: (from.x + to.x) / 2,
+      y: (from.y + to.y) / 2
+    };
+  };
+
   return _s;
 
 })();

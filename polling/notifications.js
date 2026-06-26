@@ -46,8 +46,15 @@ var pollerNotifier = (function() {
     });
   }
 
+  function clearNotified(uuid) {
+    if (uuid && _notifiedMissing[uuid]) {
+      delete _notifiedMissing[uuid];
+    }
+  }
+
   return {
-    pushMissingNotification: pushMissingNotification
+    pushMissingNotification: pushMissingNotification,
+    clearNotified:           clearNotified
   };
 
 })();

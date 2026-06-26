@@ -9,7 +9,7 @@
  * Load before: engine/state.js, engine/index.js
  *
  * Exports: dropNode, deleteNode, deleteSelectedNodes, duplicateSelectedNodes,
- *          toggleLockSelectedNodes, recreateNode
+ *          toggleLockSelectedNodes, recreateNode, cloneNode
  */
 // graph/engine/nodes/index.js
 // DEPENDS ON: graph/engine/nodes/dropNode.js, graph/engine/nodes/deleteNode.js,
