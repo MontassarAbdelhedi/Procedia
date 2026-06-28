@@ -25,17 +25,21 @@ var __ins_events = (function() {
   }
 
   /**
-   * Handles the 'change' event on inspector param inputs (checkbox changes).
+   * Handles the 'change' event on inspector param inputs (checkbox, select,
+   * and text input blur/Enter). Refreshes the inspector to re-evaluate
+   * conditional enable/disable states.
    * @param {Event} e The change event.
    */
   function _onInspectorChange(e) {
     var target = e.target;
     if (!target || !target.classList || !target.classList.contains('inspector-param-input')) return;
     _applyChange(target);
+    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
   }
 
   /**
-   * Handles the 'input' event on inspector param inputs.
+   * Handles the 'input' event on inspector param inputs (text input keystrokes).
+   * Updates the prop without a full DOM refresh so the input does not lose focus.
    * @param {Event} e The input event.
    */
   function _onInspectorInput(e) {
@@ -100,6 +104,53 @@ var __ins_events = (function() {
    * Opens the custom color picker popover.
    * @param {Event} e The click event.
    */
+  /**
+   * Walks upstream wires to find the first layer node connected to this node's mainInput.
+   * @param {string} nodeId The effector node UUID.
+   * @return {string|null} The upstream layer node UUID, or null.
+   */
+  function _findUpstreamLayerNode(nodeId) {
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.toNode === nodeId && w.toPort === 'main_input') {
+        return w.fromNode;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Fetches mask names from AE for a given Fill node and updates the node data.
+   * Called when a Fill node is shown in the inspector.
+   * @param {string} nodeId - Fill node UUID
+   * @param {string} hostCompUUID - Hosting comp UUID
+   */
+  function _fetchFillMasks(nodeId, hostCompUUID) {
+    if (!nodeId || !hostCompUUID) return;
+    var upstreamId = _findUpstreamLayerNode(nodeId);
+    if (!upstreamId) return;
+
+    // The upstream node's layer UUID may be stored in its props or we need to
+    // resolve it from the wire path. Use the upstream node ID as the layer UUID
+    // since the engine stores it that way.
+    evalBridge.dispatch({
+      action: 'getMasksForLayer',
+      params: { hostingCompUUID: hostCompUUID, layerUUID: upstreamId }
+    }).then(function(res) {
+      if (res.ok && res.data && res.data.masks) {
+        var nodeData = graphState.getNode(nodeId);
+        if (nodeData) {
+          nodeData._maskNames = res.data.masks;
+          if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+        }
+      }
+    }).catch(function(err) {
+      console.warn('[inspector] getMasksForLayer failed:', err);
+    });
+  }
+
   function _onColorTriggerClick(e) {
     var btn = e.target.closest('.cp-trigger');
     if (!btn) return;
@@ -201,7 +252,8 @@ var __ins_events = (function() {
     onRecoverClick:      _onRecoverClick,
     onLayerActionClick:  _onLayerActionClick,
     onColorTriggerClick: _onColorTriggerClick,
-    onFootageBrowseClick: _onFootageBrowseClick
+    onFootageBrowseClick: _onFootageBrowseClick,
+    _fetchFillMasks:     _fetchFillMasks
   };
 
 })();

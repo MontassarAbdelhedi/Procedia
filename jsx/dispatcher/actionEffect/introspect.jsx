@@ -60,17 +60,33 @@ function _handleIntrospectEffect(cmd) {
         if (pvt === PropertyValueType.COLOR)        mappedType = 'color';
         else if (pvt === PropertyValueType.TwoD)    mappedType = 'vector2';
         else if (pvt === PropertyValueType.ThreeD)  mappedType = 'vector3';
+        else if (pvt === PropertyValueType.POINT_3) mappedType = 'vector3';
         else if (pvt === PropertyValueType.SCALAR)  mappedType = 'number';
         else if (pvt === PropertyValueType.ANGLE)   mappedType = 'number';
+        else if (pvt === PropertyValueType.DISTANCE) mappedType = 'number';
+        else if (pvt === PropertyValueType.CHECKBOX) mappedType = 'boolean';
         else if (pvt === PropertyValueType.NO_VALUE) mappedType = 'boolean';
         else if (pvt === PropertyValueType.SELECTION) mappedType = 'enum';
+        else if (pvt === PropertyValueType.MASK_INDEX) mappedType = 'enum';
+        else if (pvt === PropertyValueType.LAYER_INDEX) mappedType = 'enum';
+        else if (typeof prop.value === 'number' && prop.value % 1 === 0 && (prop.value === 0 || prop.value === 1)) {
+          mappedType = 'boolean';
+        }
 
-        schema.push({
+        var entry = {
           matchName:    prop.matchName,
           label:        prop.name,
           type:         mappedType,
           defaultValue: prop.value
-        });
+        };
+
+        if (mappedType === 'enum' && typeof prop.getMenu === 'function') {
+          try {
+            entry.options = prop.getMenu();
+          } catch (menuErr) {}
+        }
+
+        schema.push(entry);
       }
     }
 

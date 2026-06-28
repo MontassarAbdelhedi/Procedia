@@ -76,32 +76,44 @@ var __ins_render = (function() {
       );
     }
 
+    var disabledAttr = param.disabled ? ' disabled' : '';
+
     var inputHtml = '';
     if (param.type === 'boolean') {
       var checked = param.value === true || param.display === 'true' ? ' checked' : '';
       inputHtml =
         '<input type="checkbox" class="inspector-param-input" data-node-id="' + nodeId + '" ' +
-        'data-param-key="' + param.key + '" data-param-type="boolean"' + checked + '>';
+        'data-param-key="' + param.key + '" data-param-type="boolean"' + checked + disabledAttr + '>';
     } else if (param.type === 'color') {
       var hex = __ins_vm.rgbaToHex(param.value);
       inputHtml =
-        '<button class="cp-trigger" data-node-id="' + nodeId + '" data-param-key="' + param.key + '">' +
+        '<button class="cp-trigger" data-node-id="' + nodeId + '" data-param-key="' + param.key + '"' + disabledAttr + '>' +
           '<span class="cp-trigger-swatch" style="background:' + param.display + '"></span>' +
           '<span class="cp-trigger-hex">' + hex + '</span>' +
         '</button>';
+    } else if (param.type === 'enum' && param.options && param.options.length > 0) {
+      var selectHtml = '<select class="inspector-param-input inspector-param-select" data-node-id="' + nodeId + '" ' +
+        'data-param-key="' + param.key + '" data-param-type="enum"' + disabledAttr + '>';
+      for (var oi = 0; oi < param.options.length; oi++) {
+        var optVal = param.options[oi];
+        var selected = String(optVal) === String(param.value) ? ' selected' : '';
+        selectHtml += '<option value="' + _escapeAttr(optVal) + '"' + selected + '>' + _escapeAttr(optVal) + '</option>';
+      }
+      selectHtml += '</select>';
+      inputHtml = selectHtml;
     } else if (param.type === 'enum') {
       inputHtml =
         '<input type="text" class="inspector-param-input" data-node-id="' + nodeId + '" ' +
-        'data-param-key="' + param.key + '" data-param-type="enum" value="' + _escapeAttr(param.display) + '">';
+        'data-param-key="' + param.key + '" data-param-type="enum" value="' + _escapeAttr(param.display) + '"' + disabledAttr + '>';
     } else {
       inputHtml =
         '<input type="text" class="inspector-param-input" data-node-id="' + nodeId + '" ' +
         'data-param-key="' + param.key + '" data-param-type="' + (param.type || 'string') + '" ' +
-        'value="' + _escapeAttr(param.display) + '">';
+        'value="' + _escapeAttr(param.display) + '"' + disabledAttr + '>';
     }
 
     return (
-      '<div class="inspector-param-row">' +
+      '<div class="inspector-param-row' + (param.disabled ? ' inspector-param-disabled' : '') + '">' +
         '<span class="inspector-param-label">' + param.label + '</span>' +
         inputHtml +
       '</div>'

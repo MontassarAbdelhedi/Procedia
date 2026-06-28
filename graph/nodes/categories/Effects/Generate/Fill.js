@@ -4,6 +4,7 @@
  * Ports: mainInput (layer, required), output (layer).
  * Params: dynamic (per AE effect definition).
  * Dispatches: applyDynamicEffect, removeEffect, setEffectProperty.
+ * Mask query: fillMaskKey is exposed for external mask-refresh triggers.
  */
 
 // graph/nodes/categories/Effects/Generate/Fill.js
@@ -20,6 +21,9 @@ var FillNode = {
   matchName: 'ADBE Fill',
   params:    'dynamic',
 
+  // The matchName for Fill Mask property — used by mask-refresh logic
+  fillMaskKey: 'ADBE Fill-0001',
+
   ports: [
     { id: 'main_input', category: 'mainInput', type: 'layer', capacity: 'single', required: true },
     { id: 'output',     category: 'output',    type: 'layer', capacity: 'single' }
@@ -29,12 +33,21 @@ var FillNode = {
     if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) return null;
     var dyn = [];
     var props = nodeData.dynamicSchema.properties;
+    var maskNames = nodeData._maskNames;
     for (var i = 0; i < props.length; i++) {
-      dyn.push({
-        key:   props[i].matchName,
-        label: props[i].label || props[i].matchName,
-        type:  props[i].type
-      });
+      var p = props[i];
+      var param = {
+        key:   p.matchName,
+        label: p.label || p.matchName,
+        type:  p.type
+      };
+      if (p.options) param.options = p.options;
+      if (p.enableWhen) param.enableWhen = p.enableWhen;
+      if (param.key === this.fillMaskKey && maskNames) {
+        param.options = maskNames.slice();
+        param.options.unshift('None');
+      }
+      dyn.push(param);
     }
     return dyn;
   },

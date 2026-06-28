@@ -160,6 +160,32 @@
   border-color: rgba(83,74,183,0.45);
 }
 
+.inspector-param-input[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.inspector-param-disabled {
+  opacity: 0.5;
+}
+
+.inspector-param-select {
+  min-width: 84px;
+  max-width: 132px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inspector-param-select[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.inspector-param-input[type="checkbox"][disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .inspector-color-wrap {
   display: flex;
   align-items: center;

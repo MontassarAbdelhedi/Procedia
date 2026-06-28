@@ -36,11 +36,15 @@ var effectNodeFactory = (function() {
         var dyn = [];
         var props = nodeData.dynamicSchema.properties;
         for (var i = 0; i < props.length; i++) {
-          dyn.push({
-            key:   props[i].matchName,
-            label: props[i].label || props[i].matchName,
-            type:  props[i].type
-          });
+          var p = props[i];
+          var param = {
+            key:   p.matchName,
+            label: p.label || p.matchName,
+            type:  p.type
+          };
+          if (p.options) param.options = p.options;
+          if (p.enableWhen) param.enableWhen = p.enableWhen;
+          dyn.push(param);
         }
         return dyn;
       },

@@ -68,6 +68,11 @@ var inspector = (function() {
     emptyEl.classList.remove('visible');
     contentEl.classList.add('visible');
     contentEl.innerHTML = __ins_render.renderNodeContent(view);
+
+    // Trigger mask fetch for Fill nodes to populate Fill Mask dropdown
+    if (view.nodeType === 'generate/fill' && view.hostingCompUUID) {
+      __ins_events._fetchFillMasks(view.nodeId, view.hostingCompUUID);
+    }
   }
 
   /**

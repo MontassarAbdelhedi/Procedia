@@ -132,14 +132,21 @@ var __ins_vm = (function() {
     for (var i = 0; i < params.length; i++) {
       var param = params[i];
       var key = param.key;
-      rows.push({
+      var row = {
         key:     key,
         label:   param.label || key,
         type:    param.type,
         value:   nodeData.props[key],
         wired:   _isParamWired(nodeData.id, key),
         display: _formatValueForInput(param, nodeData.props[key])
-      });
+      };
+      if (param.options) row.options = param.options;
+      if (param.enableWhen) {
+        var ew = param.enableWhen;
+        var ctrlVal = nodeData.props[ew.key];
+        row.disabled = (ctrlVal === undefined || ctrlVal === null || ctrlVal != ew.value);
+      }
+      rows.push(row);
     }
 
     return {
