@@ -15,6 +15,7 @@ var nodeToolbar = (function() {
   var _currentNodeId = null;
   var _colorPicker = null;
   var _colorPickerVisible = false;
+  var _switchState = null;
 
   var COLORS = [
     { name: 'white',  hex: '#FFFFFF' },
@@ -101,6 +102,33 @@ var nodeToolbar = (function() {
         engine.toggleNodeDisabled(_currentNodeId);
         _updateToggleIcon();
         break;
+      case 'switch':
+        _enterSwitchMode();
+        break;
+    }
+  }
+
+  function _enterSwitchMode() {
+    if (_switchState) _clearSwitchMode();
+    if (!_currentNodeId) return;
+    var nodeData = graphState.getNode(_currentNodeId);
+    if (!nodeData || nodeData.nodeKind !== 'effector') return;
+    var siblings = engine.findSiblingEffectors(_currentNodeId);
+    if (siblings.length === 0) return;
+    _switchState = { sourceId: _currentNodeId, siblingIds: siblings };
+    for (var i = 0; i < siblings.length; i++) {
+      var el = renderer.getNodeElement(siblings[i]);
+      if (el) el.classList.add('node--switch-target');
+    }
+  }
+
+  function _clearSwitchMode() {
+    if (_switchState) {
+      for (var i = 0; i < _switchState.siblingIds.length; i++) {
+        var el = renderer.getNodeElement(_switchState.siblingIds[i]);
+        if (el) el.classList.remove('node--switch-target');
+      }
+      _switchState = null;
     }
   }
 
@@ -185,6 +213,20 @@ var nodeToolbar = (function() {
 
   function refresh() {
     var sel = graphState.getSelection();
+    if (_switchState) {
+      if (sel.length === 1 && sel[0] !== _switchState.sourceId) {
+        if (_switchState.siblingIds.indexOf(sel[0]) !== -1) {
+          var id1 = _switchState.sourceId;
+          var id2 = sel[0];
+          _clearSwitchMode();
+          engine.switchEffectors(id1, id2);
+        } else {
+          _clearSwitchMode();
+        }
+      } else if (sel.length !== 1) {
+        _clearSwitchMode();
+      }
+    }
     if (sel.length === 1) {
       show(sel[0]);
     } else {

@@ -390,6 +390,11 @@
   color: #6a6a66;
 }
 
+.node--switch-target {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 0 2px #FFD700, 0 0 24px rgba(255, 215, 0, 0.4) !important;
+}
+
 .node.selected {
   border-color: #534AB7;
   box-shadow: 0 0 0 1px #534AB7, 0 2px 12px rgba(0,0,0,0.55);

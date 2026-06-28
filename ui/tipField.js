@@ -27,13 +27,20 @@ var tipField = (function() {
     var wrap = document.getElementById('canvas-wrap');
     var compDropdown = document.getElementById('complist-dropdown');
     var minimapEl = document.querySelector('.minimap-container');
-    if (!wrap || !compDropdown || !minimapEl || !_el) return;
+    if (!wrap || !compDropdown || !_el) return;
 
     var compRight = compDropdown.offsetLeft + compDropdown.offsetWidth;
-    var minimapLeft = minimapEl.offsetLeft;
-
-    var available = minimapLeft - compRight;
     var gap = 8;
+    var available;
+
+    // If minimap is visible, position between comp list and minimap;
+    // otherwise expand to the right edge of the canvas
+    if (minimapEl && minimapEl.offsetParent !== null) {
+      available = minimapEl.offsetLeft - compRight;
+    } else {
+      available = wrap.clientWidth - compRight;
+    }
+
     var tipWidth = available - gap * 2;
 
     if (tipWidth < 30) {
@@ -82,7 +89,8 @@ var tipField = (function() {
   }
 
   return {
-    init: init
+    init: init,
+    reposition: _position
   };
 
 })();

@@ -12,9 +12,11 @@
 var nodeRegistry = (function() {
 
   var _registry = {};
+  var _stubs = {};
 
   /**
    * Registers a new node type definition.
+   * Replaces any existing stub for the same type.
    * @param {Object} def - Definition object with a non-empty string type
    * @throws {Error} If def.type is missing, empty, or already registered
    */
@@ -22,19 +24,43 @@ var nodeRegistry = (function() {
     if (!def || typeof def.type !== 'string' || def.type === '') {
       throw new Error('nodeRegistry.register: def.type is required');
     }
-    if (_registry.hasOwnProperty(def.type)) {
+    if (_registry.hasOwnProperty(def.type) && !_stubs[def.type]) {
       throw new Error('nodeRegistry.register: type already registered: ' + def.type);
     }
     _registry[def.type] = def;
+    delete _stubs[def.type];
+  }
+
+  /**
+   * Registers a minimal stub definition (metadata only) for a node type.
+   * Stubs are replaced when the full definition is registered later.
+   * @param {Object} stub - Stub with at least type, label, category
+   * @throws {Error} If stub.type is missing or empty
+   */
+  function registerStub(stub) {
+    if (!stub || typeof stub.type !== 'string' || stub.type === '') {
+      throw new Error('nodeRegistry.registerStub: stub.type is required');
+    }
+    if (_registry.hasOwnProperty(stub.type) && !_stubs[stub.type]) return;
+    _registry[stub.type] = stub;
+    _stubs[stub.type] = true;
   }
 
   /**
    * Looks up a node type definition by type string.
+   * Auto-upgrades stubs to full definitions via effectNodeFactory when available.
    * @param {string} type - Node type identifier
    * @returns {Object|null} The definition, or null if not found
    */
   function getDefinition(type) {
-    return _registry.hasOwnProperty(type) ? _registry[type] : null;
+    var def = _registry.hasOwnProperty(type) ? _registry[type] : null;
+    if (def && _stubs[type] && typeof effectNodeFactory !== 'undefined' && effectNodeFactory.upgradeStub) {
+      var fullDef = effectNodeFactory.upgradeStub(def);
+      _registry[type] = fullDef;
+      delete _stubs[type];
+      return fullDef;
+    }
+    return def;
   }
 
   /**
@@ -43,6 +69,15 @@ var nodeRegistry = (function() {
    */
   function getAll() {
     return _registry;
+  }
+
+  /**
+   * Checks whether a given type has its full definition loaded (not a stub).
+   * @param {string} type - Node type identifier
+   * @returns {boolean} True if the type is registered with a full definition
+   */
+  function isLoaded(type) {
+    return _registry.hasOwnProperty(type) && !_stubs[type];
   }
 
   /**
@@ -70,10 +105,12 @@ var nodeRegistry = (function() {
 
   return {
     register:      register,
+    registerStub:  registerStub,
     getDefinition: getDefinition,
     getAll:        getAll,
     getByCategory: getByCategory,
-    listTypes:     listTypes
+    listTypes:     listTypes,
+    isLoaded:      isLoaded
   };
 
 })();

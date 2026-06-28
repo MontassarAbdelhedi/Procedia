@@ -42,7 +42,8 @@ var topBar = (function() {
         '</div>' +
       '</div>' +
       '<div class="topbar-center">' +
-        '<button class="topbar-btn" title="Save"><i class="ti ti-device-floppy"></i></button>' +
+        '<button class="topbar-btn" id="topbar-save" title="Save"><i class="ti ti-device-floppy"></i></button>' +
+        '<button class="topbar-btn" id="topbar-open" title="Open"><i class="ti ti-folder-open"></i></button>' +
         '<button class="topbar-btn" title="Undo"><i class="ti ti-arrow-back-up"></i></button>' +
         '<button class="topbar-btn" title="Redo"><i class="ti ti-arrow-forward-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
@@ -136,6 +137,94 @@ var topBar = (function() {
     if (settingsBtn && typeof settingsModal !== 'undefined') {
       settingsBtn.addEventListener('click', function() { settingsModal.open(); });
     }
+
+    var saveBtn = document.getElementById('topbar-save');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function() {
+        if (typeof graphState === 'undefined') return;
+        var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
+        if (typeof evalBridge !== 'undefined' && evalBridge.dispatch) {
+          evalBridge.dispatch({ action: 'saveGraphToFile', params: { graph: graphData } })
+            .then(function(res) {
+              if (!res.ok) {
+                if (res.error) console.warn('[topBar] save failed:', res.error);
+                _fallbackSave(graphData);
+              } else if (res.data && res.data.cancelled) {
+              }
+            })
+            .catch(function() { _fallbackSave(graphData); });
+        } else {
+          _fallbackSave(graphData);
+        }
+      });
+    }
+
+    var openBtn = document.getElementById('topbar-open');
+    if (openBtn) {
+      openBtn.addEventListener('click', function() {
+        if (typeof graphState === 'undefined') return;
+        if (typeof evalBridge !== 'undefined' && evalBridge.dispatch) {
+          evalBridge.dispatch({ action: 'openGraphFile' })
+            .then(function(res) {
+              if (res.ok && res.data && !res.data.cancelled) {
+                _loadGraphData(res.data);
+              } else if (!res.ok) {
+                console.warn('[topBar] open failed:', res.error);
+                _fallbackOpen();
+              }
+            })
+            .catch(function() { _fallbackOpen(); });
+        } else {
+          _fallbackOpen();
+        }
+      });
+    }
+  }
+
+  function _loadGraphData(data) {
+    graphState.loadGraph(data);
+    if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+    if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
+    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    if (typeof topBar !== 'undefined' && topBar.refreshCollapseBtn) topBar.refreshCollapseBtn();
+  }
+
+  function _fallbackOpen() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.procedia.json,.json';
+    input.addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          var parsed = JSON.parse(ev.target.result);
+          _loadGraphData({ nodes: parsed.nodes || {}, wires: parsed.wires || {} });
+        } catch (err) {
+          console.warn('[topBar] fallback open parse error:', err);
+        }
+      };
+      reader.readAsText(file);
+    });
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+  }
+
+  function _fallbackSave(graphData) {
+    var jsonStr = JSON.stringify({ version: '1.0', nodes: graphData.nodes, wires: graphData.wires }, null, 2);
+    var blob = new Blob([jsonStr], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'procedia_graph_' + Date.now() + '.procedia.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
   }
 
   /**

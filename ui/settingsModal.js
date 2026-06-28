@@ -226,8 +226,13 @@ var settingsModal = (function() {
     if (minimapCanvas) {
       minimapCanvas.style.display = prefs.minimap ? '' : 'none';
     }
+    var minimapContainer = document.querySelector('.minimap-container');
+    if (minimapContainer) {
+      minimapContainer.style.display = prefs.minimap ? '' : 'none';
+    }
 
     if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+    if (typeof tipField !== 'undefined' && tipField.reposition) tipField.reposition();
   }
 
   /**

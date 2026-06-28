@@ -53,9 +53,9 @@ var __imp_nodes = {};
   }
 
   var KNOWN_EFFECT_MATCHNAMES = {
-    'ADBE Fill':             'effects/fill',
-    'ADBE Gaussian Blur':    'effects/gaussian-blur',
-    'ADBE Drop Shadow':      'effects/drop-shadow'
+    'ADBE Fill':             'generate/fill',
+    'ADBE Gaussian Blur':    'blur-sharpen/gaussian-blur',
+    'ADBE Drop Shadow':      'perspective/drop-shadow'
   };
 
   function isKnownEffect(matchName) {

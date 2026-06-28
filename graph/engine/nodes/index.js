@@ -26,6 +26,9 @@ var __e_nodes = (function() {
     duplicateSelectedNodes:  __e_ndup.duplicateSelectedNodes,
     toggleLockSelectedNodes: __e_nlock.toggleLockSelectedNodes,
     recreateNode:            __e_nrec.recreateNode,
-    cloneNode:               __e_nclone.cloneNode
+    cloneNode:               __e_nclone.cloneNode,
+    switchEffectors:         __e_nswitch.switchEffectors,
+    findAffectedUpstream:    __e_nswitch.findAffectedUpstream,
+    findSiblingEffectors:    __e_nswitch.findSiblingEffectors
   };
 })();
