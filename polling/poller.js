@@ -12,8 +12,8 @@
 
 var poller = (function() {
 
-  var ACTIVE_INTERVAL = 1000;
-  var IDLE_INTERVAL   = 5000;
+  var ACTIVE_INTERVAL = 500;
+  var IDLE_INTERVAL   = 2000;
   var _timer = null;
   var _active = false;
   var _writeCount = 0;
@@ -86,6 +86,8 @@ var poller = (function() {
     wirePromise.then(function() {
       pollerExternalDeletions.checkExternalDeletions(_writeCount > 0, _onNodesMissing);
       pollerExternalDeletions.checkEffectDeletions(_writeCount > 0, _onNodesMissing);
+      if (typeof propertyPoller !== 'undefined' && propertyPoller.poll) propertyPoller.poll();
+      if (typeof propertyPoller !== 'undefined' && propertyPoller.pollEffects) propertyPoller.pollEffects();
     });
   }
 

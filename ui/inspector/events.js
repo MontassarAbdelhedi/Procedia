@@ -47,7 +47,15 @@ var __ins_events = (function() {
     if (!target || !target.classList) return;
     if (!target.classList.contains('inspector-param-input')) return;
     if (target.type === 'checkbox') return;
-    _applyChange(target);
+
+    var nodeId = target.getAttribute('data-node-id');
+    var key    = target.getAttribute('data-param-key');
+    var type   = target.getAttribute('data-param-type');
+    if (!nodeId || !key) return;
+
+    var raw = target.value;
+    graphState.updateProp(nodeId, key, __ins_vm.parseInputValue({ type: type, key: key }, raw));
+    if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
   }
 
   /**

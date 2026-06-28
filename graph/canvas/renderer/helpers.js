@@ -92,12 +92,12 @@ var __r_hlp = (function() {
       span.appendChild(swatch);
       span.appendChild(document.createTextNode(rgbaToHex(value)));
     } else if (param.type === 'vector2' && Array.isArray(value)) {
-      span.textContent = (value[0] !== undefined ? value[0] : 0) + ', ' + (value[1] !== undefined ? value[1] : 0);
+      span.textContent = (value[0] !== undefined ? Number(value[0]).toFixed(1) : '0.0') + ', ' + (value[1] !== undefined ? Number(value[1]).toFixed(1) : '0.0');
     } else if (param.type === 'string') {
       var str = String(value !== undefined ? value : '');
       span.textContent = str.length > 18 ? str.substr(0, 18) + '\u2026' : str;
     } else {
-      span.textContent = String(value !== undefined ? value : '');
+      span.textContent = typeof value === 'number' ? value.toFixed(1) : String(value !== undefined ? value : '');
     }
 
     span.className = 'node-param-value' + (isParamWired(nodeId, param.key) ? ' is-wired' : '');

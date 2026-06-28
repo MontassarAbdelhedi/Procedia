@@ -74,6 +74,7 @@ var __e_state = (function() {
     }
 
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+    hlp.refreshNodeUI();
   }
 
   /**

@@ -76,6 +76,8 @@ var _handlers = {
   'setAlphaMatte':        _handleSetAlphaMatte,
   'clearMatte':           _handleClearMatte,
   'getMasksForLayer':     _handleGetMasksForLayer,
+  'batchGetLayerProperties': _handleBatchGetLayerProperties,
+  'batchGetEffectProperties': _handleBatchGetEffectProperties,
   'readSchemaCache':      _handleReadSchemaCache,
   'writeSchemaCache':     _handleWriteSchemaCache,
   'getAEVersion':         _handleGetAEVersion,
