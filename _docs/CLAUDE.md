@@ -1125,8 +1125,9 @@ procedia/
     └── dispatcher/
         ├── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER — routes to handlers
         ├── actions_schema.jsx, actions_comp.jsx, actions_layer.jsx,
-        │   actions_property.jsx, actions_park.jsx, actions_matte.jsx,
-        │   actionEffect/ (3 files), actions_footage.jsx, actionImport/ (3 files),
+        │   actions_keyframe.jsx, actions_property.jsx, actions_park.jsx,
+        │   actions_matte.jsx, actionEffect/ (4 files), actions_footage.jsx,
+        │   actionImport/ (3 files), actionKeyframe/ (6 files),
         │   actions_graphExport.jsx
         └── tools/buildEffectsCatalog.jsx   ← Standalone utility
 ```
