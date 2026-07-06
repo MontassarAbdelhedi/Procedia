@@ -1,11 +1,11 @@
 /**
  * @fileoverview Inspector HTML rendering module. Produces markup for
- * the inspector panel content, including param rows, layer actions, and error recovery.
- * Exports: __ins_render.renderLayerActions, .renderErrorActions, .renderParam,
+ * the inspector panel content, including param rows, and layer actions.
+ * Exports: __ins_render.renderLayerActions, .renderParam,
  *          .renderGroup, .renderNodeContent
  */
 // ui/inspector/render.js
-// DEPENDS ON: (none - pure rendering)
+// DEPENDS ON: __ins_layerStack (for layer stack rendering)
 // MUST LOAD BEFORE: ui/inspector/index.js
 
 var __ins_render = (function() {
@@ -36,25 +36,6 @@ var __ins_render = (function() {
         '</button>' +
         '<button class="inspector-layer-btn" data-node-id="' + view.nodeId + '" data-host-uuid="' + view.hostingCompUUID + '" data-direction="down">' +
           '<i class="ti ti-chevron-down"></i> Move Down' +
-        '</button>' +
-      '</div>'
-    );
-  }
-
-  /**
-   * Renders the error recovery action buttons (Re-create / Remove).
-   * @param {Object} view The node view model.
-   * @return {string} HTML string.
-   */
-  function renderErrorActions(view) {
-    return (
-      '<div class="inspector-group">' +
-        '<div class="inspector-group-label">Error Recovery</div>' +
-        '<button class="inspector-recover-btn" data-node-id="' + view.nodeId + '" data-action="recreate">' +
-          '<i class="ti ti-refresh"></i> Re-create in AE' +
-        '</button>' +
-        '<button class="inspector-recover-btn" data-node-id="' + view.nodeId + '" data-action="remove">' +
-          '<i class="ti ti-trash"></i> Remove from Graph' +
         '</button>' +
       '</div>'
     );
@@ -112,8 +93,19 @@ var __ins_render = (function() {
         'value="' + _escapeAttr(param.display) + '"' + disabledAttr + '>';
     }
 
+    var kfIconHtml = '';
+    if (param.animatable) {
+      var kfClass = 'kf-icon' + (param.keyframed ? ' kf-active' : ' kf-inactive');
+      kfIconHtml = '<span class="' + kfClass + '" data-node-id="' + nodeId + '" data-param-key="' + param.key + '">' +
+        '<span class="kf-arrow kf-arrow-left">\u25C0</span>' +
+        '<span class="kf-diamond"></span>' +
+        '<span class="kf-arrow kf-arrow-right">\u25B6</span>' +
+        '</span>';
+    }
+
     return (
       '<div class="inspector-param-row' + (param.disabled ? ' inspector-param-disabled' : '') + '">' +
+        kfIconHtml +
         '<span class="inspector-param-label">' + param.label + '</span>' +
         inputHtml +
       '</div>'
@@ -188,14 +180,15 @@ var __ins_render = (function() {
       );
     }
 
-    var errorActionsHtml = '';
-    if (view.state.indexOf('error') !== -1) {
-      errorActionsHtml = renderErrorActions(view);
-    }
-
     var layerActionsHtml = '';
     if (view.nodeType === 'core/comp' && view.state.indexOf('alive') !== -1 && view.hostingCompUUID) {
       layerActionsHtml = renderLayerActions(view);
+    }
+
+    var layerStackHtml = '';
+    if (view.nodeType === 'core/comp' && view.state.indexOf('alive') !== -1) {
+      var ls = __ins_layerStack.buildViewModel(view.nodeId);
+      layerStackHtml = __ins_layerStack.render(view.nodeId, ls);
     }
 
     var footageActionsHtml = '';
@@ -216,8 +209,8 @@ var __ins_render = (function() {
           '<span class="inspector-state-text">' + view.state + '</span>' +
         '</div>' +
       '</div>' +
-      errorActionsHtml +
       layerActionsHtml +
+      layerStackHtml +
       footageActionsHtml +
       groupsHtml
     );
@@ -225,7 +218,6 @@ var __ins_render = (function() {
 
   return {
     renderLayerActions: renderLayerActions,
-    renderErrorActions: renderErrorActions,
     renderFootageActions: renderFootageActions,
     renderParam:        renderParam,
     renderGroup:        renderGroup,

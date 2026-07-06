@@ -45,6 +45,13 @@ var _handlers = {
   'createAdjustmentLayer': _handleCreateAdjustmentLayer,
   'createShapeLayer':     _handleCreateShapeLayer,
   'createRectangleLayer': _handleCreateRectangleLayer,
+  'createEllipseLayer':   _handleCreateEllipseLayer,
+  'createPolygonLayer':   _handleCreatePolygonLayer,
+  'createStarLayer':      _handleCreateStarLayer,
+  'createSquircleLayer':  _handleCreateSquircleLayer,
+  'createGearLayer':      _handleCreateGearLayer,
+  'createWaveLayer':      _handleCreateWaveLayer,
+  'createFlowerLayer':    _handleCreateFlowerLayer,
   'addCompAsLayer':       _handleAddCompAsLayer,
   'clearLayerParent':     _handleClearLayerParent,
   'parkLayer':            _handleParkLayer,
@@ -55,6 +62,7 @@ var _handlers = {
   'setCompProperty':      _handleSetCompProperty,
   'setLayerParent':       _handleSetLayerParent,
   'setLayerOrder':        _handleSetLayerOrder,
+  'moveLayerBefore':      _handleMoveLayerBefore,
   'renameNode':           _handleRenameNode,
   'focusComp':            _handleFocusComp,
   'listComps':            _handleListComps,
@@ -91,7 +99,15 @@ var _handlers = {
   'browseAndImportFootage': _handleBrowseAndImportFootage,
   'createFootageLayer':    _handleCreateFootageLayer,
   'deleteFootageItem':     _handleDeleteFootageItem,
-  'importProject':         _handleImportProject
+  'importProject':         _handleImportProject,
+  'addKeyframe':           _handleAddKeyframe,
+  'removeKeyframe':        _handleRemoveKeyframe,
+  'removeAllKeyframes':    _handleRemoveAllKeyframes,
+  'getKeyframeTimes':      _handleGetKeyframeTimes,
+  'getCurrentTime':        _handleGetCurrentTime,
+  'setCurrentTime':        _handleSetCurrentTime,
+  'batchGetKeyframeTimes': _handleBatchGetKeyframeTimes,
+  'getKeyframeData':       _handleGetKeyframeData
 };
 
 /**

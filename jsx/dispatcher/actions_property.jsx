@@ -40,19 +40,53 @@ function _handleSetLayerProperty(cmd) {
           var size = rect.property('ADBE Vector Rect Size').value;
           if (key === 'width') { size[0] = value; } else { size[1] = value; }
           rect.property('ADBE Vector Rect Size').setValue(size);
+        } else {
+          var ell = contents.property('ADBE Vector Shape - Ellipse');
+          if (ell) {
+            var size = ell.property('ADBE Vector Ellipse Size').value;
+            if (key === 'width') { size[0] = value; } else { size[1] = value; }
+            ell.property('ADBE Vector Ellipse Size').setValue(size);
+          }
         }
       }
-    } else if (key === 'roundness' || key === 'roundCorners') {
+    } else if (key === 'roundness') {
       if (contents) {
         var rect = contents.property('ADBE Vector Shape - Rect');
         if (rect) {
-          if (key === 'roundCorners' && !value) {
-            rect.property('ADBE Vector Rect Roundness').setValue(0);
-          } else if (key === 'roundCorners') {
-            result.ok = true; return result;
-          } else {
-            rect.property('ADBE Vector Rect Roundness').setValue(value);
+          rect.property('ADBE Vector Rect Roundness').setValue(value);
+        } else {
+          var poly = contents.property('ADBE Vector Shape - Polystar');
+          if (poly) {
+            poly.property('ADBE Vector Polystar Roundness').setValue(value);
           }
+        }
+      }
+    } else if (key === 'roundCorners') {
+      if (contents) {
+        var rect = contents.property('ADBE Vector Shape - Rect');
+        if (rect) {
+          if (!value) { rect.property('ADBE Vector Rect Roundness').setValue(0); }
+        }
+      }
+    } else if (key === 'sides' || key === 'points') {
+      if (contents) {
+        var poly = contents.property('ADBE Vector Shape - Polystar');
+        if (poly) {
+          poly.property('ADBE Vector Polystar Points').setValue(value);
+        }
+      }
+    } else if (key === 'outerRadius') {
+      if (contents) {
+        var poly = contents.property('ADBE Vector Shape - Polystar');
+        if (poly) {
+          poly.property('ADBE Vector Polystar Outer Radius').setValue(value);
+        }
+      }
+    } else if (key === 'innerRadius') {
+      if (contents) {
+        var poly = contents.property('ADBE Vector Shape - Polystar');
+        if (poly) {
+          poly.property('ADBE Vector Polystar Inner Radius').setValue(value);
         }
       }
     } else if (key === 'fill') {
@@ -81,6 +115,14 @@ function _handleSetLayerProperty(cmd) {
       layer.scale.setValue(value);
     } else if (key === 'opacity') {
       layer.opacity.setValue(value);
+    } else if (key === 'fontSize' || key === 'color' || key === 'content') {
+      var td = layer.text && layer.text.sourceText ? layer.text.sourceText.value : null;
+      if (td) {
+        if (key === 'fontSize') td.fontSize = value;
+        else if (key === 'color') td.fillColor = [value[0], value[1], value[2]];
+        else if (key === 'content') td.text = String(value);
+        layer.text.sourceText.setValue(td);
+      }
     } else {
       layer.property(key).setValue(value);
     }
@@ -157,7 +199,32 @@ function _handleSetLayerOrder(cmd) {
       if (layer.index > 1) layer.moveBefore(comp.layer(layer.index - 1));
     } else if (dir === 'down') {
       if (layer.index < comp.numLayers) layer.moveAfter(comp.layer(layer.index + 1));
+    } else if (dir === 'bottom') {
+      var lastLayer = comp.layer(comp.numLayers);
+      if (layer !== lastLayer) layer.moveAfter(lastLayer);
     }
+    result.ok = true;
+  } catch (e) { result.error = e.toString(); }
+  return result;
+}
+
+/**
+ * Moves a layer before a target layer in the same comp (drag-and-drop ordering).
+ * @param {Object} cmd Command with params: hostingCompUUID, layerUUID, targetLayerUUID.
+ * @return {Object} Result with .ok, .error.
+ */
+function _handleMoveLayerBefore(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var params = _cmdParams(cmd);
+    var comp = findCompByUUID(params.hostingCompUUID);
+    if (!comp) { result.error = 'moveLayerBefore: host comp not found'; return result; }
+    var layer = findLayerByUUID(comp, params.layerUUID);
+    if (!layer) { result.error = 'moveLayerBefore: layer not found'; return result; }
+    var target = findLayerByUUID(comp, params.targetLayerUUID);
+    if (!target) { result.error = 'moveLayerBefore: target layer not found'; return result; }
+    if (layer === target) { result.error = 'moveLayerBefore: cannot move layer before itself'; return result; }
+    layer.moveBefore(target);
     result.ok = true;
   } catch (e) { result.error = e.toString(); }
   return result;

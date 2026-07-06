@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="css/compList.css">
   <link rel="stylesheet" href="css/tipField.css">
   <link rel="stylesheet" href="css/colorPicker.css">
+  <link rel="stylesheet" href="css/layerStack.css">
+  <link rel="stylesheet" href="css/keyframe.css">
   <link rel="stylesheet" href="css/walkthrough.css">
 </head>
 
@@ -43,6 +45,14 @@
   <!-- 1. CEP interface -->
   <script src="lib/CSInterface.js"></script>
 
+  <!-- 1b. Error reporting (Sentry + screenshot + reporter) -->
+  <script src="https://browser.sentry-cdn.com/8.0.0/bundle.min.js"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"
+    crossorigin="anonymous"></script>
+  <script src="reporting/envSnapshot.js"></script>
+  <script src="reporting/reporter.js"></script>
+
   <!-- 2. Infrastructure — no dependencies -->
   <script src="data/uuidGenerator.js"></script>
   <script src="bridge/evalBridge.js"></script>
@@ -54,7 +64,8 @@
   <script src="graph/graphState/selection.js"></script>
   <script src="graph/graphState/graphOps.js"></script>
   <script src="graph/graphState/index.js"></script>
-  <script src="graph/nodeRegistry.js"></script>
+  <script src="graph/keyframeState.js"></script>
+<script src="graph/nodeRegistry.js"></script>
   <script src="graph/graphExporter.js"></script>
   <script src="ui/settings.js"></script>
 
@@ -168,6 +179,7 @@
   <script src="ui/inspector/render.js"></script>
   <script src="ui/inspector/colorPicker.js"></script>
   <script src="ui/inspector/events.js"></script>
+  <script src="ui/inspector/layerStack.js"></script>
   <script src="ui/inspector/index.js"></script>
   <script src="ui/settingsModal.js"></script>
 

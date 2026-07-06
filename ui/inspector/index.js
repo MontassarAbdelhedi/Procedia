@@ -29,10 +29,16 @@ var inspector = (function() {
     if (_contentEl) {
       _contentEl.addEventListener('change', __ins_events.onInspectorChange);
       _contentEl.addEventListener('input', __ins_events.onInspectorInput);
-      _contentEl.addEventListener('click', __ins_events.onRecoverClick);
       _contentEl.addEventListener('click', __ins_events.onLayerActionClick);
       _contentEl.addEventListener('click', __ins_events.onColorTriggerClick);
+      _contentEl.addEventListener('click', __ins_events.onKeyframeIconClick);
       _contentEl.addEventListener('click', __ins_events.onFootageBrowseClick);
+      _contentEl.addEventListener('click', __ins_events.onLayerStackRowClick);
+      _contentEl.addEventListener('click', __ins_events.onLayerStackMoveClick);
+      _contentEl.addEventListener('dragstart', __ins_events.onLayerStackDragStart);
+      _contentEl.addEventListener('dragover', __ins_events.onLayerStackDragOver);
+      _contentEl.addEventListener('dragend', __ins_events.onLayerStackDragEnd);
+      _contentEl.addEventListener('drop', __ins_events.onLayerStackDrop);
     }
 
     refresh();
@@ -40,10 +46,27 @@ var inspector = (function() {
 
   /**
    * Shows the empty state (no selection or multi-select).
+   * When a comp is active (user is "inside" a comp via the comp list),
+   * shows the comp's layer stack instead of "select a node".
    */
   function showEmpty() {
     var emptyEl = document.getElementById('inspector-empty');
     var contentEl = document.getElementById('inspector-content');
+
+    // When inside a comp with no selection, show the active comp's layer stack
+    if (typeof graphState !== 'undefined') {
+      var activeCompId = graphState.getActiveComp();
+      if (activeCompId && contentEl) {
+        var compData = graphState.getNode(activeCompId);
+        if (compData && compData.type === 'core/comp') {
+          if (emptyEl) { emptyEl.classList.remove('visible'); }
+          contentEl.classList.add('visible');
+          contentEl.innerHTML = __ins_layerStack.buildCompEmptyState(activeCompId);
+          return;
+        }
+      }
+    }
+
     if (emptyEl) {
       emptyEl.classList.add('visible');
       emptyEl.innerHTML =
@@ -76,9 +99,19 @@ var inspector = (function() {
   }
 
   /**
+   * Returns true if an inspector text input currently has focus (user is typing).
+   */
+  function _isInputFocused() {
+    var el = document.activeElement;
+    return el && el.classList && el.classList.contains('inspector-param-input') && el.type === 'text';
+  }
+
+  /**
    * Refreshes the inspector based on the current graph selection.
+   * Skips DOM replacement when a text input is focused to avoid focus loss.
    */
   function refresh() {
+    if (_isInputFocused()) return;
     var sel = graphState.getSelection();
     if (sel.length === 0) {
       showEmpty();
