@@ -1,0 +1,145 @@
+/* keyframe.css — Keyframe icon styling for inspector and node body */
+
+/* ── Keyframe icon container ─────────────────────── */
+
+.kf-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.1s ease;
+}
+
+.kf-icon:hover {
+  opacity: 1;
+}
+
+/* ── Inactive state (no keyframes) ───────────────── */
+
+.kf-icon.kf-inactive {
+  opacity: 0.4;
+}
+
+.kf-icon.kf-inactive:hover {
+  opacity: 0.8;
+}
+
+.kf-icon.kf-inactive .kf-diamond {
+  border-color: #555550;
+}
+
+/* ── Active state (has keyframes) ────────────────── */
+
+.kf-icon.kf-active {
+  opacity: 1;
+}
+
+.kf-icon.kf-active .kf-diamond {
+  border-color: #f5c542;
+}
+
+.kf-icon.kf-active .kf-arrow {
+  color: #888780;
+  font-size: 7px;
+  line-height: 1;
+}
+
+.kf-icon.kf-active .kf-arrow:hover {
+  color: #d4d2cc;
+}
+
+/* ── Highlight state (playhead on keyframe) ──────── */
+
+.kf-icon.kf-highlight {
+  opacity: 1;
+}
+
+.kf-icon.kf-highlight .kf-diamond {
+  border-color: #FFD700;
+  background: #FFD700;
+}
+
+.kf-icon.kf-highlight .kf-arrow {
+  color: #b4b2a9;
+  font-size: 7px;
+  line-height: 1;
+}
+
+.kf-icon.kf-highlight .kf-arrow:hover {
+  color: #d4d2cc;
+}
+
+/* ── Diamond shape (CSS rotated square) ──────────── */
+
+.kf-diamond {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+/* ── Arrows ──────────────────────────────────────── */
+
+.kf-arrow {
+  display: inline-block;
+  font-size: 7px;
+  line-height: 1;
+  color: #555550;
+  transition: color 0.1s ease;
+  pointer-events: all;
+}
+
+/* ── Icon in node body (smaller) ─────────────────── */
+
+.node-param .kf-icon {
+  gap: 2px;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+.node-param .kf-diamond {
+  width: 5px;
+  height: 5px;
+  border-width: 1px;
+}
+
+.node-param .kf-arrow {
+  font-size: 5px;
+}
+
+/* ── Keyframed param label in node body ──────────── */
+
+.node-param-key.keyframed {
+  color: #f5c542;
+  text-decoration: line-through;
+}
+
+/* ── Node body keyframe indicator ────────────────── */
+
+.node-param-kf {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  border: 1px solid #f5c542;
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
+/* ── Keyframed value text ────────────────────────── */
+
+.node-param-value.keyframed {
+  color: #f5c542;
+  opacity: 0.7;
+}

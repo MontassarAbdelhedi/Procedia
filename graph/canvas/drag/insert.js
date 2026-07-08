@@ -47,6 +47,8 @@
       _transplantLayerUUID: isComp ? null : (toNodeData.type === 'core/comp' ? wire._pathLayerUUID : undefined)
     };
 
+    if (typeof undoManager !== 'undefined') undoManager.capture();
+
     graphState.addNode(nodeData);
 
     if (def.params === 'dynamic' && def.matchName && typeof __e_hlp !== 'undefined') {
@@ -65,6 +67,8 @@
       engine.connectWire(wire.fromNode, wire.fromPort, nodeId, 'main_input');
       engine.connectWire(nodeId, 'output', wire.toNode, wire.toPort);
     }
+
+    if (typeof undoManager !== 'undefined') undoManager.commit('Insert node');
 
     return nodeData;
   };

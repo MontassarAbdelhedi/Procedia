@@ -43,15 +43,47 @@ function _handleBatchGetLayerProperties(cmd) {
           var contents = layer.property('ADBE Root Vectors Group');
           if (!contents) { layerProps[key] = null; continue; }
           var rect = contents.property('ADBE Vector Shape - Rect');
-          if (!rect) { layerProps[key] = null; continue; }
-          var size = rect.property('ADBE Vector Rect Size').value;
-          layerProps[key] = (key === 'width') ? size[0] : size[1];
+          if (rect) {
+            var size = rect.property('ADBE Vector Rect Size').value;
+            layerProps[key] = (key === 'width') ? size[0] : size[1];
+          } else {
+            var ell = contents.property('ADBE Vector Shape - Ellipse');
+            if (ell) {
+              var size = ell.property('ADBE Vector Ellipse Size').value;
+              layerProps[key] = (key === 'width') ? size[0] : size[1];
+            } else {
+              layerProps[key] = null;
+            }
+          }
         } else if (key === 'roundness') {
           var contents = layer.property('ADBE Root Vectors Group');
           if (!contents) { layerProps[key] = null; continue; }
           var rect = contents.property('ADBE Vector Shape - Rect');
-          if (!rect) { layerProps[key] = null; continue; }
-          layerProps[key] = rect.property('ADBE Vector Rect Roundness').value;
+          if (rect) {
+            layerProps[key] = rect.property('ADBE Vector Rect Roundness').value;
+          } else {
+            var poly = contents.property('ADBE Vector Shape - Polystar');
+            if (poly) {
+              layerProps[key] = poly.property('ADBE Vector Polystar Roundness').value;
+            } else {
+              layerProps[key] = null;
+            }
+          }
+        } else if (key === 'sides' || key === 'points') {
+          var contents = layer.property('ADBE Root Vectors Group');
+          if (!contents) { layerProps[key] = null; continue; }
+          var poly = contents.property('ADBE Vector Shape - Polystar');
+          layerProps[key] = poly ? poly.property('ADBE Vector Polystar Points').value : null;
+        } else if (key === 'outerRadius') {
+          var contents = layer.property('ADBE Root Vectors Group');
+          if (!contents) { layerProps[key] = null; continue; }
+          var poly = contents.property('ADBE Vector Shape - Polystar');
+          layerProps[key] = poly ? poly.property('ADBE Vector Polystar Outer Radius').value : null;
+        } else if (key === 'innerRadius') {
+          var contents = layer.property('ADBE Root Vectors Group');
+          if (!contents) { layerProps[key] = null; continue; }
+          var poly = contents.property('ADBE Vector Shape - Polystar');
+          layerProps[key] = poly ? poly.property('ADBE Vector Polystar Inner Radius').value : null;
         } else if (key === 'fill') {
           var contents = layer.property('ADBE Root Vectors Group');
           if (!contents) { layerProps[key] = null; continue; }

@@ -24,7 +24,7 @@ var NumberNode = {
 
   params: [
     { key: 'label',  type: 'string', default: 'Number', label: 'Label' },
-    { key: 'value',  type: 'number', default: 50,        label: 'Value', min: 0, max: 100 }
+    { key: 'value',  type: 'number', default: 50,        label: 'Value', min: 0, max: 100, animatable: true }
   ],
 
   getParams: function(nodeData) {

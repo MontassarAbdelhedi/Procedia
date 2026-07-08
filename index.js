@@ -4,7 +4,7 @@
  * Depends on: lib/CSInterface.js, data/uuidGenerator.js, bridge/evalBridge.js,
  *             graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
  *             graph/canvas/viewport.js, ui/inspector/*, ui/nodeList/*, ui/statusBar.js,
- *             ui/topBar.js, ui/sidebarToggle.js,
+ *             ui/topBar/index.js, ui/sidebarToggle.js,
  *             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
  *             graph/schemaCache/diff.js, graph/schemaCache/index.js,
  *             flush/dirtyFlusher.js
@@ -17,13 +17,72 @@
 //             ui/inspector/viewModel.js, ui/inspector/render.js, ui/inspector/events.js, ui/inspector/index.js,
 //             ui/nodeList/categories.js, ui/nodeList/render.js, ui/nodeList/search.js,
 //             ui/nodeList/dragdrop.js, ui/nodeList/index.js, ui/statusBar.js,
-//             ui/topBar.js, ui/sidebarToggle.js,
+//             ui/topBar/index.js, ui/sidebarToggle.js,
 //             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
 //             graph/schemaCache/diff.js, graph/schemaCache/index.js,
 //             flush/dirtyFlusher.js
 // MUST LOAD BEFORE: nothing (this is the entry point)
 
 var csInterface = new CSInterface();
+
+/**
+ * After graph load, syncs keyframeState from AE's actual layer keyframes.
+ * Iterates alive affected nodes, collects animatable param entries, and
+ * dispatches batchGetKeyframeTimes. On response, updates keyframeState
+ * and refreshes the UI.
+ */
+function _syncKeyframeState(allNodes) {
+  if (typeof keyframeState === 'undefined' || typeof nodeRegistry === 'undefined' ||
+      typeof graphState === 'undefined' || typeof evalBridge === 'undefined') return;
+  var entries = [];
+  var entryToNodeId = {};
+  var entrySeen = {};
+  for (var nid in allNodes) {
+    if (!allNodes.hasOwnProperty(nid)) continue;
+    var n = allNodes[nid];
+    if (n.state !== 'alive') continue;
+    var def = nodeRegistry.getDefinition(n.type);
+    if (!def || !def.params || !Array.isArray(def.params)) continue;
+    var hostUUID = n.hostingComps && n.hostingComps.length > 0 ? n.hostingComps[0] : null;
+    if (!hostUUID) continue;
+    var layerUUID = typeof __e_hlp !== 'undefined' ? __e_hlp.findPathLayerUUID(nid) : null;
+    if (!layerUUID) continue;
+    for (var pi = 0; pi < def.params.length; pi++) {
+      var p = def.params[pi];
+      if (p.animatable !== true) continue;
+      var keyId = nid + '::' + p.key;
+      if (entrySeen[keyId]) continue;
+      entrySeen[keyId] = true;
+      entryToNodeId[entries.length] = { nodeId: nid, key: p.key };
+      entries.push({ hostingCompUUID: hostUUID, layerUUID: layerUUID, key: p.key });
+    }
+  }
+  if (entries.length === 0) return;
+
+  evalBridge.dispatch({
+    action: 'batchGetKeyframeTimes',
+    params: { entries: entries }
+  }).then(function(res) {
+    if (!res.ok || !res.data || !res.data.results) return;
+    var changed = false;
+    for (var ri = 0; ri < res.data.results.length; ri++) {
+      var r = res.data.results[ri];
+      if (r.times && r.times.length > 0) {
+        var info = entryToNodeId[ri];
+        if (info) {
+          keyframeState.setKeyframes(info.nodeId, info.key, r.times);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+      if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+    }
+  }).catch(function(err) {
+    console.warn('[Procedia] keyframe sync error:', err);
+  });
+}
 
 /**
  * Initializes all panel subsystems after DOM content is loaded.
@@ -51,6 +110,7 @@ function init() {
     return;
   }
 
+  if (typeof reporter !== 'undefined' && reporter.init) reporter.init();
   canvasView.init();
   canvasInput.init();
   graphState.onSelectionChange(function(sel) {
@@ -109,6 +169,8 @@ function init() {
           renderer.render();
           if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
 
+          // Sync keyframe state from AE for all animatable params
+          _syncKeyframeState(allNodes);
         }
       }
     }).then(function() {
@@ -117,6 +179,8 @@ function init() {
       if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     }).then(function() {
       if (typeof walkthrough !== 'undefined' && walkthrough.init) walkthrough.init();
+    }).catch(function(err) {
+      console.warn('[Procedia] startup chain error:', err);
     });
   });
 
@@ -159,6 +223,9 @@ function init() {
   window.addEventListener('beforeunload', function() {
     if (typeof graphState === 'undefined') return;
     var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
+    if (typeof keyframeState !== 'undefined' && graphState._keyframes) {
+      graphData.keyframes = graphState._keyframes;
+    }
     if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
       evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });
     }

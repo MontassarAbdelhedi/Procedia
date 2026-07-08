@@ -23,6 +23,7 @@ var __e_ndup = (function() {
   function duplicateSelectedNodes() {
     var sel = graphState.getSelection().slice();
     if (sel.length === 0) return;
+    if (typeof undoManager !== 'undefined') undoManager.capture();
     var newIds = [];
     for (var i = 0; i < sel.length; i++) {
       var src = graphState.getNode(sel[i]);
@@ -40,6 +41,7 @@ var __e_ndup = (function() {
       newIds.push(copy.id);
     }
     graphState.replaceSelection(newIds);
+    if (typeof undoManager !== 'undefined') undoManager.commit('Duplicate ' + newIds.length + ' node' + (newIds.length > 1 ? 's' : ''));
     hlp.refreshNodeUI();
   }
 

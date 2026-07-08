@@ -4,7 +4,7 @@
  */
 // ui/settings.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: ui/settingsModal.js, index.js
+// MUST LOAD BEFORE: ui/settingsModal/*, index.js
 
 var settings = (function() {
 
@@ -17,7 +17,9 @@ var settings = (function() {
     snapToGrid:       false,
     layoutDirection:  'LR',
     layoutHSpacing:   80,
-    layoutVSpacing:   40
+    layoutVSpacing:   40,
+    allowReporting:   true,
+    showPortLabels:   true
   };
 
   var _cache = null;

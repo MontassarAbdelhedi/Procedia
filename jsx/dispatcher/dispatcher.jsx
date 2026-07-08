@@ -46,7 +46,6 @@ var _handlers = {
   'createShapeLayer':     _handleCreateShapeLayer,
   'createRectangleLayer': _handleCreateRectangleLayer,
   'createEllipseLayer':   _handleCreateEllipseLayer,
-  'createPolygonLayer':   _handleCreatePolygonLayer,
   'createStarLayer':      _handleCreateStarLayer,
   'createSquircleLayer':  _handleCreateSquircleLayer,
   'createGearLayer':      _handleCreateGearLayer,

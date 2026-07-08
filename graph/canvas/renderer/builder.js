@@ -15,6 +15,16 @@ var __r_bld = (function() {
   var cat = __r_cat;
   var hlp = __r_hlp;
 
+  function _getPortLabel(def, portId) {
+    if (!def || !def.ports) return portId;
+    for (var i = 0; i < def.ports.length; i++) {
+      if (def.ports[i].id === portId) {
+        return def.ports[i].label || def.ports[i].id;
+      }
+    }
+    return portId;
+  }
+
   /**
    * Builds a single parameter row DOM element (key label + value + optional port dot).
    * @param {string} nodeId
@@ -32,13 +42,24 @@ var __r_bld = (function() {
       dot.className = 'port-dot data';
       dot.setAttribute('data-node-id', nodeId);
       dot.setAttribute('data-port-id', portId);
+      dot.setAttribute('data-label', param.label || param.key || portId);
       row.appendChild(dot);
     }
 
     var keySpan = document.createElement('span');
     keySpan.className = 'node-param-key';
+    var isKeyframed = hlp.isParamKeyframed(nodeId, param.key);
+    if (isKeyframed) {
+      keySpan.classList.add('keyframed');
+    }
     keySpan.textContent = param.label || param.key;
     row.appendChild(keySpan);
+
+    if (isKeyframed) {
+      var kfInd = document.createElement('span');
+      kfInd.className = 'node-param-kf';
+      row.appendChild(kfInd);
+    }
 
     var valSpan = document.createElement('span');
     hlp.fillParamValue(valSpan, nodeId, param, value);
@@ -115,6 +136,7 @@ var __r_bld = (function() {
     dot.className = 'port-dot ' + (outputPort.type || 'layer');
     dot.setAttribute('data-node-id', nodeId);
     dot.setAttribute('data-port-id', 'output');
+    dot.setAttribute('data-label', outputPort.label || 'output');
     container.appendChild(dot);
 
     return container;
@@ -143,6 +165,7 @@ var __r_bld = (function() {
       dot.className = 'port-dot ' + (port.type || 'layer');
       dot.setAttribute('data-node-id', nodeId);
       dot.setAttribute('data-port-id', port.id);
+      dot.setAttribute('data-label', port.label || port.id);
       row.appendChild(dot);
 
       var label = document.createElement('span');
@@ -176,6 +199,7 @@ var __r_bld = (function() {
         topDot.className = 'port-dot parent';
         topDot.setAttribute('data-node-id', nodeId);
         topDot.setAttribute('data-port-id', 'child_of');
+        topDot.setAttribute('data-label', port.label || port.id);
         topContainer.appendChild(topDot);
         topEl = topContainer;
       }
@@ -187,6 +211,7 @@ var __r_bld = (function() {
         bottomDot.className = 'port-dot parent';
         bottomDot.setAttribute('data-node-id', nodeId);
         bottomDot.setAttribute('data-port-id', 'parent_of');
+        bottomDot.setAttribute('data-label', port.label || port.id);
         bottomContainer.appendChild(bottomDot);
         bottomEl = bottomContainer;
       }
@@ -227,6 +252,7 @@ var __r_bld = (function() {
       mainDot.className = 'port-dot layer';
       mainDot.setAttribute('data-node-id', nodeId);
       mainDot.setAttribute('data-port-id', 'main_input');
+      mainDot.setAttribute('data-label', _getPortLabel(def, 'main_input'));
       mainDot.style.flexShrink = '0';
       header.appendChild(mainDot);
     }

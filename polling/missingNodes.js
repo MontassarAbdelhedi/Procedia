@@ -38,6 +38,11 @@ var pollerHelpers = (function() {
       var toNode = graphState.getNode(wires[id].toNode);
       if (!toNode || toNode.type !== 'core/comp') continue;
 
+      // Skip UUIDs that are pending creation in AE — protects against a race
+      // condition where the poller runs before the async dispatch that creates
+      // the layer (e.g. createTextLayer) has completed.
+      if (typeof __e_prop !== 'undefined' && __e_prop.isPathLayerPending && __e_prop.isPathLayerPending(wires[id]._pathLayerUUID)) continue;
+
       uuids.push(wires[id]._pathLayerUUID);
     }
     return uuids;

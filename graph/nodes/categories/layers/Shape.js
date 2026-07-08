@@ -26,11 +26,11 @@ var ShapeNode = {
 
   params: [
     { key: 'label',    type: 'string',  default: 'Shape',            label: 'Label'                       },
-    { key: 'position', type: 'vector2', default: [0, 0],            label: 'Position'                    },
-    { key: 'rotation', type: 'number',  default: 0,                 label: 'Rotation'                    },
-    { key: 'opacity',  type: 'number',  default: 100,               label: 'Opacity',  min: 0, max: 100  },
-    { key: 'scale',    type: 'vector2', default: [100, 100],        label: 'Scale'                       },
-    { key: 'fillColor',type: 'color',   default: [1, 0, 1, 1],     label: 'Fill Color'                  }
+    { key: 'position', type: 'vector2', default: [0, 0],            label: 'Position',                    animatable: true },
+    { key: 'rotation', type: 'number',  default: 0,                 label: 'Rotation',                    animatable: true },
+    { key: 'opacity',  type: 'number',  default: 100,               label: 'Opacity',  min: 0, max: 100,  animatable: true },
+    { key: 'scale',    type: 'vector2', default: [100, 100],        label: 'Scale',                       animatable: true },
+    { key: 'fillColor',type: 'color',   default: [1, 0, 1, 1],     label: 'Fill Color',                  animatable: true }
   ],
 
   getParams: function(nodeData) {

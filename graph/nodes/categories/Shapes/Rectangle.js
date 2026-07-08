@@ -36,16 +36,16 @@ var RectangleNode = {
 
   params: [
     { key: 'label',        type: 'string',  default: 'Rectangle',            label: 'Label' },
-    { key: 'width',        type: 'number',  default: 200,                    label: 'Width',        min: 0 },
-    { key: 'height',       type: 'number',  default: 150,                    label: 'Height',       min: 0 },
-    { key: 'roundness',    type: 'number',  default: 0,                      label: 'Roundness (px)', min: 0 },
+    { key: 'width',        type: 'number',  default: 200,                    label: 'Width',        min: 0,                                   animatable: true },
+    { key: 'height',       type: 'number',  default: 150,                    label: 'Height',       min: 0,                                   animatable: true },
+    { key: 'roundness',    type: 'number',  default: 0,                      label: 'Roundness (px)', min: 0,                                 animatable: true },
     { key: 'roundCorners', type: 'boolean', default: false,                  label: 'Round Corners' },
-    { key: 'fill',         type: 'color',   default: [1, 1, 1, 1],          label: 'Fill' },
-    { key: 'stroke',       type: 'color',   default: [0, 0, 0, 0],          label: 'Stroke' },
-    { key: 'position',     type: 'vector2', default: [960, 540],             label: 'Position' },
-    { key: 'rotation',     type: 'number',  default: 0,                      label: 'Rotation' },
-    { key: 'scale',        type: 'vector2', default: [100, 100],             label: 'Scale' },
-    { key: 'opacity',      type: 'number',  default: 100,                    label: 'Opacity', min: 0, max: 100 }
+    { key: 'fill',         type: 'color',   default: [1, 1, 1, 1],          label: 'Fill',                                                animatable: true },
+    { key: 'stroke',       type: 'color',   default: [0, 0, 0, 0],          label: 'Stroke',                                              animatable: true },
+    { key: 'position',     type: 'vector2', default: [960, 540],             label: 'Position',                                            animatable: true },
+    { key: 'rotation',     type: 'number',  default: 0,                      label: 'Rotation',                                            animatable: true },
+    { key: 'scale',        type: 'vector2', default: [100, 100],             label: 'Scale',                                               animatable: true },
+    { key: 'opacity',      type: 'number',  default: 100,                    label: 'Opacity', min: 0, max: 100,                            animatable: true }
   ],
 
   getParams: function(nodeData) {

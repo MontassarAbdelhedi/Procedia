@@ -43,10 +43,12 @@ var __nl_render = (function() {
     var itemsHtml = '';
     for (var i = 0; i < cat.nodes.length; i++) {
       var nodeColor = __nl_cat.getCategoryColor(cat.nodes[i]);
+      var isMerge = cat.nodes[i] === 'Merge' || cat.nodes[i] === 'Multimerge';
       itemsHtml +=
         '<div class="leftbar-node-item" data-node="' + cat.nodes[i] + '">' +
           '<div class="leftbar-node-dot" style="background:' + nodeColor + '"></div>' +
           '<span class="leftbar-node-name">' + cat.nodes[i] + '</span>' +
+          (isMerge ? '<span class="leftbar-node-alert ti ti-alert-circle" title="Requires Procedia to run"></span>' : '') +
         '</div>';
     }
 
@@ -81,10 +83,12 @@ var __nl_render = (function() {
           '<div class="leftbar-subcategory-items" id="' + scId + '-items">';
       for (var i = 0; i < sc.nodes.length; i++) {
         var nodeColor = __nl_cat.getCategoryColor(sc.nodes[i]);
+        var isMerge = sc.nodes[i] === 'Merge' || sc.nodes[i] === 'Multimerge';
         itemsHtml +=
           '<div class="leftbar-node-item" data-node="' + sc.nodes[i] + '">' +
             '<div class="leftbar-node-dot" style="background:' + nodeColor + '"></div>' +
             '<span class="leftbar-node-name">' + sc.nodes[i] + '</span>' +
+            (isMerge ? '<span class="leftbar-node-alert ti ti-alert-circle" title="Requires Procedia to run"></span>' : '') +
           '</div>';
       }
       itemsHtml +=

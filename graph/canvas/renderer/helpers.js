@@ -59,6 +59,17 @@ var __r_hlp = (function() {
   }
 
   /**
+   * Checks whether a specific parameter of a node has keyframes.
+   * @param {string} nodeId
+   * @param {string} paramKey
+   * @returns {boolean}
+   */
+  function isParamKeyframed(nodeId, paramKey) {
+    if (typeof keyframeState === 'undefined') return false;
+    return keyframeState.isParamKeyframed(nodeId, paramKey);
+  }
+
+  /**
    * Converts an RGBA array (values 0-1) to a hex colour string.
    * @param {number[]} rgba - [r, g, b, a] each in [0, 1].
    * @returns {string} Hex colour e.g. "#ff00aa".
@@ -149,6 +160,7 @@ var __r_hlp = (function() {
   return {
     getViewport:     getViewport,
     isParamWired:    isParamWired,
+    isParamKeyframed: isParamKeyframed,
     clearWireParamCache: clearWireParamCache,
     rgbaToHex:       rgbaToHex,
     fillParamValue:  fillParamValue,

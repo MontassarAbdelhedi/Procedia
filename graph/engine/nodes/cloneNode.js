@@ -30,6 +30,8 @@ var __e_nclone = (function() {
     var src = graphState.getNode(nodeId);
     if (!src) return null;
 
+    if (typeof undoManager !== 'undefined') undoManager.capture();
+
     var copy = hlp.deepCopyNode(src);
     copy.id = uuidGenerator.node();
     copy.x = src.x + 30;
@@ -43,6 +45,7 @@ var __e_nclone = (function() {
 
     graphState.addNode(copy);
     graphState.replaceSelection([copy.id]);
+    if (typeof undoManager !== 'undefined') undoManager.commit('Clone ' + (src.props && src.props.label || src.type));
     hlp.refreshNodeUI();
     return copy.id;
   }

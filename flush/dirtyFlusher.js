@@ -73,8 +73,13 @@ var dirtyFlusher = (function() {
    * @param {Object} def - The node type definition from nodeRegistry
    */
   function _flushNode(nodeId, nodeData, def) {
+    // Track concurrent flushes so the propertyPoller can skip this node
+    // until all in-flight dispatches complete (avoids stale-read race condition).
+    nodeData._flushCount = (nodeData._flushCount || 0) + 1;
+
     if (!def || typeof def.onPropertyChange !== 'function') {
       graphState.clearDirty(nodeId);
+      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
       return Promise.resolve();
     }
 
@@ -95,11 +100,6 @@ var dirtyFlusher = (function() {
       pathLayerUUID = _findPathLayerUUID(nodeId);
     }
 
-    // Recover from error state so subsequent flushes can succeed.
-    if (nodeData.state === 'error') {
-      graphState.updateNode(nodeId, { state: 'alive' });
-    }
-
     var commands = [];
     for (var key in nodeData.props) {
       if (!nodeData.props.hasOwnProperty(key)) continue;
@@ -117,7 +117,10 @@ var dirtyFlusher = (function() {
       }
     }
 
-    if (commands.length === 0) return Promise.resolve();
+    if (commands.length === 0) {
+      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
+      return Promise.resolve();
+    }
 
     var chain = Promise.resolve();
     for (var i = 0; i < commands.length; i++) {
@@ -132,12 +135,11 @@ var dirtyFlusher = (function() {
       })(commands[i]);
     }
 
-    return chain.catch(function(err) {
-      console.error('[dirtyFlusher] flush failed for ' + nodeId + ': ' + err);
-      if (nodeData) nodeData.state = 'error';
-      if (typeof __e_hlp !== 'undefined' && __e_hlp.refreshNodeUI) {
-        __e_hlp.refreshNodeUI();
-      }
+    return chain.then(function() {
+      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
+    }).catch(function(err) {
+      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
+      console.warn('[dirtyFlusher] flush failed for ' + nodeId + ': ' + err);
     });
   }
 

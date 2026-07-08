@@ -68,6 +68,8 @@ var propertyPoller = (function() {
       if (!allNodes.hasOwnProperty(id)) continue;
       var node = allNodes[id];
       if (node.state !== 'alive') continue;
+      if (node.dirty) continue;
+      if (node._flushCount > 0) continue;
       var def = nodeRegistry.getDefinition(node.type);
       if (!def || !def.params || def.params === 'dynamic') continue;
 
@@ -175,6 +177,8 @@ var propertyPoller = (function() {
       if (!allNodes.hasOwnProperty(id)) continue;
       var node = allNodes[id];
       if (node.state !== 'alive') continue;
+      if (node.dirty) continue;
+      if (node._flushCount > 0) continue;
       var def = nodeRegistry.getDefinition(node.type);
       if (!def || def.nodeKind !== 'effector') continue;
       if (!def.matchName) continue;

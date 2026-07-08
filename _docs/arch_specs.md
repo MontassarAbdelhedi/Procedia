@@ -1020,13 +1020,23 @@ settings.getAll()         // returns a shallow copy of the full state
 - `getAll()` always returns a copy — the internal `_state` reference is never exposed
 - No events or pub/sub — consumers call `settings.get()` directly per-frame or per-open
 
-### 17b. settingsModal.js — UI Shell
+### 17b. settingsModal/ — Settings Modal
 
-`ui/settingsModal.js` depends on `ui/settings.js` and must load after it. It injects modal DOM at `init()` time (never hardcoded in `index.html`) and wires the gear button (`#settings-btn`) click to `open()`.
+`ui/settingsModal/` depends on `ui/settings.js` and must load after it. The module is split across five files:
+
+| File | Exports | Role |
+|------|---------|------|
+| `dom.js` | `__sm_dom.build` | Creates modal DOM and appends to body |
+| `events.js` | `__sm_events.bind` | Wires click/change events on controls |
+| `sync.js` | `__sm_sync.sync` | Reads settings into form controls |
+| `apply.js` | `__sm_apply.apply` | Applies settings to minimap / wire renderer |
+| `index.js` | `settingsModal.{init,open,close}` | Assembles the module and exposes the public API |
+
+It injects modal DOM at `init()` time (never hardcoded in `index.html`) and wires the gear button (`#settings-btn`) click to `open()`.
 
 **Public API:** `settingsModal.init()`, `settingsModal.open()`, `settingsModal.close()`
 
-**Open behavior:** Before revealing the overlay, `open()` re-syncs all controls to current `settings` state — ensuring the modal always shows the live values even if settings changed programmatically.
+**Open behavior:** Before revealing the overlay, `open()` re-syncs all controls to current `settings` state via `__sm_sync.sync()` — ensuring the modal always shows the live values even if settings changed programmatically.
 
 **Close triggers:** ✕ button, click outside modal box, Escape key.
 

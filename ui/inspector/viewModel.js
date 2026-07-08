@@ -63,6 +63,10 @@ var __ins_vm = (function() {
    * @param {*} value The raw value.
    * @return {string} The formatted display string.
    */
+  function _roundNum(v) {
+    return Number(v.toFixed(2));
+  }
+
   function _formatValueForInput(param, value) {
     if (value === undefined || value === null) {
       if (param.default !== undefined) return String(param.default);
@@ -76,9 +80,10 @@ var __ins_vm = (function() {
       return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')';
     }
     if ((param.type === 'vector2' || param.type === 'vector3') && Array.isArray(value)) {
-      return value.join(', ');
+      return value.map(_roundNum).join(', ');
     }
     if (param.type === 'boolean') return value ? 'true' : 'false';
+    if (typeof value === 'number') return _roundNum(value).toString();
     return String(value);
   }
 
@@ -133,12 +138,14 @@ var __ins_vm = (function() {
       var param = params[i];
       var key = param.key;
       var row = {
-        key:     key,
-        label:   param.label || key,
-        type:    param.type,
-        value:   nodeData.props[key],
-        wired:   _isParamWired(nodeData.id, key),
-        display: _formatValueForInput(param, nodeData.props[key])
+        key:        key,
+        label:      param.label || key,
+        type:       param.type,
+        value:      nodeData.props[key],
+        wired:      _isParamWired(nodeData.id, key),
+        display:    _formatValueForInput(param, nodeData.props[key]),
+        animatable: param.animatable === true,
+        keyframed:  typeof keyframeState !== 'undefined' && keyframeState.isParamKeyframed(nodeData.id, key)
       };
       if (param.options) row.options = param.options;
       if (param.enableWhen) {

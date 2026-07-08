@@ -29,6 +29,7 @@ var inspector = (function() {
     if (_contentEl) {
       _contentEl.addEventListener('change', __ins_events.onInspectorChange);
       _contentEl.addEventListener('input', __ins_events.onInspectorInput);
+      _contentEl.addEventListener('keydown', __ins_events.onInspectorKeydown);
       _contentEl.addEventListener('click', __ins_events.onLayerActionClick);
       _contentEl.addEventListener('click', __ins_events.onColorTriggerClick);
       _contentEl.addEventListener('click', __ins_events.onKeyframeIconClick);
@@ -108,10 +109,12 @@ var inspector = (function() {
 
   /**
    * Refreshes the inspector based on the current graph selection.
-   * Skips DOM replacement when a text input is focused to avoid focus loss.
+   * Skips DOM replacement when a text input is focused to avoid focus loss,
+   * unless force is true (used after committing a change like math eval).
+   * @param {boolean} force If true, refresh even when an input is focused.
    */
-  function refresh() {
-    if (_isInputFocused()) return;
+  function refresh(force) {
+    if (!force && _isInputFocused()) return;
     var sel = graphState.getSelection();
     if (sel.length === 0) {
       showEmpty();

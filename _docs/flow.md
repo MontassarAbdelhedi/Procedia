@@ -81,7 +81,7 @@
 
 2. **Panel shutdown (save)** — `index.js:98` `window.beforeunload` calls `evalBridge.dispatch({action:'writeGraph'})` (`jsx/persistence.jsx:writeGraph`) which saves graph data to `__PROCEDIA_NODES__` and `__PROCEDIA_WIRES__` text layers in the Reserved Comp, then calls `poller.stop()` (`polling/poller.js:113`).
 
-3. **Panel reload** — `ui/topBar.js:74` reload btn click calls `window.location.reload()`.
+3. **Panel reload** — `ui/topBar/index.js:74` reload btn click calls `window.location.reload()`.
 
 ## Node Creation (Drop & Duplicate)
 
@@ -89,7 +89,7 @@
 
 5. **Drag node onto existing wire (mid-path insertion)** — `ui/nodeList/dragdrop.js:87` `canvasDrag.findWireAt()` (`graph/canvas/drag/hitTest.js`) hits a wire → `canvasDrag.insertNodeOnWire()` (`graph/canvas/drag/insert.js`) creates node data with `_transplantLayerUUID` copied from the existing wire, calls `graphState.addNode()`, `schemaCache.fetchSchema()` for effector nodes, `graphState.removeWire(wireId)`, then `engine.connectWire(wire.fromNode→node.main_input)` and `engine.connectWire(node.output→wire.toNode)` → `graphState.setSelection()` → `renderer.render()` → `wireRenderer.render()` → `inspector.refresh()` → `statusBar.refresh()`.
 
-6. **Duplicate selected nodes** — `ui/topBar.js:48` dupe btn click → `engine.duplicateSelectedNodes()` (`graph/engine/nodes/duplicateNode.js:23`) iterates `graphState.getSelection()`, deep-copies each node (excluding id/dirty/`_transplantLayerUUID`) with `uuidGenerator.node()`, +30 offset on x/y, empty `hostingComps`, `state:'ghost'` for non-data nodes, calls `graphState.addNode()` for each, then `graphState.replaceSelection(newIds)`.
+6. **Duplicate selected nodes** — `ui/topBar/index.js:48` dupe btn click → `engine.duplicateSelectedNodes()` (`graph/engine/nodes/duplicateNode.js:23`) iterates `graphState.getSelection()`, deep-copies each node (excluding id/dirty/`_transplantLayerUUID`) with `uuidGenerator.node()`, +30 offset on x/y, empty `hostingComps`, `state:'ghost'` for non-data nodes, calls `graphState.addNode()` for each, then `graphState.replaceSelection(newIds)`.
 
 ## Wire Creation & Connection
 
@@ -173,7 +173,7 @@
 
 ## Auto Layout
 
-38. **Auto layout execution** — `ui/topBar.js:58` autoLayout btn click → `autoLayout.run(options)` (`graph/autoLayout/index.js:31`) reads `settings.get('layoutDirection'/'layoutHSpacing'/'layoutVSpacing')`, calls `C._buildGraph()` (`graph/autoLayout/graphBuilder.js:_buildGraph`) which builds adjacency list from layer wires, calls `C._findComponents()` to find connected components, for each component calls `C._assignLayers()` (`graph/autoLayout/layerAssignment.js:_assignLayers`) using longest-path from sources to comps, `C._buildOrdering()`, `C._reduceCrossings()` (`graph/autoLayout/crossingReduction.js:_reduceCrossings`) with barycenter heuristic, `C._assignCoordinates()` (`graph/autoLayout/positioning.js:_assignCoordinates`) using Sugiyama coordinates, then `C._positionDataNodes()` (`graph/autoLayout/positioning.js:_positionDataNodes`) for data nodes, `C._positionRemaining()` for unpositioned nodes, `C._normalizePositions()` to shift origin, then `graphState.updateNode()` for each position (skipping locked nodes), then `renderer.render()`, `wireRenderer.render(null)`, `minimap.fitAll()`.
+38. **Auto layout execution** — `ui/topBar/index.js:58` autoLayout btn click → `autoLayout.run(options)` (`graph/autoLayout/index.js:31`) reads `settings.get('layoutDirection'/'layoutHSpacing'/'layoutVSpacing')`, calls `C._buildGraph()` (`graph/autoLayout/graphBuilder.js:_buildGraph`) which builds adjacency list from layer wires, calls `C._findComponents()` to find connected components, for each component calls `C._assignLayers()` (`graph/autoLayout/layerAssignment.js:_assignLayers`) using longest-path from sources to comps, `C._buildOrdering()`, `C._reduceCrossings()` (`graph/autoLayout/crossingReduction.js:_reduceCrossings`) with barycenter heuristic, `C._assignCoordinates()` (`graph/autoLayout/positioning.js:_assignCoordinates`) using Sugiyama coordinates, then `C._positionDataNodes()` (`graph/autoLayout/positioning.js:_positionDataNodes`) for data nodes, `C._positionRemaining()` for unpositioned nodes, `C._normalizePositions()` to shift origin, then `graphState.updateNode()` for each position (skipping locked nodes), then `renderer.render()`, `wireRenderer.render(null)`, `minimap.fitAll()`.
 
 ## Inspector & Status Bar
 
@@ -183,13 +183,13 @@
 
 ## Settings
 
-41. **Settings modal open** — settings btn click → `settingsModal.open()` (`ui/settingsModal.js:202`) → `_syncControls()` (`settingsModal.js:161`) reads `settings.getAll()` from localStorage (`ui/settings.js`), populates minimap checkbox, wire style select, animated dash checkbox, layout direction select, spacing range sliders → shows overlay.
+41. **Settings modal open** — settings btn click → `settingsModal.open()` (`ui/settingsModal/index.js:18`) → `__sm_sync.sync(_refs)` (`ui/settingsModal/sync.js:14`) reads `settings.getAll()` from localStorage (`ui/settings.js`), populates minimap checkbox, wire style select, animated dash checkbox, layout direction select, spacing range sliders → shows overlay.
 
-42. **Settings toggle change** — minimap/wireStyle/animatedDash control `change` → `settings.set(key, value)` (`ui/settings.js:set`) writes to localStorage → `_applySettings()` (`settingsModal.js:188`) toggles minimap canvas display and calls `wireRenderer.render(null)`.
+42. **Settings toggle change** — minimap/wireStyle/animatedDash control `change` → `settings.set(key, value)` (`ui/settings.js:set`) writes to localStorage → `__sm_apply.apply()` (`ui/settingsModal/apply.js:14`) toggles minimap canvas display and calls `wireRenderer.render(null)`.
 
 43. **Settings layout direction/spacing change** — layout direction select / spacing range `change`/`input` → `settings.set()` writes to localStorage.
 
-44. **Settings modal close** — close btn or overlay backdrop click → `settingsModal.close()` (`settingsModal.js:212`) hides overlay → `_applySettings()`.
+44. **Settings modal close** — close btn or overlay backdrop click → `settingsModal.close()` (`ui/settingsModal/index.js:26`) hides overlay → `__sm_apply.apply()`.
 
 ## Notifications
 
@@ -231,7 +231,7 @@
 
 ## Global State Reset
 
-59. **Full graph reset** — `ui/topBar.js:66` reset btn with confirm → `engine.resetAll()` (`graph/engine/state.js:27`) iterates all nodes in reverse and calls `def.onDelete(nodeData)` then `evalBridge.dispatch()`, calls `graphState.clearGraph()` (`graph/graphState/graphOps.js:clearGraph`), then `viewport.reset()`, `renderer.render()`, `wireRenderer.render(null)`, `inspector.refresh()`, `statusBar.refresh()`, `topBar.refreshSelection([])`.
+59. **Full graph reset** — `ui/topBar/index.js:66` reset btn with confirm → `engine.resetAll()` (`graph/engine/state.js:27`) iterates all nodes in reverse and calls `def.onDelete(nodeData)` then `evalBridge.dispatch()`, calls `graphState.clearGraph()` (`graph/graphState/graphOps.js:clearGraph`), then `viewport.reset()`, `renderer.render()`, `wireRenderer.render(null)`, `inspector.refresh()`, `statusBar.refresh()`, `topBar.refreshSelection([])`.
 
 ## Wire Rendering
 

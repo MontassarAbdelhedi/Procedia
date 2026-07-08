@@ -20,6 +20,26 @@ var __e_prop = (function() {
   var hlp = __e_hlp;
 
   /**
+   * Set of path layer UUIDs that are pending creation in AE.
+   * Protects against a race condition where the poller checks for a layer
+   * UUID before the async evalBridge.dispatch(createTextLayer) has completed.
+   * UUIDs are added here in _firePathCreation / _propagateAlive and removed
+   * when the dispatch promise resolves (success or failure).
+   * @type {Object<string, boolean>}
+   */
+  var _pendingPathUUIDs = {};
+
+  /**
+   * Checks if a path layer UUID is pending creation in AE.
+   * Used by the poller to skip UUIDs that haven't had their layer created yet.
+   * @param {string} uuid - The path layer UUID to check
+   * @returns {boolean} True if the UUID is pending creation
+   */
+  function _isPathLayerPending(uuid) {
+    return (_pendingPathUUIDs[uuid] || 0) > 0;
+  }
+
+  /**
    * Merges a hosting comp into a hostingComps array, deduplicating.
    * @param {string[]} existing - Current hosting comps
    * @param {string} newComp - New comp UUID to add
@@ -73,9 +93,23 @@ var __e_prop = (function() {
   function _dispatchCommand(nodeId, command) {
     if (command === null) return;
     (function(nId, cmd) {
+      // Register pending path UUID so the poller doesn't race with creation.
+      // Uses reference counting because multiple dispatches (e.g. effector +
+      // affected node in a chain) share the same pathLayerUUID. The UUID is
+      // only considered not-pending when all dispatches have completed.
+      if (cmd.params && cmd.params.layerUUID) {
+        _pendingPathUUIDs[cmd.params.layerUUID] = (_pendingPathUUIDs[cmd.params.layerUUID] || 0) + 1;
+      }
       evalBridge.dispatch(cmd).then(function(res) {
+        // Clear pending path UUID — creation dispatch completed
+        if (cmd.params && cmd.params.layerUUID) {
+          _pendingPathUUIDs[cmd.params.layerUUID]--;
+          if (_pendingPathUUIDs[cmd.params.layerUUID] <= 0) {
+            delete _pendingPathUUIDs[cmd.params.layerUUID];
+          }
+        }
         if (!res.ok) {
-          console.error('[engine] onAlive failed for ' + nId + ': ' + res.error);
+          console.error('[engine] onAlive failed for ' + nId + ': ' + (res.error || 'unknown error'));
           graphState.updateNode(nId, { state: 'error' });
           var nd = graphState.getNode(nId);
           if (nd && nd.type === 'core/footage' && cmd.action === 'createFootageLayer') {
@@ -86,6 +120,15 @@ var __e_prop = (function() {
                 duration: 5000
               });
             }
+          }
+        } else {
+          // Safety net: if the node was incorrectly set to 'error' by the
+          // poller during the async dispatch window, restore it to 'alive',
+          // since the dispatch succeeded (layer was created in AE).
+          var ndOk = graphState.getNode(nId);
+          if (ndOk && ndOk.state === 'error') {
+            console.warn('[engine] onAlive dispatch succeeded for ' + nId + ' but node was in error state — recovering to alive');
+            graphState.updateNode(nId, { state: 'alive' });
           }
         }
       });
@@ -131,12 +174,23 @@ var __e_prop = (function() {
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) return;
 
+    var __reportTx = null;
+    if (typeof reporter !== 'undefined' && reporter.captureMessage && typeof Sentry !== 'undefined' && Sentry.startTransaction) {
+      __reportTx = Sentry.startTransaction({ name: 'propagateAlive', op: 'engine.propagate', tags: { nodeId: nodeId, nodeType: nodeData.type } });
+    }
+
     for (var h = 0; h < nodeData.hostingComps.length; h++) {
-      if (nodeData.hostingComps[h] === hostingCompUUID) return;
+      if (nodeData.hostingComps[h] === hostingCompUUID) {
+        if (__reportTx) { __reportTx.finish(); }
+        return;
+      }
     }
 
     var def = nodeRegistry.getDefinition(nodeData.type);
-    if (!def) return;
+    if (!def) {
+      if (__reportTx) { __reportTx.finish(); }
+      return;
+    }
 
     if (nodeData._transplantLayerUUID) {
       evalBridge.dispatch({
@@ -157,6 +211,7 @@ var __e_prop = (function() {
       if (transplantCmd) transplantCmd.params._moveToBottom = true;
       _dispatchCommand(nodeId, transplantCmd);
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
+      if (__reportTx) { __reportTx.finish(); }
       return;
     }
 
@@ -168,6 +223,7 @@ var __e_prop = (function() {
       });
       _dispatchCommand(nodeId, _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID));
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
+      if (__reportTx) { __reportTx.finish(); }
       return;
     }
 
@@ -176,7 +232,10 @@ var __e_prop = (function() {
     if (command === null &&
         nodeData.nodeKind !== 'merge' &&
         nodeData.nodeKind !== 'multimerge' &&
-        nodeData.nodeKind !== 'blending') return;
+        nodeData.nodeKind !== 'blending') {
+      if (__reportTx) { __reportTx.finish(); }
+      return;
+    }
 
     graphState.updateNode(nodeId, {
       state:          'alive',
@@ -193,6 +252,8 @@ var __e_prop = (function() {
     }
 
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
+
+    if (__reportTx) { __reportTx.finish(); }
   }
 
   /**
@@ -320,10 +381,16 @@ var __e_prop = (function() {
    * @param {string} terminalWireId - ID of the terminal wire to fire
    */
   function _firePathCreation(terminalWireId) {
+    var __reportTx = null;
+    if (typeof reporter !== 'undefined' && reporter.captureMessage && typeof Sentry !== 'undefined' && Sentry.startTransaction) {
+      __reportTx = Sentry.startTransaction({ name: 'firePathCreation', op: 'engine.propagate', tags: { terminalWireId: terminalWireId } });
+    }
+
     var wireMap = graphState.getAllWires();
     var wireData = wireMap[terminalWireId] || null;
     if (!wireData) {
       console.error('[engine] _firePathCreation: wire not found: ' + terminalWireId);
+      if (__reportTx) { __reportTx.finish(); }
       return;
     }
 
@@ -336,12 +403,15 @@ var __e_prop = (function() {
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) {
       dirtyFlusher.flush();
     }
+
+    if (__reportTx) { __reportTx.finish(); }
   }
 
   return {
     propagateAlive:     _propagateAlive,
     checkMatteActivation: _checkMatteActivation,
-    firePathCreation:   _firePathCreation
+    firePathCreation:   _firePathCreation,
+    isPathLayerPending: _isPathLayerPending
   };
 
 })();

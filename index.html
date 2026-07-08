@@ -64,6 +64,10 @@
   <script src="graph/graphState/selection.js"></script>
   <script src="graph/graphState/graphOps.js"></script>
   <script src="graph/graphState/index.js"></script>
+  <script src="graph/undoManager/state.js"></script>
+  <script src="graph/undoManager/aeReconcile.js"></script>
+  <script src="graph/undoManager/restore.js"></script>
+  <script src="graph/undoManager/index.js"></script>
   <script src="graph/keyframeState.js"></script>
 <script src="graph/nodeRegistry.js"></script>
   <script src="graph/graphExporter.js"></script>
@@ -181,7 +185,11 @@
   <script src="ui/inspector/events.js"></script>
   <script src="ui/inspector/layerStack.js"></script>
   <script src="ui/inspector/index.js"></script>
-  <script src="ui/settingsModal.js"></script>
+  <script src="ui/settingsModal/dom.js"></script>
+  <script src="ui/settingsModal/events.js"></script>
+  <script src="ui/settingsModal/sync.js"></script>
+  <script src="ui/settingsModal/apply.js"></script>
+  <script src="ui/settingsModal/index.js"></script>
 
   <!-- 10. Infrastructure services -->
   <script src="polling/missingNodes.js"></script>
@@ -192,14 +200,23 @@
   <script src="notifications/notificationBar.js"></script>
 
   <!-- 11. UI chrome — no graph dependencies -->
-  <script src="ui/topBar.js"></script>
+  <script src="ui/topBar/collapse.js"></script>
+  <script src="ui/topBar/selection.js"></script>
+  <script src="ui/topBar/io.js"></script>
+  <script src="ui/topBar/init.js"></script>
+  <script src="ui/topBar/index.js"></script>
   <script src="ui/statusBar.js"></script>
   <script src="ui/sidebarToggle.js"></script>
   <script src="ui/compList.js"></script>
   <script src="ui/tipField.js"></script>
 
   <!-- 12. Walkthrough tutorial — no graph dependencies -->
-  <script src="ui/walkthrough.js"></script>
+  <script src="ui/walkthrough/steps.js"></script>
+  <script src="ui/walkthrough/dom.js"></script>
+  <script src="ui/walkthrough/render.js"></script>
+  <script src="ui/walkthrough/nav.js"></script>
+  <script src="ui/walkthrough/events.js"></script>
+  <script src="ui/walkthrough/index.js"></script>
 
   <!-- 13. Entry point — depends on everything -->
   <script src="index.js"></script>

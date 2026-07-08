@@ -27,11 +27,11 @@ var TextNode = {
   params: [
     { key: 'label',    type: 'string',  default: 'Text',      label: 'Label'                        },
     { key: 'content',  type: 'string',  default: 'New Text',  label: 'Content'                      },
-    { key: 'fontSize', type: 'number',  default: 72,          label: 'Font Size', min: 1, max: 999  },
-    { key: 'color',    type: 'color',   default: [1, 1, 1, 1], label: 'Color'                       },
-    { key: 'position', type: 'vector2', default: [0, 0],      label: 'Position'                     },
-    { key: 'rotation', type: 'number',  default: 0,           label: 'Rotation'                     },
-    { key: 'opacity',  type: 'number',  default: 100,         label: 'Opacity',   min: 0, max: 100  }
+    { key: 'fontSize', type: 'number',  default: 72,             label: 'Font Size', min: 1, max: 999,                              animatable: true },
+    { key: 'color',    type: 'color',   default: [1, 1, 1, 1],  label: 'Color',                                                    animatable: true },
+    { key: 'position', type: 'vector2', default: [0, 0],         label: 'Position',                                                animatable: true },
+    { key: 'rotation', type: 'number',  default: 0,              label: 'Rotation',                                                animatable: true },
+    { key: 'opacity',  type: 'number',  default: 100,            label: 'Opacity',   min: 0, max: 100,                             animatable: true }
   ],
 
   getParams: function(nodeData) {

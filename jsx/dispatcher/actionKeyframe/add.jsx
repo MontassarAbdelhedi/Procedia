@@ -19,7 +19,7 @@ function _handleAddKeyframe(cmd) {
       if (td) {
         if (params.value !== undefined) {
           if (key === 'fontSize') td.fontSize = params.value;
-          else if (key === 'color') td.fillColor = params.value;
+          else if (key === 'color') td.fillColor = [params.value[0], params.value[1], params.value[2]];
           else if (key === 'content') td.text = String(params.value);
         }
         layer.text.sourceText.setValueAtTime(kfTime, td);

@@ -101,9 +101,11 @@ var PERSISTENCE = (function() {
 
       _removeOldLayers(comp, '__PROCEDIA_NODES__');
       _removeOldLayers(comp, '__PROCEDIA_WIRES__');
+      _removeOldLayers(comp, '__PROCEDIA_KEYFRAMES__');
 
       var nodesJSON = JSON.stringify(graphData.nodes || {});
       var wiresJSON = JSON.stringify(graphData.wires || {});
+      var keyframesJSON = JSON.stringify(graphData.keyframes || {});
 
       var nodeChunks = _chunkData(nodesJSON, '__PROCEDIA_NODES__');
       var wireChunks = _chunkData(wiresJSON, '__PROCEDIA_WIRES__');
@@ -127,8 +129,18 @@ var PERSISTENCE = (function() {
         layer.enabled = false;
       }
 
+      var kfChunks = _chunkData(keyframesJSON, '__PROCEDIA_KEYFRAMES__');
+      for (i = 0; i < kfChunks.length; i += 2) {
+        layer = comp.layers.addText('');
+        layer.name = kfChunks[i];
+        textDoc = layer.text.sourceText.value;
+        textDoc.text = kfChunks[i + 1];
+        layer.text.sourceText.setValue(textDoc);
+        layer.enabled = false;
+      }
+
       result.ok = true;
-      result.data = { nodeChunks: nodeChunks.length / 2, wireChunks: wireChunks.length / 2 };
+      result.data = { nodeChunks: nodeChunks.length / 2, wireChunks: wireChunks.length / 2, kfChunks: kfChunks.length / 2 };
     } catch (e) {
       result.error = e.toString();
     }
@@ -145,15 +157,17 @@ var PERSISTENCE = (function() {
       var comp = _reservedComp();
       if (!comp) {
         result.ok = true;
-        result.data = { nodes: {}, wires: {} };
+        result.data = { nodes: {}, wires: {}, keyframes: {} };
         return result;
       }
 
       var nodesStr = _readChunks(comp, '__PROCEDIA_NODES__');
       var wiresStr = _readChunks(comp, '__PROCEDIA_WIRES__');
+      var kfStr = _readChunks(comp, '__PROCEDIA_KEYFRAMES__');
 
       var nodes = {};
       var wires = {};
+      var keyframes = {};
       var parsed;
 
       if (nodesStr) {
@@ -163,6 +177,10 @@ var PERSISTENCE = (function() {
       if (wiresStr) {
         parsed = JSON.parse(wiresStr);
         if (parsed && typeof parsed === 'object') wires = parsed;
+      }
+      if (kfStr) {
+        parsed = JSON.parse(kfStr);
+        if (parsed && typeof parsed === 'object') keyframes = parsed;
       }
 
       var parkedNodeUUIDs = [];
@@ -175,7 +193,7 @@ var PERSISTENCE = (function() {
       }
 
       result.ok = true;
-      result.data = { nodes: nodes, wires: wires, parkedNodeUUIDs: parkedNodeUUIDs };
+      result.data = { nodes: nodes, wires: wires, keyframes: keyframes, parkedNodeUUIDs: parkedNodeUUIDs };
     } catch (e) {
       result.error = e.toString();
     }

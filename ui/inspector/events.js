@@ -11,6 +11,124 @@
 var __ins_events = (function() {
 
   /**
+   * Tokenizes and evaluates a math expression using recursive descent.
+   * Supports: +, -, *, /, %, ^, parentheses, decimals, unary minus.
+   * @param {string} str The math expression string.
+   * @return {number|null} The evaluated result, or null if invalid.
+   */
+  function _evalMathExpr(str) {
+    if (typeof str !== 'string') return null;
+    var s = str.trim().replace(/\s/g, '');
+    if (s === '') return null;
+    if (!/^[\d+\-*/().,%^]+$/.test(s)) return null;
+    if (!/[+\-*/%^]/.test(s)) return null;
+
+    // Tokenize
+    var tokens = [];
+    var i = 0;
+    while (i < s.length) {
+      var ch = s[i];
+      if (ch >= '0' && ch <= '9') {
+        var num = '';
+        while (i < s.length && ((s[i] >= '0' && s[i] <= '9') || s[i] === '.')) {
+          num += s[i];
+          i++;
+        }
+        tokens.push({ t: 'num', v: parseFloat(num) });
+      } else if (ch === '+' || ch === '-' || ch === '*' || ch === '/' || ch === '%' || ch === '^') {
+        tokens.push({ t: 'op', v: ch });
+        i++;
+      } else if (ch === '(' || ch === ')') {
+        tokens.push({ t: ch === '(' ? 'lp' : 'rp', v: ch });
+        i++;
+      } else {
+        return null;
+      }
+    }
+
+    // Handle unary minus: convert '-num' or '(-num' patterns
+    var j = 0;
+    while (j < tokens.length) {
+      if (tokens[j].t === 'op' && tokens[j].v === '-') {
+        var prev = j > 0 ? tokens[j-1] : null;
+        if (!prev || prev.t === 'lp' || (prev.t === 'op' && prev.v !== ')')) {
+          tokens[j].unary = true;
+        }
+      }
+      j++;
+    }
+
+    var pos = 0;
+    function peek() { return pos < tokens.length ? tokens[pos] : null; }
+    function consume() { return pos < tokens.length ? tokens[pos++] : null; }
+
+    function parseExpr() {
+      var left = parseTerm();
+      while (peek() && peek().t === 'op' && (peek().v === '+' || peek().v === '-')) {
+        var op = consume().v;
+        var right = parseTerm();
+        if (right === null) return null;
+        left = op === '+' ? left + right : left - right;
+      }
+      return left;
+    }
+
+    function parseTerm() {
+      var left = parseFactor();
+      while (peek() && peek().t === 'op' && (peek().v === '*' || peek().v === '/' || peek().v === '%')) {
+        var op = consume().v;
+        var right = parseFactor();
+        if (right === null) return null;
+        if (op === '*') left = left * right;
+        else if (op === '/') left = right !== 0 ? left / right : 0;
+        else left = left % right;
+      }
+      return left;
+    }
+
+    function parseFactor() {
+      if (!peek()) return null;
+      if (peek().t === 'num') {
+        var tok = consume();
+        // Handle ^ (right-associative)
+        if (peek() && peek().t === 'op' && peek().v === '^') {
+          consume();
+          var exp = parseFactor();
+          if (exp === null) return null;
+          return Math.pow(tok.v, exp);
+        }
+        return tok.v;
+      }
+      if (peek().t === 'lp') {
+        consume(); // '('
+        var val = parseExpr();
+        if (!peek() || peek().t !== 'rp') return null;
+        consume(); // ')'
+        // Handle ^ after parenthesized expression
+        if (peek() && peek().t === 'op' && peek().v === '^') {
+          consume();
+          var exp2 = parseFactor();
+          if (exp2 === null) return null;
+          return Math.pow(val, exp2);
+        }
+        return val;
+      }
+      if (peek().t === 'op' && peek().unary) {
+        consume(); // '-'
+        var operand = parseFactor();
+        if (operand === null) return null;
+        return -operand;
+      }
+      return null;
+    }
+
+    var result = parseExpr();
+    if (result === null || pos !== tokens.length) return null;
+    if (typeof result !== 'number' || !isFinite(result)) return null;
+    return result;
+  }
+
+  /**
    * Reads the target input, parses the value, and applies it via engine.setNodeProperty().
    * Auto-keyframes if the param is keyframed (dispatch without time = AE comp.time).
    * @param {HTMLElement} target The input element.
@@ -19,9 +137,39 @@ var __ins_events = (function() {
     var nodeId = target.getAttribute('data-node-id');
     var key    = target.getAttribute('data-param-key');
     var type   = target.getAttribute('data-param-type');
-    if (!nodeId || !key) return;
+    if (!nodeId || !key) return false;
 
     var raw = target.type === 'checkbox' ? target.checked : target.value;
+    var didMath = false;
+    if (typeof raw === 'string') {
+      if (type === 'number') {
+        var evaled = _evalMathExpr(raw);
+        if (evaled !== null) {
+          raw = evaled;
+          target.value = String(evaled);
+          didMath = true;
+        }
+      } else if (type === 'vector2' || type === 'vector3') {
+        var parts = raw.split(',');
+        var out = [];
+        var changed = false;
+        for (var vi = 0; vi < parts.length; vi++) {
+          var p = parts[vi].trim();
+          var ev = _evalMathExpr(p);
+          if (ev !== null) {
+            out.push(ev);
+            changed = true;
+          } else {
+            out.push(parseFloat(p) || 0);
+          }
+        }
+        if (changed) {
+          raw = out.join(', ');
+          target.value = raw;
+          didMath = true;
+        }
+      }
+    }
     engine.setNodeProperty(nodeId, key, __ins_vm.parseInputValue({ type: type, key: key }, raw));
 
     // auto-keyframe when a keyframed param is changed at a non-keyframe frame
@@ -50,6 +198,7 @@ var __ins_events = (function() {
         }
       }
     }
+    return didMath;
   }
 
   /**
@@ -61,8 +210,14 @@ var __ins_events = (function() {
   function _onInspectorChange(e) {
     var target = e.target;
     if (!target || !target.classList || !target.classList.contains('inspector-param-input')) return;
-    _applyChange(target);
-    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+    var didMath = _applyChange(target);
+    if (typeof inspector !== 'undefined' && inspector.refresh) {
+      if (didMath) {
+        inspector.refresh(true);
+      } else {
+        inspector.refresh();
+      }
+    }
   }
 
   /**
@@ -82,8 +237,36 @@ var __ins_events = (function() {
     if (!nodeId || !key) return;
 
     var raw = target.value;
+    // Skip live-update when typing a math expression (e.g. "600/2" or "600/2, 400")
+    // to avoid sending partial values (6, 60, 600) to AE on each keystroke.
+    if (typeof raw === 'string' && (type === 'number' || type === 'vector2' || type === 'vector3')) {
+      var isExpr = false;
+      var vals = raw.split(',');
+      for (var vi = 0; vi < vals.length; vi++) {
+        var v = vals[vi].trim();
+        if (/[+\-*/%^]/.test(v) && !/^-?\d*\.?\d*$/.test(v)) { isExpr = true; break; }
+      }
+      if (isExpr) return;
+    }
     graphState.updateProp(nodeId, key, __ins_vm.parseInputValue({ type: type, key: key }, raw));
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+  }
+
+  /**
+   * Handles keydown on inspector inputs. Triggers change handling on Enter
+   * for text inputs, since CEP may not fire the 'change' event on Enter.
+   * @param {Event} e The keydown event.
+   */
+  function _onInspectorKeydown(e) {
+    if (e.key !== 'Enter') return;
+    var target = e.target;
+    if (!target || !target.classList || !target.classList.contains('inspector-param-input')) return;
+    if (target.type === 'checkbox' || target.type === 'select-one') return;
+    // Trigger the same behavior as a change event (evaluate, refresh)
+    var didMath = _applyChange(target);
+    if (typeof inspector !== 'undefined' && inspector.refresh) {
+      inspector.refresh(didMath || undefined);
+    }
   }
 
   /**
@@ -564,6 +747,7 @@ var __ins_events = (function() {
   return {
     onInspectorChange:      _onInspectorChange,
     onInspectorInput:       _onInspectorInput,
+    onInspectorKeydown:     _onInspectorKeydown,
     onLayerActionClick:     _onLayerActionClick,
     onKeyframeIconClick:    _onKeyframeIconClick,
     onColorTriggerClick:    _onColorTriggerClick,

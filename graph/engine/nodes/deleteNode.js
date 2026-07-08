@@ -81,7 +81,7 @@ var __e_ndel = (function() {
           var affHostUUID = nodeData.hostingComps[ai];
           var affGhostCmd = null;
           if (nodeData.nodeKind === 'affected') {
-            affGhostCmd = def ? def.onGhost(nodeData, affHostUUID) : null;
+            affGhostCmd = def && typeof def.onGhost === 'function' ? def.onGhost(nodeData, affHostUUID) : null;
             if (affGhostCmd && affGhostCmd.params) {
               affGhostCmd.params.layerUUID = hlp.findPathLayerUUID(nodeData.id);
             }
@@ -121,6 +121,28 @@ var __e_ndel = (function() {
         }
         for (var ci = 0; ci < cascadeWireIds.length; ci++) {
           cascadeAlgorithm.cascadeGhost(cascadeWireIds[ci]);
+        }
+        var outgoingLayerWires = [];
+        for (var owId in delWireMap) {
+          if (!delWireMap.hasOwnProperty(owId)) continue;
+          var ow = delWireMap[owId];
+          if (ow.fromNode === nodeId && ow.type === 'layer' && ow._pathLayerUUID !== null) {
+            outgoingLayerWires.push(ow);
+          }
+        }
+        if (outgoingLayerWires.length > 0) {
+          var outBatch = [];
+          for (var oi = 0; oi < outgoingLayerWires.length; oi++) {
+            var ow = outgoingLayerWires[oi];
+            outBatch.push({
+              action: 'deletePathLayer',
+              params: {
+                hostingCompUUID: ow.toNode,
+                layerUUID:       ow._pathLayerUUID
+              }
+            });
+          }
+          evalBridge.dispatchBatch(outBatch);
         }
       } else if (cascadeAlgorithm && cascadeAlgorithm.cascadeGhost) {
         for (var cwId in delWireMap) {
@@ -173,6 +195,10 @@ var __e_ndel = (function() {
     hlp.refreshNodeUI();
 
     graphState.removeFromSelection(nodeId);
+
+    if (typeof envSnapshot !== 'undefined' && envSnapshot.addAction) {
+      envSnapshot.addAction('deleteNode', { type: nodeData.type, label: nodeData.props && nodeData.props.label });
+    }
   }
 
   /**
@@ -181,8 +207,13 @@ var __e_ndel = (function() {
   function deleteSelectedNodes() {
     var sel = graphState.getSelection().slice();
     if (sel.length === 0) return;
+    if (typeof undoManager !== 'undefined') undoManager.capture();
     for (var i = 0; i < sel.length; i++) {
       deleteNode(sel[i]);
+    }
+    if (typeof undoManager !== 'undefined') undoManager.commit('Delete ' + sel.length + ' node' + (sel.length > 1 ? 's' : ''));
+    if (typeof envSnapshot !== 'undefined' && envSnapshot.addAction) {
+      envSnapshot.addAction('deleteSelectedNodes', { count: sel.length });
     }
   }
 

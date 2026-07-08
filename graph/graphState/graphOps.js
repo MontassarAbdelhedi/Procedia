@@ -11,6 +11,7 @@
 (function(gs) {
 
   function loadGraph(graphData) {
+    if (typeof undoManager !== 'undefined') undoManager.reset();
     gs.nodeMap   = {};
     gs.wireMap   = {};
     gs.selection = [];
@@ -36,6 +37,12 @@
       }
     }
 
+    if (graphData && graphData.keyframes) {
+      gs._keyframes = graphData.keyframes;
+    } else {
+      gs._keyframes = {};
+    }
+
     if (graphData && graphData.parkedNodeUUIDs) {
       var parkedSet = {};
       for (var pi = 0; pi < graphData.parkedNodeUUIDs.length; pi++) {
@@ -56,11 +63,13 @@
   }
 
   function clearGraph() {
+    if (typeof undoManager !== 'undefined') undoManager.reset();
     gs.nodeMap   = {};
     gs.wireMap   = {};
     gs.selection = [];
     gs._viewFilter   = null;
     gs._activeCompId = null;
+    gs._keyframes = {};
     gs.rebuildTempGraph();
   }
 

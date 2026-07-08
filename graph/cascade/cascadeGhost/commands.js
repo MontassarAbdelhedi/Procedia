@@ -40,7 +40,7 @@
       if (losingComps.length === 0) continue;
 
       if (losingComps.length < cn.hostingComps.length) {
-        var partialUUID = __c_ghost_util._resolvePathLayerUUID(wireData.toNode) || wireData._pathLayerUUID;
+        var partialUUID = wireData._pathLayerUUID;
         for (var li = 0; li < losingComps.length; li++) {
           var lostCompId = losingComps[li];
           batchCommands.push({
@@ -59,12 +59,12 @@
         var cmd = null;
 
         if (cn.nodeKind === 'effector') {
-          var upstreamNodeUUID = __c_ghost_util._resolvePathLayerUUID(wireData.toNode) || wireData._pathLayerUUID;
+          var upstreamNodeUUID = wireData._pathLayerUUID;
           cmd = def.onGhost(cn, losingCompId, upstreamNodeUUID);
         } else {
           cmd = def.onGhost(cn, losingCompId);
           if (cmd && cmd.params) {
-            cmd.params.layerUUID = __c_ghost_util._resolvePathLayerUUID(wireData.toNode) || wireData._pathLayerUUID;
+            cmd.params.layerUUID = wireData._pathLayerUUID;
           }
         }
 

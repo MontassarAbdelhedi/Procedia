@@ -54,43 +54,99 @@ var evalBridge = (function() {
    */
   function init(cs) {
     _cs = cs;
-    var extPath = _cs.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, '/');
-    var script = [
-      '$.evalFile("' + extPath + '/jsx/json.jsx");',
-      '$.evalFile("' + extPath + '/jsx/utils.jsx");',
-      '$.evalFile("' + extPath + '/jsx/persistence.jsx");',
-      // Action handlers — loaded before dispatcher.jsx so _handlers map resolves
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_schema.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_comp.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_layer.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_footage.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_property.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_propertyGet.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_park.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_matte.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_masks.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/apply.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/introspect.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/pollAlive.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionEffect/batchGetEffectProperties.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionImport/helpers.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionImport/read.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actionImport/handler.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_compList.jsx");',
-      '$.evalFile("' + extPath + '/jsx/dispatcher/actions_graphExport.jsx");',
-      // Core dispatcher — must be last (defines _handlers + dispatch/dispatchBatch)
-      '$.evalFile("' + extPath + '/jsx/dispatcher/dispatcher.jsx");'
-    ].join('\n');
-    _cs.evalScript(script, function(result) {
-      if (result && typeof result === 'string' && (result.indexOf('Error:') !== -1 || result.indexOf('SyntaxError') !== -1 || result.indexOf('ReferenceError') !== -1)) {
-        _preambleError = result;
-        console.error('[evalBridge] preamble load failed: ' + result);
-        _flushReadyCallbacks(false);
-      } else {
-        _preambleLoaded = true;
+    _probePreamble(1);
+  }
 
-        _flushReadyCallbacks(true);
+  /**
+   * Probes AE connectivity with a trivial script before loading the full preamble.
+   * This separates connectivity issues from preamble content errors.
+   * @param {number} attempt - Current attempt number (1-based)
+   */
+  function _probePreamble(attempt) {
+    _cs.evalScript('"probe"', function(result) {
+      if (result === 'probe') {
+        _loadPreamble(1);
+        return;
       }
+      if (attempt < 5) {
+        var delay = 200 * attempt;
+        console.warn('[evalBridge] probe attempt ' + attempt + ' returned: "' + result + '", retrying in ' + delay + 'ms');
+        setTimeout(function() { _probePreamble(attempt + 1); }, delay);
+        return;
+      }
+      _preambleError = 'AE not reachable after 5 probe attempts';
+      console.error('[evalBridge] ' + _preambleError);
+      _flushReadyCallbacks(false);
+    });
+  }
+
+  /**
+   * Loads the JSX preamble into the host.
+   * @param {number} attempt - Current attempt number (1-based)
+   */
+  function _loadPreamble(attempt) {
+    var extPath = _cs.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, '/');
+    var files = [
+      '/jsx/json.jsx',
+      '/jsx/utils.jsx',
+      '/jsx/persistence.jsx',
+      '/jsx/dispatcher/actions_schema.jsx',
+      '/jsx/dispatcher/actions_comp.jsx',
+      '/jsx/dispatcher/actions_layer.jsx',
+      '/jsx/dispatcher/actions_footage.jsx',
+      '/jsx/dispatcher/actions_property.jsx',
+      '/jsx/dispatcher/actions_propertyGet.jsx',
+      '/jsx/dispatcher/actions_park.jsx',
+      '/jsx/dispatcher/actions_matte.jsx',
+      '/jsx/dispatcher/actions_masks.jsx',
+      '/jsx/dispatcher/actions_keyframe.jsx',
+      '/jsx/dispatcher/actionEffect/apply.jsx',
+      '/jsx/dispatcher/actionEffect/introspect.jsx',
+      '/jsx/dispatcher/actionEffect/pollAlive.jsx',
+      '/jsx/dispatcher/actionEffect/batchGetEffectProperties.jsx',
+      '/jsx/dispatcher/actionImport/helpers.jsx',
+      '/jsx/dispatcher/actionImport/read.jsx',
+      '/jsx/dispatcher/actionImport/handler.jsx',
+      '/jsx/dispatcher/actions_compList.jsx',
+      '/jsx/dispatcher/actions_graphExport.jsx',
+      '/jsx/dispatcher/dispatcher.jsx'
+    ];
+    _loadFilesSequentially(extPath, files, 0, attempt);
+  }
+
+  /**
+   * Loads JSX files one at a time via separate evalScript calls.
+   * This isolates which file causes AE to return empty.
+   */
+  function _loadFilesSequentially(extPath, files, index, attempt) {
+    if (index >= files.length) {
+      _preambleLoaded = true;
+      _flushReadyCallbacks(true);
+      return;
+    }
+    var filePath = extPath + files[index];
+    _cs.evalScript('try { $.evalFile("' + filePath + '"); "ok" } catch(e) { "FAIL: " + e.toString() }', function(result) {
+      if (result && result.indexOf('FAIL:') === 0) {
+        console.error('[evalBridge] file load failed: ' + files[index] + ' — ' + result);
+        if (attempt < 2) {
+          setTimeout(function() { _loadFilesSequentially(extPath, files, index, attempt + 1); }, 200);
+          return;
+        }
+        _preambleError = 'failed to load ' + files[index] + ': ' + result;
+        _flushReadyCallbacks(false);
+        return;
+      }
+      if (result === 'ok') {
+        _loadFilesSequentially(extPath, files, index + 1, 1);
+        return;
+      }
+      // Empty/unexpected result from this single file
+      if (attempt < 2) {
+        setTimeout(function() { _loadFilesSequentially(extPath, files, index, attempt + 1); }, 200);
+        return;
+      }
+      console.error('[evalBridge] file returned unexpected: ' + files[index] + ' — "' + result + '"');
+      _loadFilesSequentially(extPath, files, index + 1, 1);
     });
   }
 
@@ -100,7 +156,8 @@ var evalBridge = (function() {
    * @param {Object} commandObj - Command with an `action` string and optional `params`
    * @returns {Promise<Object>} Resolves with the parsed response from the host
    */
-  function dispatch(commandObj) {
+  function dispatch(commandObj, _attempt) {
+    _attempt = _attempt || 1;
     return new Promise(function(resolve, reject) {
       if (_cs === null) {
         reject(new Error('[evalBridge] csInterface not available — panel is running outside After Effects'));
@@ -114,10 +171,22 @@ var evalBridge = (function() {
       var json = JSON.stringify(commandObj);
       var call = 'dispatch(' + JSON.stringify(json) + ')';
       _cs.evalScript(call, function(result) {
+        if (result && typeof result === 'string' && result.indexOf('TypeError') !== -1) {
+          if (_attempt < 3) {
+            setTimeout(function() { resolve(dispatch(commandObj, _attempt + 1)); }, 50 * _attempt);
+            return;
+          }
+          reject(new Error('[evalBridge] JSX error: ' + result));
+          return;
+        }
         try {
           var res = JSON.parse(result);
           resolve(res);
         } catch(e) {
+          if (_attempt < 3) {
+            setTimeout(function() { resolve(dispatch(commandObj, _attempt + 1)); }, 50 * _attempt);
+            return;
+          }
           reject(new Error('[evalBridge] parse error — raw result: ' + result));
         }
       });

@@ -26,10 +26,10 @@ var NullNode = {
 
   params: [
     { key: 'label',    type: 'string',  default: 'Null',      label: 'Label'                       },
-    { key: 'position', type: 'vector2', default: [0, 0],      label: 'Position'                    },
-    { key: 'rotation', type: 'number',  default: 0,           label: 'Rotation'                    },
-    { key: 'opacity',  type: 'number',  default: 100,         label: 'Opacity',  min: 0, max: 100  },
-    { key: 'scale',    type: 'vector2', default: [100, 100],  label: 'Scale'                       }
+    { key: 'position', type: 'vector2', default: [0, 0],         label: 'Position',                    animatable: true },
+    { key: 'rotation', type: 'number',  default: 0,              label: 'Rotation',                    animatable: true },
+    { key: 'opacity',  type: 'number',  default: 100,            label: 'Opacity',  min: 0, max: 100,  animatable: true },
+    { key: 'scale',    type: 'vector2', default: [100, 100],     label: 'Scale',                       animatable: true }
   ],
 
   getParams: function(nodeData) {

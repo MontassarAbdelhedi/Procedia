@@ -113,6 +113,10 @@
       if (nodeData && nodeData.locked) continue;
       graphState.updateNode(nid, { x: Math.round(allPositions[nid].x), y: Math.round(allPositions[nid].y) });
     }
+
+    if (typeof envSnapshot !== 'undefined' && envSnapshot.addAction) {
+      envSnapshot.addAction('autoLayout', { direction: options.direction || settings.get('layoutDirection') });
+    }
   }
 
   window.autoLayout = { run: run };

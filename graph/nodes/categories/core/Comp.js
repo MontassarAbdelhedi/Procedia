@@ -27,10 +27,10 @@ var CompNode = {
 
   params: [
     { key: 'label',     type: 'string', default: 'Comp', label: 'Label' },
-    { key: 'width',     type: 'number', default: 1920,   label: 'Width',  min: 4, max: 16384 },
-    { key: 'height',    type: 'number', default: 1080,   label: 'Height', min: 4, max: 16384 },
-    { key: 'frameRate', type: 'number', default: 30,     label: 'Frame Rate', min: 1, max: 999 },
-    { key: 'duration',  type: 'number', default: 10,     label: 'Duration (s)', min: 0.1, max: 3600 },
+    { key: 'width',     type: 'number', default: 1920,   label: 'Width',  min: 4, max: 16384,              animatable: true },
+    { key: 'height',    type: 'number', default: 1080,   label: 'Height', min: 4, max: 16384,              animatable: true },
+    { key: 'frameRate', type: 'number', default: 30,     label: 'Frame Rate', min: 1, max: 999,            animatable: true },
+    { key: 'duration',  type: 'number', default: 10,     label: 'Duration (s)', min: 0.1, max: 3600,      animatable: true },
   ],
 
   getParams: function(nodeData) {

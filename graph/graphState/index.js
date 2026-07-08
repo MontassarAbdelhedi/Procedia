@@ -88,6 +88,19 @@
     offGraphChange:       function(cb) {
       var idx = gs._graphChangeListeners.indexOf(cb);
       if (idx !== -1) gs._graphChangeListeners.splice(idx, 1);
+    },
+
+    // Internal: bulk-replace nodes/wires/selection for undo/redo restore.
+    // Not part of the public API -- only used by undoManager.
+    _replaceState: function(nodes, wires, selection) {
+      gs.nodeMap = {};
+      gs.wireMap = {};
+      for (var id in nodes) { if (nodes.hasOwnProperty(id)) gs.nodeMap[id] = nodes[id]; }
+      for (var wid in wires) { if (wires.hasOwnProperty(wid)) gs.wireMap[wid] = wires[wid]; }
+      gs.selection = selection ? selection.slice() : [];
+      gs._viewFilter = null;
+      gs._keyframes = {};
+      gs.rebuildTempGraph();
     }
   };
 

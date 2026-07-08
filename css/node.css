@@ -496,6 +496,71 @@
   pointer-events: none;
 }
 
+/* ── Port hover labels ── */
+
+.port-dot[data-label]::after {
+  content: attr(data-label);
+  position: absolute;
+  display: block;
+  white-space: nowrap;
+  font-size: 9px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: rgba(255,255,255,0.55);
+  background: rgba(0,0,0,0.7);
+  padding: 1px 5px;
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 20;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(2px);
+}
+
+.node:hover .port-dot[data-label]::after {
+  opacity: 1;
+}
+
+#canvas-nodes.port-labels-off .port-dot[data-label]::after {
+  opacity: 0 !important;
+}
+
+/* Left-edge port dots (header main_input, param data ports) — label to the left */
+.node-header .port-dot[data-label]::after,
+.node-param .port-dot[data-label]::after {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Explicit input port rows — label to the left */
+.node-input-port-row .port-dot[data-label]::after {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Right-edge (output) — label to the right */
+.ports-output .port-dot[data-label]::after {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Top (child_of) — label above */
+.port-parent-top .port-dot[data-label]::after {
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Bottom (parent_of) — label below */
+.port-parent-bottom .port-dot[data-label]::after {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 /* ── Port dots ── */
 
 .port-dot {

@@ -860,7 +860,11 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="ui/inspector/colorPicker.js"></script>
 <script src="ui/inspector/events.js"></script>
 <script src="ui/inspector/index.js"></script>
-<script src="ui/settingsModal.js"></script>
+<script src="ui/settingsModal/dom.js"></script>
+<script src="ui/settingsModal/events.js"></script>
+<script src="ui/settingsModal/sync.js"></script>
+<script src="ui/settingsModal/apply.js"></script>
+<script src="ui/settingsModal/index.js"></script>
 
 <!-- 9. Infrastructure services -->
 <script src="polling/missingNodes.js"></script>
@@ -870,7 +874,11 @@ This project has no bundler and no ES modules. `index.html` is the only source o
 <script src="notifications/notificationBar.js"></script>
 
 <!-- 10. UI chrome — no graph dependencies -->
-<script src="ui/topBar.js"></script>
+<script src="ui/topBar/collapse.js"></script>
+<script src="ui/topBar/selection.js"></script>
+<script src="ui/topBar/io.js"></script>
+<script src="ui/topBar/init.js"></script>
+<script src="ui/topBar/index.js"></script>
 
 <script src="ui/statusBar.js"></script>
 <script src="ui/sidebarToggle.js"></script>
@@ -1106,7 +1114,7 @@ procedia/
 │   ├── nodePicker/                         ← 5 files (compatibility, render, filter, events, index)
 │   ├── inspector/                          ← 5 files (viewModel, render, colorPicker, events, index)
 │   ├── topBar.js, statusBar.js
-│   ├── settings.js, settingsModal.js
+│   ├── settings.js, settingsModal/
 │   └── sidebarToggle.js
 │
 ├── flush/          dirtyFlusher.js

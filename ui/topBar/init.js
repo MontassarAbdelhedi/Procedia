@@ -1,37 +1,13 @@
 /**
- * @fileoverview Top bar UI module. Renders the toolbar with logo, save/undo/redo,
- * duplicate/delete, reset/reload/settings buttons. Updates selection-dependent controls.
- * Depends on: engine, settingsModal (globals).
- * Exports: topBar.init, topBar.refreshSelection, topBar.showSelection, topBar.clearSelection
+ * @fileoverview Top bar DOM construction and event wiring.
+ * Depends on: _topBarCollapse, _topBarSelection, _topBarIO, graphState, engine, autoLayout,
+ *             renderer, wireRenderer, minimap, settingsModal (ui/settingsModal/), reporter, evalBridge (globals).
+ * Exports: _topBarInit
  */
-// ui/topBar.js
-// DEPENDS ON: (none)
-// MUST LOAD BEFORE: index.js
+// ui/topBar/init.js
 
-var topBar = (function() {
+var _topBarInit = (function() {
 
-  function _refreshCollapseBtn(btn) {
-    if (!btn || typeof graphState === 'undefined') return;
-    var all = graphState.getAllNodes();
-    var anyCollapsed = false;
-    for (var id in all) {
-      if (all.hasOwnProperty(id) && all[id].collapsed) {
-        anyCollapsed = true;
-        break;
-      }
-    }
-    if (anyCollapsed) {
-      btn.title = 'Expand All';
-      btn.innerHTML = '<i class="ti ti-chevrons-down"></i>';
-    } else {
-      btn.title = 'Collapse All';
-      btn.innerHTML = '<i class="ti ti-chevrons-up"></i>';
-    }
-  }
-
-  /**
-   * Builds the top-bar DOM and wires all button event listeners.
-   */
   function init() {
     var el = document.getElementById('top-bar');
     el.innerHTML =
@@ -44,8 +20,8 @@ var topBar = (function() {
       '<div class="topbar-center">' +
         '<button class="topbar-btn" id="topbar-save" title="Save"><i class="ti ti-device-floppy"></i></button>' +
         '<button class="topbar-btn" id="topbar-open" title="Open"><i class="ti ti-folder-open"></i></button>' +
-        '<button class="topbar-btn" title="Undo"><i class="ti ti-arrow-back-up"></i></button>' +
-        '<button class="topbar-btn" title="Redo"><i class="ti ti-arrow-forward-up"></i></button>' +
+        '<button class="topbar-btn" id="topbar-undo" title="Undo" disabled><i class="ti ti-arrow-back-up"></i></button>' +
+        '<button class="topbar-btn" id="topbar-redo" title="Redo" disabled><i class="ti ti-arrow-forward-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
         '<button class="topbar-btn" id="topbar-autolayout" title="Auto Layout"><i class="ti ti-sitemap"></i></button>' +
         '<button class="topbar-btn" id="topbar-fitview" title="Fit View"><i class="ti ti-focus-2"></i></button>' +
@@ -62,9 +38,14 @@ var topBar = (function() {
         '<button class="topbar-btn" id="topbar-reload" title="Reload"><i class="ti ti-refresh"></i></button>' +
         '<button class="topbar-btn" id="topbar-settings" title="Settings"><i class="ti ti-settings"></i></button>' +
       '</div>' +
-      '<div class="topbar-right"><span class="topbar-status" id="topbar-status"></span></div>';
+      '<div class="topbar-right">' +
+        '<button class="topbar-btn" id="topbar-report" title="Report a Bug"><i class="ti ti-bug"></i></button>' +
+        '<span class="topbar-status" id="topbar-status"></span>' +
+      '</div>';
 
-    refreshSelection([]);
+    if (typeof _topBarSelection !== 'undefined') {
+      _topBarSelection.refreshSelection([]);
+    }
 
     var dupeBtn = document.getElementById('topbar-duplicate');
     if (dupeBtn && typeof engine !== 'undefined') {
@@ -113,29 +94,54 @@ var topBar = (function() {
             graphState.updateNode(id2, { collapsed: target });
           }
         }
-        _refreshCollapseBtn(collapseBtn);
+        if (typeof _topBarCollapse !== 'undefined' && _topBarCollapse._refresh) {
+          _topBarCollapse._refresh(collapseBtn);
+        }
         if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
         if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
         if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
       });
-      _refreshCollapseBtn(collapseBtn);
+      if (typeof _topBarCollapse !== 'undefined' && _topBarCollapse._refresh) {
+        _topBarCollapse._refresh(collapseBtn);
+      }
     }
 
-    document.getElementById('topbar-reset').addEventListener('click', function() {
-      if (typeof engine !== 'undefined' && engine.resetAll) {
-        if (confirm('Reset graph? This will delete all Procedia objects in AE.')) {
-          engine.resetAll();
-        }
-      }
-    });
+    var undoBtn = document.getElementById('topbar-undo');
+    if (undoBtn && typeof undoManager !== 'undefined') {
+      undoBtn.addEventListener('click', function() { undoManager.undo(); });
+    }
 
-    document.getElementById('topbar-reload').addEventListener('click', function() {
-      window.location.reload();
-    });
+    var redoBtn = document.getElementById('topbar-redo');
+    if (redoBtn && typeof undoManager !== 'undefined') {
+      redoBtn.addEventListener('click', function() { undoManager.redo(); });
+    }
+
+    var resetBtn = document.getElementById('topbar-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        if (typeof engine !== 'undefined' && engine.resetAll) {
+          if (confirm('Reset graph? This will delete all Procedia objects in AE.')) {
+            engine.resetAll();
+          }
+        }
+      });
+    }
+
+    var reloadBtn = document.getElementById('topbar-reload');
+    if (reloadBtn) {
+      reloadBtn.addEventListener('click', function() {
+        window.location.reload();
+      });
+    }
 
     var settingsBtn = document.getElementById('topbar-settings');
     if (settingsBtn && typeof settingsModal !== 'undefined') {
       settingsBtn.addEventListener('click', function() { settingsModal.open(); });
+    }
+
+    var reportBtn = document.getElementById('topbar-report');
+    if (reportBtn && typeof reporter !== 'undefined' && reporter.openBugReportForm) {
+      reportBtn.addEventListener('click', function() { reporter.openBugReportForm(); });
     }
 
     var saveBtn = document.getElementById('topbar-save');
@@ -148,13 +154,20 @@ var topBar = (function() {
             .then(function(res) {
               if (!res.ok) {
                 if (res.error) console.warn('[topBar] save failed:', res.error);
-                _fallbackSave(graphData);
-              } else if (res.data && res.data.cancelled) {
+                if (typeof _topBarIO !== 'undefined' && _topBarIO.fallbackSave) {
+                  _topBarIO.fallbackSave(graphData);
+                }
               }
             })
-            .catch(function() { _fallbackSave(graphData); });
+            .catch(function() {
+              if (typeof _topBarIO !== 'undefined' && _topBarIO.fallbackSave) {
+                _topBarIO.fallbackSave(graphData);
+              }
+            });
         } else {
-          _fallbackSave(graphData);
+          if (typeof _topBarIO !== 'undefined' && _topBarIO.fallbackSave) {
+            _topBarIO.fallbackSave(graphData);
+          }
         }
       });
     }
@@ -167,110 +180,32 @@ var topBar = (function() {
           evalBridge.dispatch({ action: 'openGraphFile' })
             .then(function(res) {
               if (res.ok && res.data && !res.data.cancelled) {
-                _loadGraphData(res.data);
+                if (typeof _topBarIO !== 'undefined' && _topBarIO.loadGraphData) {
+                  _topBarIO.loadGraphData(res.data);
+                }
               } else if (!res.ok) {
                 console.warn('[topBar] open failed:', res.error);
-                _fallbackOpen();
+                if (typeof _topBarIO !== 'undefined' && _topBarIO.fallbackOpen) {
+                  _topBarIO.fallbackOpen();
+                }
               }
             })
-            .catch(function() { _fallbackOpen(); });
+            .catch(function() {
+              if (typeof _topBarIO !== 'undefined' && _topBarIO.fallbackOpen) {
+                _topBarIO.fallbackOpen();
+              }
+            });
         } else {
-          _fallbackOpen();
+          if (typeof _topBarIO !== 'undefined' && _topBarIO.fallbackOpen) {
+            _topBarIO.fallbackOpen();
+          }
         }
       });
     }
   }
 
-  function _loadGraphData(data) {
-    graphState.loadGraph(data);
-    if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-    if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
-    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
-    if (typeof topBar !== 'undefined' && topBar.refreshCollapseBtn) topBar.refreshCollapseBtn();
-  }
-
-  function _fallbackOpen() {
-    var input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.procedia.json,.json';
-    input.addEventListener('change', function(e) {
-      var file = e.target.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        try {
-          var parsed = JSON.parse(ev.target.result);
-          _loadGraphData({ nodes: parsed.nodes || {}, wires: parsed.wires || {} });
-        } catch (err) {
-          console.warn('[topBar] fallback open parse error:', err);
-        }
-      };
-      reader.readAsText(file);
-    });
-    input.style.display = 'none';
-    document.body.appendChild(input);
-    input.click();
-    document.body.removeChild(input);
-  }
-
-  function _fallbackSave(graphData) {
-    var jsonStr = JSON.stringify({ version: '1.0', nodes: graphData.nodes, wires: graphData.wires }, null, 2);
-    var blob = new Blob([jsonStr], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'procedia_graph_' + Date.now() + '.procedia.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-  }
-
-  /**
-   * Sets the opacity of the dynamic (selection-dependent) buttons based on selection.
-   * @param {Array} sel Array of selected node IDs.
-   */
-  function refreshSelection(sel) {
-    var el = document.getElementById('topbar-dynamic');
-    if (!el) return;
-    if (sel.length === 0) {
-      el.style.opacity = '0.4';
-      el.style.pointerEvents = 'none';
-    } else {
-      el.style.opacity = '1';
-      el.style.pointerEvents = 'auto';
-    }
-  }
-
-  /**
-   * Makes the dynamic section visible (selection present).
-   */
-  function showSelection() {
-    var el = document.getElementById('topbar-dynamic');
-    if (!el) return;
-    el.style.opacity = '1';
-    el.style.pointerEvents = 'auto';
-  }
-
-  /**
-   * Hides the dynamic section (no selection).
-   */
-  function clearSelection() {
-    refreshSelection([]);
-  }
-
-  function refreshCollapseBtn() {
-    var btn = document.getElementById('topbar-collapseall');
-    if (btn) _refreshCollapseBtn(btn);
-  }
-
   return {
-    init: init,
-    refreshSelection: refreshSelection,
-    showSelection: showSelection,
-    clearSelection: clearSelection,
-    refreshCollapseBtn: refreshCollapseBtn
+    init: init
   };
 
 })();

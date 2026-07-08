@@ -22,6 +22,7 @@ var __e_nlock = (function() {
   function toggleLockSelectedNodes() {
     var sel = graphState.getSelection().slice();
     if (sel.length === 0) return;
+    if (typeof undoManager !== 'undefined') undoManager.capture();
     var allLocked = true;
     for (var i = 0; i < sel.length; i++) {
       var n = graphState.getNode(sel[i]);
@@ -31,6 +32,7 @@ var __e_nlock = (function() {
     for (var j = 0; j < sel.length; j++) {
       graphState.updateNode(sel[j], { locked: newLocked });
     }
+    if (typeof undoManager !== 'undefined') undoManager.commit(newLocked ? 'Lock nodes' : 'Unlock nodes');
     hlp.refreshNodeUI();
   }
 

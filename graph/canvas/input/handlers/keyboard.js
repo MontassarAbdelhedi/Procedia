@@ -36,6 +36,16 @@ var _handlersKeyboard = (function() {
       return;
     }
 
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        if (typeof undoManager !== 'undefined') undoManager.redo();
+      } else {
+        if (typeof undoManager !== 'undefined') undoManager.undo();
+      }
+      return;
+    }
+
     if (e.code === 'Space' && !inputUtils.isEditableTarget(e.target)) {
       _inpSpaceHeld = true;
       e.preventDefault();

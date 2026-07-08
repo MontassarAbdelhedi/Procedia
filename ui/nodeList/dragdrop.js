@@ -125,6 +125,17 @@ var __nl_dragdrop = (function() {
         if (hitWire && canvasDrag.canInsertOnWire(hitWire.id, def)) {
           var insertNode = canvasDrag.insertNodeOnWire(hitWire.id, def, pos.x, pos.y);
           if (insertNode) {
+            if ((def.type === 'utility/merge' || def.type === 'utility/multimerge') && typeof notificationBar !== 'undefined') {
+              var warned = localStorage.getItem('procedia_merge_warned');
+              if (!warned) {
+                localStorage.setItem('procedia_merge_warned', '1');
+                notificationBar.push({
+                  severity: 'warning',
+                  message: 'Using the Merge node will make this project always require Procedia to run.',
+                  duration: 8000
+                });
+              }
+            }
             graphState.setSelection(insertNode.id);
             renderer.render();
             if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
@@ -137,6 +148,18 @@ var __nl_dragdrop = (function() {
 
       var node = engine.dropNode(def, pos.x, pos.y);
       if (node) {
+        // First-drop warning for Merge/Multimerge nodes
+        if ((def.type === 'utility/merge' || def.type === 'utility/multimerge') && typeof notificationBar !== 'undefined') {
+          var warned = localStorage.getItem('procedia_merge_warned');
+          if (!warned) {
+            localStorage.setItem('procedia_merge_warned', '1');
+            notificationBar.push({
+              severity: 'warning',
+              message: 'Using the Merge node will make this project always require Procedia to run.',
+              duration: 8000
+            });
+          }
+        }
         graphState.setSelection(node.id);
         renderer.render();
         if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);

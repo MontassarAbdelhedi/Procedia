@@ -34,6 +34,8 @@ var __e_ndrop = (function() {
       return null;
     }
 
+    if (typeof undoManager !== 'undefined') undoManager.capture();
+
     var id = uuidGenerator.node();
     var _activeComp;
 
@@ -72,6 +74,7 @@ var __e_ndrop = (function() {
           __e_wires.connectWire(id, 'output', _activeComp, 'main_input');
         }
       }
+      if (typeof undoManager !== 'undefined') undoManager.commit('Drop ' + (nodeDef.label || nodeDef.type));
       return nodeData;
     }
 
@@ -91,6 +94,7 @@ var __e_ndrop = (function() {
           if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
         }
       }
+      if (typeof undoManager !== 'undefined') undoManager.commit('Drop ' + (nodeDef.label || nodeDef.type));
       return nodeData;
     }
 
@@ -118,6 +122,11 @@ var __e_ndrop = (function() {
       });
     }(id, nodeDef, command));
 
+    if (typeof envSnapshot !== 'undefined' && envSnapshot.addAction) {
+      envSnapshot.addAction('dropNode', { type: nodeDef.type, label: nodeData.props.label });
+    }
+
+    if (typeof undoManager !== 'undefined') undoManager.commit('Drop ' + (nodeDef.label || nodeDef.type));
     return nodeData;
   }
 

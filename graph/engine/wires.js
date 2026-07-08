@@ -36,6 +36,8 @@ var __e_wires = (function() {
    * @returns {boolean} True if the wire was connected successfully
    */
   function connectWire(fromNodeId, fromPort, toNodeId, toPort, boundParam) {
+    if (typeof undoManager !== 'undefined') undoManager.capture();
+
     var fromNodeData = graphState.getNode(fromNodeId);
     var toNodeData   = graphState.getNode(toNodeId);
     if (!fromNodeData || !toNodeData) {
@@ -130,25 +132,56 @@ var __e_wires = (function() {
           });
         }
       }
+      if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
+      _addWireAction('connectWire', wireData);
       return true;
     }
 
     if (wireType === 'data') {
+      _addWireAction('connectWire', wireData);
       for (var pk in fromNodeData.props) {
         if (!fromNodeData.props.hasOwnProperty(pk)) continue;
         if (pk === 'label') continue;
+        if (boundParam) {
+          var targetNodeData = graphState.getNode(toNodeId);
+          if (targetNodeData && targetNodeData.hostingComps && targetNodeData.hostingComps.length > 0) {
+            var hostUUID = targetNodeData.hostingComps[0];
+            if (typeof keyframeState !== 'undefined' && keyframeState.hasKeyframes(toNodeId, boundParam)) {
+              var bakeLayerUUID = hlp.findPathLayerUUID(toNodeId);
+              if (bakeLayerUUID) {
+                evalBridge.dispatch({
+                  action: 'getKeyframeData',
+                  params: { hostingCompUUID: hostUUID, layerUUID: bakeLayerUUID, key: boundParam }
+                }).then(function(res) {
+                  if (!res.ok || !res.data) return;
+                  if (!targetNodeData._bakedKeyframes) targetNodeData._bakedKeyframes = {};
+                  targetNodeData._bakedKeyframes[boundParam] = res.data.keyframes || [];
+                  evalBridge.dispatch({
+                    action: 'removeAllKeyframes',
+                    params: { hostingCompUUID: hostUUID, layerUUID: bakeLayerUUID, key: boundParam }
+                  }).then(function() {
+                    keyframeState.clearKeyframes(toNodeId, boundParam);
+                  });
+                });
+              }
+            }
+          }
+        }
         hlp.propagateDataValue(fromNodeId, pk, fromNodeData.props[pk]);
       }
+      if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
       return true;
     }
 
     if (toNodeData.type === 'core/comp') {
       prop.firePathCreation(wireData.id);
+      if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
       return true;
     }
 
     if (toNodeData.nodeKind === 'matte') {
       prop.checkMatteActivation(toNodeId);
+      if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
       return true;
     }
 
@@ -156,6 +189,7 @@ var __e_wires = (function() {
       var terminalUUID = hlp.findPathLayerUUID(fromNodeId) || wireData.id;
       graphState.updateWire(wireData.id, { _pathLayerUUID: terminalUUID });
       prop.propagateAlive(fromNodeId, toNodeData.hostingComps[0], terminalUUID);
+      if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
       return true;
     }
 
@@ -169,6 +203,8 @@ var __e_wires = (function() {
       }
     }
 
+    _addWireAction('connectWire', wireData);
+    if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
     return true;
   }
 
@@ -185,6 +221,8 @@ var __e_wires = (function() {
       hlp.refreshNodeUI();
       return;
     }
+
+    if (typeof undoManager !== 'undefined') undoManager.capture();
 
     if (wireData.type === 'parent') {
       var childNodeId = wireData.fromNode;
@@ -203,17 +241,68 @@ var __e_wires = (function() {
       }
       graphState.removeWire(wireId);
       hlp.refreshNodeUI();
+      if (typeof undoManager !== 'undefined') undoManager.commit('Disconnect wire');
+      _addWireAction('disconnectWire', wireData);
       return;
     }
 
     if (wireData.type === 'data') {
+      var targetId = wireData.toNode;
+      var targetParam = wireData.boundParam || wireData.toPort;
       graphState.removeWire(wireId);
+      var targetNode = graphState.getNode(targetId);
+      if (targetParam && targetNode && targetNode._bakedKeyframes && targetNode._bakedKeyframes[targetParam]) {
+        var baked = targetNode._bakedKeyframes[targetParam];
+        delete targetNode._bakedKeyframes[targetParam];
+        if (baked.length > 0 && targetNode.hostingComps && targetNode.hostingComps.length > 0) {
+          var rHostUUID = targetNode.hostingComps[0];
+          var rLayerUUID = hlp.findPathLayerUUID(targetId);
+          if (rLayerUUID) {
+            var rChain = Promise.resolve();
+            for (var ri = 0; ri < baked.length; ri++) {
+              (function(kf) {
+                rChain = rChain.then(function() {
+                  return evalBridge.dispatch({
+                    action: 'addKeyframe',
+                    params: {
+                      hostingCompUUID: rHostUUID,
+                      layerUUID: rLayerUUID,
+                      key: targetParam,
+                      time: kf.time,
+                      value: kf.value
+                    }
+                  });
+                });
+              })(baked[ri]);
+            }
+            rChain.then(function() {
+              if (typeof keyframeState !== 'undefined') {
+                var times = [];
+                for (var ti = 0; ti < baked.length; ti++) { times.push(baked[ti].time); }
+                keyframeState.setKeyframes(targetId, targetParam, times);
+              }
+              if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
+              if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+            });
+          }
+        }
+      }
       hlp.refreshNodeUI();
+      if (typeof undoManager !== 'undefined') undoManager.commit('Disconnect wire');
+      _addWireAction('disconnectWire', wireData);
       return;
     }
 
     cascadeAlgorithm.cascadeGhost(wireId);
     hlp.refreshNodeUI();
+    if (typeof undoManager !== 'undefined') undoManager.commit('Disconnect wire');
+    _addWireAction('disconnectWire', wireData);
+  }
+
+  function _addWireAction(action, wireData) {
+    if (typeof envSnapshot !== 'undefined' && envSnapshot.addAction) {
+      envSnapshot.addAction(action, { type: wireData.type, fromNode: wireData.fromNode, toNode: wireData.toNode });
+    }
   }
 
   return {

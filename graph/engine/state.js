@@ -25,6 +25,8 @@ var __e_state = (function() {
    * graph state, and resets all UI components.
    */
   function resetAll() {
+    if (typeof undoManager !== 'undefined') undoManager.reset();
+
     var allNodes = graphState.getAllNodes();
     var ids = Object.keys(allNodes);
 
@@ -60,6 +62,7 @@ var __e_state = (function() {
       console.warn('[engine] setNodeProperty: node not found:', nodeId);
       return;
     }
+    if (typeof undoManager !== 'undefined') undoManager.capture();
     graphState.updateProp(nodeId, key, value);
     if (nodeData.nodeKind === 'data' && key !== 'label') {
       hlp.propagateDataValue(nodeId, key, value);
@@ -75,6 +78,7 @@ var __e_state = (function() {
 
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
     hlp.refreshNodeUI();
+    if (typeof undoManager !== 'undefined') undoManager.commitDebounced('Change property');
   }
 
   /**
@@ -91,6 +95,8 @@ var __e_state = (function() {
       return;
     }
 
+    if (typeof undoManager !== 'undefined') undoManager.capture();
+
     var newDisabled = !nodeData.disabled;
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def) return;
@@ -105,6 +111,7 @@ var __e_state = (function() {
 
     hlp.refreshNodeUI();
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
+    if (typeof undoManager !== 'undefined') undoManager.commit(nodeData.disabled ? 'Disable node' : 'Enable node');
   }
 
   /**

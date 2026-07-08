@@ -1,7 +1,7 @@
 /**
  * @fileoverview Batch effect property read handler (ES3-safe).
  * Reads effect property values from AE effects for polling.
- * REQUIRES: json.jsx, utils.jsx, actionEffect/apply.jsx (_findPropByMatchName)
+ * REQUIRES: json.jsx, utils.jsx, applyActionEffect/findPropByMatchName.jsx
  * Load BEFORE: dispatcher.jsx
  * Exports: _handleBatchGetEffectProperties
  */

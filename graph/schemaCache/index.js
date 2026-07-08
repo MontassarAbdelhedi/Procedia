@@ -27,11 +27,11 @@ var schemaCache = (function() {
   /**
    * Initialises the schema cache: reads persisted cache, checks AE version,
    * and re-introspects schemas if the version changed.
+   * Retries once on parse failure to handle transient CEP timing issues on reload.
    * @returns {Promise<void>} Resolves when initialisation is complete
    */
   function init() {
-    return evalBridge.dispatch({ action: 'readSchemaCache' })
-      .then(function(res) {
+    return evalBridge.dispatch({ action: 'readSchemaCache' }).then(function(res) {
         if (!res.ok) {
           console.warn('[schemaCache] Could not read cache file:', res.error);
           _state.setReady(true);
