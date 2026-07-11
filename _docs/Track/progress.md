@@ -2,6 +2,9 @@
 
 ## Sat 2026-07-11
 [x] Fix Alpha Matte & Luma Matte nodes: add matte_layer secondary input, change nodeKind to 'matte', move to new Track Matte top-level category, fix secondaryInput port rendering, fix wire validator to allow partial connections, fix wire insertion and forward wiring port resolution
+[x] Add auto-shy feature: when enabled, selecting an affected node automatically shies all other affected layers in the same comp and enables the Hide Shy Layers toggle; on deselect, unshies all and disables the toggle. Configurable via Settings -> General -> Auto Shy.
+[x] Add Comp List and Report a Bug steps to walkthrough (now 8 steps)
+[x] Restructure settings modal into three tabs: General (minimap, port labels, reporting, tutorial replay), Wires (wire style, animated dash), Auto Layout (snap, direction, spacing)
 
 ## Wed 2026-07-08
 [x] Fix comp node deletion: ghost upstream with correct path UUID, remove downstream pre-comp layers, guard missing onGhost

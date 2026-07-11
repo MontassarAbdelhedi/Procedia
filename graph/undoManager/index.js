@@ -81,6 +81,6 @@
   };
 
   window.undoManager = undoManager;
-  delete window.__um;
+  delete window.__procedia_internal.um;
 
-})(window.__um);
+})(window.__procedia_internal.um);

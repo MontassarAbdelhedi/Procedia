@@ -8,6 +8,8 @@
 // DEPENDS ON: (none)
 // MUST LOAD BEFORE: everything
 
+window.__procedia_internal = {};
+
 var uuidGenerator = (function() {
 
   /**

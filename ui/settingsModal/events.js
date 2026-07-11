@@ -10,13 +10,6 @@
 
 var __sm_events = (function() {
 
-  /**
-   * Wires all events on the settings modal.
-   * @param {HTMLElement} overlay The settings overlay element.
-   * @param {Function} closeFn Callback to close the modal.
-   * @param {Function} applyFn Callback to apply current settings.
-   * @return {Object} Refs object with cached control element references.
-   */
   function bind(overlay, closeFn, applyFn) {
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) closeFn();
@@ -24,16 +17,38 @@ var __sm_events = (function() {
 
     document.getElementById('settings-close').addEventListener('click', closeFn);
 
+    var tabBar = document.getElementById('settings-tabs');
+    if (tabBar) {
+      tabBar.addEventListener('click', function(e) {
+        var tab = e.target.closest('.settings-tab');
+        if (!tab) return;
+        var name = tab.dataset.tab;
+        tabBar.querySelectorAll('.settings-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        document.querySelectorAll('.settings-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+        var panel = document.getElementById('settings-panel-' + name);
+        if (panel) panel.classList.add('active');
+      });
+    }
+
     var minimapCheckbox = document.getElementById('settings-minimap');
     var wireStyleSelect = document.getElementById('settings-wire-style');
     var animatedDashCheckbox = document.getElementById('settings-animated-dash');
     var portLabelsCheckbox = document.getElementById('settings-port-labels');
     var snapToGridCheckbox = document.getElementById('settings-snap-to-grid');
 
+    var autoShyCheckbox = document.getElementById('settings-auto-shy');
+
     var reportingCheckbox = document.getElementById('settings-allow-reporting');
     if (reportingCheckbox) {
       reportingCheckbox.addEventListener('change', function() {
         settings.set('allowReporting', reportingCheckbox.checked);
+      });
+    }
+
+    if (autoShyCheckbox) {
+      autoShyCheckbox.addEventListener('change', function() {
+        settings.set('autoShy', autoShyCheckbox.checked);
       });
     }
 
@@ -103,7 +118,8 @@ var __sm_events = (function() {
       wireStyleSelect: wireStyleSelect,
       animatedDashCheckbox: animatedDashCheckbox,
       portLabelsCheckbox: portLabelsCheckbox,
-      snapToGridCheckbox: snapToGridCheckbox
+      snapToGridCheckbox: snapToGridCheckbox,
+      autoShyCheckbox: autoShyCheckbox
     };
   }
 

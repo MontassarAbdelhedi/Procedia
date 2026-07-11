@@ -11,10 +11,7 @@ var _topBarIO = (function() {
     if (typeof graphState === 'undefined') return;
     if (typeof undoManager !== 'undefined') undoManager.reset();
     graphState.loadGraph(data);
-    if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-    if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
-    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    window.__procedia_internal.refreshUI({ inspector: false });
     if (typeof _topBarCollapse !== 'undefined' && _topBarCollapse.refreshBtn) _topBarCollapse.refreshBtn();
   }
 

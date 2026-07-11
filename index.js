@@ -45,7 +45,7 @@ function _syncKeyframeState(allNodes) {
     if (!def || !def.params || !Array.isArray(def.params)) continue;
     var hostUUID = n.hostingComps && n.hostingComps.length > 0 ? n.hostingComps[0] : null;
     if (!hostUUID) continue;
-    var layerUUID = typeof __e_hlp !== 'undefined' ? __e_hlp.findPathLayerUUID(nid) : null;
+    var layerUUID = typeof window.__procedia_internal.hlp !== 'undefined' ? window.__procedia_internal.hlp.findPathLayerUUID(nid) : null;
     if (!layerUUID) continue;
     for (var pi = 0; pi < def.params.length; pi++) {
       var p = def.params[pi];
@@ -114,13 +114,13 @@ function init() {
   canvasView.init();
   canvasInput.init();
   graphState.onSelectionChange(function(sel) {
-    renderer.render();
-    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    window.__procedia_internal.refreshUI();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
     if (typeof topBar !== 'undefined' && topBar.refreshCollapseBtn) topBar.refreshCollapseBtn();
     if (typeof nodeToolbar !== 'undefined' && nodeToolbar.refresh) nodeToolbar.refresh();
+    if (typeof autoShy !== 'undefined' && autoShy.handleSelectionChange) {
+      autoShy.handleSelectionChange(sel);
+    }
   });
   if (typeof wireRenderer !== 'undefined' && wireRenderer.init) wireRenderer.init();
   if (typeof wireTool !== 'undefined' && wireTool.init) wireTool.init();
@@ -161,8 +161,8 @@ function init() {
             var n = allNodes[nid];
             if (!n.dynamicSchema || !n.dynamicSchema.properties) {
               var def = nodeRegistry.getDefinition(n.type);
-              if (def && def.params === 'dynamic' && def.matchName && typeof __e_hlp !== 'undefined') {
-                __e_hlp.resolveDynamicSchema(nid, def.matchName);
+              if (def && def.params === 'dynamic' && def.matchName && typeof window.__procedia_internal.hlp !== 'undefined') {
+                window.__procedia_internal.hlp.resolveDynamicSchema(nid, def.matchName);
               }
             }
           }
@@ -205,10 +205,7 @@ function init() {
         }
         return graphImport.importProject(res.data).then(function(summary) {
 
-          if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-          if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-          if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
-          if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+          window.__procedia_internal.refreshUI({ inspector: false });
           importBtn.disabled = false;
           importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
         });
@@ -222,9 +219,25 @@ function init() {
 
   window.addEventListener('beforeunload', function() {
     if (typeof graphState === 'undefined') return;
+    if (!graphState.isDirty()) return;
     var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
-    if (typeof keyframeState !== 'undefined' && graphState._keyframes) {
-      graphData.keyframes = graphState._keyframes;
+    if (typeof keyframeState !== 'undefined') {
+      var kf = {};
+      var allNodes = graphState.getAllNodes();
+      for (var nid in allNodes) {
+        if (!allNodes.hasOwnProperty(nid)) continue;
+        var kfParams = keyframeState.getAllKeyframedParams(nid);
+        if (kfParams.length > 0) {
+          kf[nid] = {};
+          for (var pi = 0; pi < kfParams.length; pi++) {
+            kf[nid][kfParams[pi]] = {
+              keyframed: true,
+              times: keyframeState.getKeyframeTimes(nid, kfParams[pi])
+            };
+          }
+        }
+      }
+      graphData.keyframes = kf;
     }
     if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
       evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });

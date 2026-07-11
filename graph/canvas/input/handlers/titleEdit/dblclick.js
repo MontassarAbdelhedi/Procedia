@@ -46,7 +46,11 @@
       if (hitWire) {
         e.preventDefault();
         engine.disconnectWire(hitWire.id);
-        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+        _hoveredWireId = null;
+        if (typeof wireRenderer !== 'undefined') {
+          wireRenderer._hideInsertBtn();
+          if (wireRenderer.render) wireRenderer.render(null);
+        }
         return;
       }
     }

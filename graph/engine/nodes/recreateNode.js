@@ -15,8 +15,9 @@
 //             bridge/evalBridge.js, graph/engine/helpers.js
 // MUST LOAD BEFORE: nodes/index.js
 
-var __e_nrec = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.nrec = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Recreates a node that is in 'error' state by dispatching onAlive commands
@@ -156,3 +157,4 @@ var __e_nrec = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('nrec', window.__procedia_internal.nrec);

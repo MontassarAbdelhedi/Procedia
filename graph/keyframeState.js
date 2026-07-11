@@ -12,11 +12,11 @@
 var keyframeState = (function() {
 
   var TIME_TOLERANCE = 0.01;
+  var _keyframesStore = {};
+  var _playheadTime = 0;
 
   function _ensureState() {
-    var gs = window.__gs || window.graphState;
-    if (!gs._keyframes) gs._keyframes = {};
-    return gs._keyframes;
+    return _keyframesStore;
   }
 
   function _ensureParam(nodeId, paramKey) {
@@ -27,8 +27,7 @@ var keyframeState = (function() {
   }
 
   function _getCurrentTime() {
-    var gs = window.__gs || window.graphState;
-    return gs._playheadTime || 0;
+    return _playheadTime;
   }
 
   function hasKeyframes(nodeId, paramKey) {
@@ -105,8 +104,12 @@ var keyframeState = (function() {
   }
 
   function setCurrentTime(time) {
-    var gs = window.__gs || window.graphState;
-    gs._playheadTime = typeof time === 'number' ? time : 0;
+    _playheadTime = typeof time === 'number' ? time : 0;
+  }
+
+  function reset() {
+    _keyframesStore = {};
+    _playheadTime = 0;
   }
 
   function getCurrentTime() {
@@ -137,7 +140,8 @@ var keyframeState = (function() {
     setCurrentTime:         setCurrentTime,
     getCurrentTime:         getCurrentTime,
     getKeyframeState:       getKeyframeState,
-    getKeyframeTimes:       getKeyframeTimes
+    getKeyframeTimes:       getKeyframeTimes,
+    reset:                  reset
   };
 
 })();

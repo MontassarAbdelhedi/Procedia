@@ -93,4 +93,4 @@
   gs.getSelectionCount   = getSelectionCount;
   gs.onSelectionChange   = onSelectionChange;
 
-})(window.__gs);
+})(window.__procedia_internal.gs);

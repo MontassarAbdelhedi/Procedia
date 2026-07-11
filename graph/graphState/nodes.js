@@ -51,6 +51,19 @@
     gs.rebuildTempGraph();
   }
 
+  function batchUpdateNodes(patches) {
+    for (var uuid in patches) {
+      if (!patches.hasOwnProperty(uuid)) continue;
+      if (!gs.nodeMap.hasOwnProperty(uuid)) continue;
+      var node = gs.nodeMap[uuid];
+      var patch = patches[uuid];
+      for (var key in patch) {
+        node[key] = patch[key];
+      }
+    }
+    gs.rebuildTempGraph();
+  }
+
   function getNode(uuid) {
     return gs.nodeMap.hasOwnProperty(uuid) ? gs.nodeMap[uuid] : null;
   }
@@ -62,7 +75,8 @@
   gs.addNode    = addNode;
   gs.removeNode = removeNode;
   gs.updateNode = updateNode;
+  gs.batchUpdateNodes = batchUpdateNodes;
   gs.getNode    = getNode;
   gs.getAllNodes = getAllNodes;
 
-})(window.__gs);
+})(window.__procedia_internal.gs);

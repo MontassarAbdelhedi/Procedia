@@ -15,8 +15,9 @@
 //             graph/engine/helpers.js
 // MUST LOAD BEFORE: nodes/index.js
 
-var __e_nclone = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.nclone = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Clones the given node. Creates a deep copy with a new UUID, sets
@@ -55,3 +56,4 @@ var __e_nclone = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('nclone', window.__procedia_internal.nclone);

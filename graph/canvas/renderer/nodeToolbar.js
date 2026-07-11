@@ -16,6 +16,7 @@ var nodeToolbar = (function() {
   var _colorPicker = null;
   var _colorPickerVisible = false;
   var _switchState = null;
+  var _docListenerAdded = false;
 
   var COLORS = [
     { name: 'white',  hex: '#FFFFFF' },
@@ -187,8 +188,10 @@ var nodeToolbar = (function() {
       _colorPickerVisible = false;
       _colorPicker.style.display = 'none';
     }
-    document.removeEventListener('mousedown', _onDocClick);
-    document.addEventListener('mousedown', _onDocClick);
+    if (!_docListenerAdded) {
+      document.addEventListener('mousedown', _onDocClick);
+      _docListenerAdded = true;
+    }
   }
 
   function hide() {
@@ -198,7 +201,10 @@ var nodeToolbar = (function() {
       _colorPickerVisible = false;
       _colorPicker.style.display = 'none';
     }
-    document.removeEventListener('mousedown', _onDocClick);
+    if (_docListenerAdded) {
+      document.removeEventListener('mousedown', _onDocClick);
+      _docListenerAdded = false;
+    }
   }
 
   function _onDocClick(e) {

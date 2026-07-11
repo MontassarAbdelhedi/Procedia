@@ -9,7 +9,7 @@
 // MUST LOAD BEFORE: graph/undoManager/aeReconcile.js, graph/undoManager/restore.js,
 //                   graph/undoManager/index.js
 
-window.__um = {
+window.__procedia_internal.um = {
   undoStack: [],
   redoStack: [],
   MAX_DEPTH: 50,
@@ -22,7 +22,7 @@ window.__um = {
 (function(um) {
 
   function _deepClone(obj) {
-    return JSON.parse(JSON.stringify(obj));
+    return window.__procedia_internal.deepClone(obj);
   }
 
   function _deepEqual(a, b) {
@@ -55,14 +55,20 @@ window.__um = {
   }
 
   function commitDebounced(description, delay) {
+    delay = delay || 200;
     if (um._isReconciling) return;
     if (um._captureDepth > 0) um._captureDepth--;
     if (um._captureDepth > 0) return;
+    var now = Date.now();
+    if (!um._lastCommitTime) um._lastCommitTime = 0;
+    if (now - um._lastCommitTime >= delay) {
+      um._lastCommitTime = now;
+      _pushUndo(description);
+    }
     if (um._commitTimer) clearTimeout(um._commitTimer);
     um._commitTimer = setTimeout(function() {
       um._commitTimer = null;
-      _pushUndo(description);
-    }, delay || 400);
+    }, delay);
   }
 
   function _pushUndo(description) {
@@ -88,4 +94,4 @@ window.__um = {
   um.commitDebounced = commitDebounced;
   um._pushUndo = _pushUndo;
 
-})(window.__um);
+})(window.__procedia_internal.um);

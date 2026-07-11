@@ -50,10 +50,12 @@
           c._animOffset += 0.3;
           if (c._animOffset > 200) c._animOffset = 0;
           c._drawAll(null);
+          c._updateInsertBtn();
           c._animFrameId = requestAnimationFrame(_tick);
         }
         c._animFrameId = requestAnimationFrame(_tick);
       }
+      c._updateInsertBtn();
       return;
     }
 

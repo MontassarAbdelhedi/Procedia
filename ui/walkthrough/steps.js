@@ -27,6 +27,12 @@ var __wt_steps = [
     cardPos: 'center'
   },
   {
+    title: 'Comp List',
+    description: 'The dropdown at the bottom-left lists every composition in your AE project. Click a comp to isolate it \u2014 the canvas filters to show only its upstream nodes, and new nodes auto-wire to it. Select "All project" to return to the full view.',
+    target: '#complist-dropdown',
+    cardPos: 'right'
+  },
+  {
     title: 'Connecting Nodes',
     description: 'Connect nodes by dragging from an output port (right side of a node) to an input port (left side). Wires carry data through the chain from left to right. Changes propagate automatically.',
     target: '#canvas-wrap',
@@ -37,6 +43,12 @@ var __wt_steps = [
     description: 'Select a node on the canvas to view and edit its properties in the right sidebar. Each node\'s parameters appear here \u2014 adjust values and see results update in real time.',
     target: '#right-bar',
     cardPos: 'left'
+  },
+  {
+    title: 'Report a Bug',
+    description: 'Procedia is still in beta \u2014 if you run into any issues, click the bug icon in the top bar to report them. Your feedback helps us fix problems and improve the plugin for everyone.',
+    target: '#topbar-report',
+    cardPos: 'center'
   },
   {
     title: 'You\'re Ready!',

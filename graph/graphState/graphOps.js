@@ -21,13 +21,11 @@
     if (graphData && graphData.nodes) {
       for (var nodeId in graphData.nodes) {
         var node = graphData.nodes[nodeId];
+        if (!node || !node.id || !node.type) {
+          console.warn('[Procedia] loadGraph: skipping malformed node ' + nodeId);
+          continue;
+        }
         gs.nodeMap[nodeId] = node;
-        if (node.dirty          === undefined) node.dirty          = false;
-        if (node.hasParkedLayer === undefined) node.hasParkedLayer = false;
-        if (node.secondaryPorts === undefined) node.secondaryPorts = null;
-        if (node.dynamicSchema  === undefined) node.dynamicSchema  = null;
-        if (node.locked         === undefined) node.locked         = false;
-        if (node.disabled       === undefined) node.disabled       = false;
       }
     }
 
@@ -40,7 +38,7 @@
     if (graphData && graphData.keyframes) {
       gs._keyframes = graphData.keyframes;
     } else {
-      gs._keyframes = {};
+    if (typeof keyframeState !== 'undefined' && keyframeState.reset) keyframeState.reset();
     }
 
     if (graphData && graphData.parkedNodeUUIDs) {
@@ -76,4 +74,4 @@
   gs.loadGraph  = loadGraph;
   gs.clearGraph = clearGraph;
 
-})(window.__gs);
+})(window.__procedia_internal.gs);

@@ -49,10 +49,7 @@ var poller = (function() {
       if (_handleMissingNode(uuids[i])) hasMissing = true;
     }
     if (hasMissing) {
-      if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-      if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-      if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-      if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+      window.__procedia_internal.refreshUI({ minimap: false });
     }
   }
 

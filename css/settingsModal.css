@@ -1,7 +1,5 @@
 /* settingsModal.css — Settings modal
-   Overlay, modal dialog, header, toggle switches, and select dropdowns for app preferences. */
-
-/* settingsModal.css — Settings modal overlay and controls */
+   Overlay, tab bar, tab panels, toggle switches, select dropdowns, and range sliders. */
 
 /* --- Overlay --- */
 .settings-overlay {
@@ -20,7 +18,7 @@
   border: 1px solid #2a2a28;
   border-radius: 8px;
   width: 380px;
-  max-height: 80vh;
+  height: 380px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
@@ -52,6 +50,45 @@
 
 .settings-modal-close:hover {
   color: #d4d2cc;
+}
+
+/* --- Tabs --- */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid #2a2a28;
+  padding: 0 18px;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #888780;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.settings-tab:hover {
+  color: #d4d2cc;
+}
+
+.settings-tab.active {
+  color: #d4d2cc;
+  border-bottom-color: #534AB7;
+}
+
+/* --- Tab panels --- */
+.settings-tab-panel {
+  display: none;
+}
+
+.settings-tab-panel.active {
+  display: block;
 }
 
 /* --- Body --- */
@@ -154,6 +191,25 @@
   font-size: 12px;
   color: #888780;
   min-width: 70px;
+}
+
+/* Replay tutorial button */
+.settings-replay-btn {
+  background: none;
+  border: 1px solid #2a2a28;
+  color: #B4B2A9;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  transition: color 0.15s ease, background 0.15s ease;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.settings-replay-btn:hover {
+  background: #2a2a28;
+  color: #d4d2cc;
 }
 
 /* Range slider for layout spacing */

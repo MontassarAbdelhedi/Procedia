@@ -17,11 +17,7 @@
   }
 
   function _refreshUI() {
-    if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
-    if (typeof minimap !== 'undefined' && minimap.render) minimap.render();
+    window.__procedia_internal.refreshUI();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) {
       topBar.refreshSelection(graphState.getSelection());
     }
@@ -30,4 +26,4 @@
   um._restoreState = _restoreState;
   um._refreshUI = _refreshUI;
 
-})(window.__um);
+})(window.__procedia_internal.um);

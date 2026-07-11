@@ -10,7 +10,8 @@
  * Exports: findAffectedUpstream, findSiblingEffectors, switchEffectors
  */
 
-var __e_nswitch = (function() {
+window.__procedia_internal.nswitch = (function() {
+  var registry = window.__procedia_internal.registry;
 
   function findAffectedUpstream(nodeId) {
     var visited = {};
@@ -100,7 +101,7 @@ var __e_nswitch = (function() {
 
     _reorderEffectsInAE(id1, id2);
 
-    __e_hlp.refreshNodeUI();
+    registry.get('hlp').refreshNodeUI();
   }
 
   function _getEffectorChain(nodeId) {
@@ -156,7 +157,7 @@ var __e_nswitch = (function() {
         hostingCompUUID = nd.hostingComps[0];
       }
       if (!pathLayerUUID) {
-        pathLayerUUID = __e_hlp.findPathLayerUUID(chain[ci]);
+        pathLayerUUID = registry.get('hlp').findPathLayerUUID(chain[ci]);
         console.log('[switchNodes] pathLayerUUID for ' + chain[ci] + ':', pathLayerUUID);
       }
       var def = nodeRegistry.getDefinition(nd.type);
@@ -203,10 +204,11 @@ var __e_nswitch = (function() {
     });
   }
 
-  return {
-    findAffectedUpstream: findAffectedUpstream,
-    findSiblingEffectors: findSiblingEffectors,
-    switchEffectors: switchEffectors
-  };
+    return {
+      findAffectedUpstream:   findAffectedUpstream,
+      findSiblingEffectors:   findSiblingEffectors,
+      switchEffectors:        switchEffectors
+    };
 
-})();
+  })();
+window.__procedia_internal.registry.register('nswitch', window.__procedia_internal.nswitch);

@@ -52,15 +52,19 @@ var _handlersKeyboard = (function() {
       return;
     }
 
-    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    if (e.key !== 'Delete' && e.key !== 'Backspace' && e.keyCode !== 46 && e.keyCode !== 8) return;
     if (inputUtils.isEditableTarget(e.target)) return;
 
     if (_selectedWireId) {
       e.preventDefault();
       var wireId = _selectedWireId;
       _selectedWireId = null;
+      _hoveredWireId = null;
       engine.disconnectWire(wireId);
-      if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+      if (typeof wireRenderer !== 'undefined') {
+        wireRenderer._hideInsertBtn();
+        if (wireRenderer.render) wireRenderer.render(null);
+      }
       return;
     }
 

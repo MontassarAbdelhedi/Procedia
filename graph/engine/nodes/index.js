@@ -18,17 +18,19 @@
 // MUST LOAD BEFORE: engine/state.js, engine/index.js
 // REPLACES: graph/engine/nodes.js
 
-var __e_nodes = (function() {
+window.__procedia_internal.eNodes = (function() {
+  var registry = window.__procedia_internal.registry;
   return {
-    dropNode:                __e_ndrop.dropNode,
-    deleteNode:              __e_ndel.deleteNode,
-    deleteSelectedNodes:     __e_ndel.deleteSelectedNodes,
-    duplicateSelectedNodes:  __e_ndup.duplicateSelectedNodes,
-    toggleLockSelectedNodes: __e_nlock.toggleLockSelectedNodes,
-    recreateNode:            __e_nrec.recreateNode,
-    cloneNode:               __e_nclone.cloneNode,
-    switchEffectors:         __e_nswitch.switchEffectors,
-    findAffectedUpstream:    __e_nswitch.findAffectedUpstream,
-    findSiblingEffectors:    __e_nswitch.findSiblingEffectors
+    dropNode:                registry.get('ndrop').dropNode,
+    deleteNode:              registry.get('ndel').deleteNode,
+    deleteSelectedNodes:     registry.get('ndel').deleteSelectedNodes,
+    duplicateSelectedNodes:  registry.get('ndup').duplicateSelectedNodes,
+    toggleLockSelectedNodes: registry.get('nlock').toggleLockSelectedNodes,
+    recreateNode:            registry.get('nrec').recreateNode,
+    cloneNode:               registry.get('nclone').cloneNode,
+    switchEffectors:         registry.get('nswitch').switchEffectors,
+    findAffectedUpstream:    registry.get('nswitch').findAffectedUpstream,
+    findSiblingEffectors:    registry.get('nswitch').findSiblingEffectors
   };
 })();
+window.__procedia_internal.registry.register('eNodes', window.__procedia_internal.eNodes);

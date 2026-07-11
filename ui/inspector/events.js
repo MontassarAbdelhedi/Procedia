@@ -366,8 +366,8 @@ var __ins_events = (function() {
    * @return {string|null} The layer UUID or null.
    */
   function _resolveLayerUUID(nodeId) {
-    if (typeof __e_hlp !== 'undefined' && __e_hlp.findPathLayerUUID) {
-      return __e_hlp.findPathLayerUUID(nodeId);
+    if (typeof window.__procedia_internal.hlp !== 'undefined' && window.__procedia_internal.hlp.findPathLayerUUID) {
+      return window.__procedia_internal.hlp.findPathLayerUUID(nodeId);
     }
     var wires = graphState.getAllWires();
     for (var wid in wires) {
@@ -557,16 +557,11 @@ var __ins_events = (function() {
                 console.error('[inspector] createFootageLayer failed:', createRes.error);
                 graphState.updateNode(nodeId, { props: nodeData.props, state: 'error' });
               }
-              renderer.render();
-              if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-              if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-              if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+              window.__procedia_internal.refreshUI({ minimap: false });
             });
           } else {
             graphState.updateNode(nodeId, { props: nodeData.props, state: 'alive' });
-            renderer.render();
-            if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-            if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+            window.__procedia_internal.refreshUI({ wireRenderer: false, minimap: false });
           }
         }
         return;

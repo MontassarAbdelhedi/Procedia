@@ -342,11 +342,14 @@ This is the most important architectural rule in v4. **Nodes never write ExtendS
 | `readSchemaCache` | Reads `effectSchemaCache.json` from the plugin directory and returns its parsed contents. |
 | `writeSchemaCache` | Writes the provided cache object to `effectSchemaCache.json` in the plugin directory. |
 | `getAEVersion` | Returns the running AE version string (`app.version`). Never parse or truncate — store the full string verbatim. |
+| `beginUndoGroup` | Calls `app.beginUndoGroup(name)` — starts an AE undo group for batching. |
+| `endUndoGroup` | Calls `app.endUndoGroup()` — ends the current AE undo group. |
 
 **Adding a new action:**
 - Open `jsx/dispatcher/dispatcher.jsx`
 - Add one named function: `function actionMyNewThing(params) { ... }`
 - Register it in `_route()` at the top of the file
+- Add the action name to the whitelist in `bridge/evalBridge.js`
 - This is the **only** acceptable reason to edit `dispatcher.jsx` when adding a new node
 
 **Rules:**
@@ -1054,7 +1057,8 @@ procedia/
 │   │   └── index.js                        ← Aggregates into schemaCache global
 │   │
 │   ├── engine/                             ← Dumb executor — zero node-type conditionals
-│   │   ├── helpers.js                      ← buildInitialProps, refreshNodeUI, resolveDynamicSchema, etc.
+│   │   ├── helpers.js                      ← helpers, cache, resolveDynamicSchema
+│   │   ├── lifecycle.js                    ← Shared kind-dispatch, forEachHostingComp, injectLayerUUID
 │   │   ├── propagate.js                    ← propagateAlive, checkMatteActivation, firePathCreation
 │   │   ├── wires.js                        ← Wire connect/disconnect
 │   │   ├── nodes/
@@ -1115,13 +1119,16 @@ procedia/
 │   ├── inspector/                          ← 5 files (viewModel, render, colorPicker, events, index)
 │   ├── topBar.js, statusBar.js
 │   ├── settings.js, settingsModal/
-│   └── sidebarToggle.js
+│   ├── sidebarToggle.js
+│   └── refreshUI.js                        ← Unified refresh(opts) — replaces 5-component inline renders
+│
+├── uiUpdateScheduler.js                    ← RAF-batched UI refresh scheduler
 │
 ├── flush/          dirtyFlusher.js
 ├── polling/        missingNodes.js, notifications.js, externalDeletions.js, poller.js
 ├── notifications/  notificationBar.js
 ├── bridge/         evalBridge.js
-├── data/           uuidGenerator.js, effectSchemaCache.json, effectsCatalog.json, graphExport.json
+├── data/           uuidGenerator.js, deepClone.js, effectSchemaCache.json, effectsCatalog.json, graphExport.json
 ├── lib/            CSInterface.js
 ├── css/            13 stylesheets
 ├── fonts/          tabler-icons (ttf, woff, woff2)

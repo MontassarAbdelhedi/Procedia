@@ -1,0 +1,16 @@
+{
+  "name": "procedia",
+  "private": true,
+  "version": "0.0.4",
+  "description": "Procedia — visual node-based compositing for After Effects",
+  "author": "Uppercut Studio",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "vitest": "^3.0.0"
+  }
+}

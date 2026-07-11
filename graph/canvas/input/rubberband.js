@@ -53,6 +53,7 @@ var inputRubberband = (function() {
    * @returns {HTMLElement} The rubber-band element.
    */
   function createRubberEl() {
+    _inpRubber._highlights = [];
     var wrap = document.getElementById('canvas-wrap');
     var el = document.createElement('div');
     el.className = 'rubber-band';

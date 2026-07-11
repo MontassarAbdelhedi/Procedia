@@ -30,23 +30,22 @@
 // REPLACES: graph/engine.js
 
 var engine = (function() {
+  var registry = window.__procedia_internal.registry;
   return {
-    dropNode:              __e_nodes.dropNode,
-    connectWire:           __e_wires.connectWire,
-    deleteNode:            __e_nodes.deleteNode,
-    deleteSelectedNodes:   __e_nodes.deleteSelectedNodes,
-    duplicateSelectedNodes: __e_nodes.duplicateSelectedNodes,
-    cloneNode:             __e_nodes.cloneNode,
-    recreateNode:          __e_nodes.recreateNode,
-    resetAll:              __e_state.resetAll,
-    toggleLockSelectedNodes: __e_nodes.toggleLockSelectedNodes,
-    toggleNodeDisabled:     __e_state.toggleNodeDisabled,
-    disconnectWire:        __e_wires.disconnectWire,
-    setNodeProperty:       __e_state.setNodeProperty,
-    switchEffectors:       __e_nodes.switchEffectors,
-    findAffectedUpstream:  __e_nodes.findAffectedUpstream,
-    findSiblingEffectors:  __e_nodes.findSiblingEffectors,
-    _firePathCreation:     __e_prop.firePathCreation,
-    _applyDynamicSchema:   __e_hlp.applyDynamicSchema
+    dropNode:              registry.get('eNodes').dropNode,
+    connectWire:           registry.get('wires').connectWire,
+    deleteNode:            registry.get('eNodes').deleteNode,
+    deleteSelectedNodes:   registry.get('eNodes').deleteSelectedNodes,
+    duplicateSelectedNodes: registry.get('eNodes').duplicateSelectedNodes,
+    cloneNode:             registry.get('eNodes').cloneNode,
+    recreateNode:          registry.get('eNodes').recreateNode,
+    resetAll:              registry.get('eState').resetAll,
+    toggleLockSelectedNodes: registry.get('eNodes').toggleLockSelectedNodes,
+    toggleNodeDisabled:     registry.get('eState').toggleNodeDisabled,
+    disconnectWire:        registry.get('wires').disconnectWire,
+    setNodeProperty:       registry.get('eState').setNodeProperty,
+    switchEffectors:       registry.get('eNodes').switchEffectors,
+    findAffectedUpstream:  registry.get('eNodes').findAffectedUpstream,
+    findSiblingEffectors:  registry.get('eNodes').findSiblingEffectors
   };
 })();

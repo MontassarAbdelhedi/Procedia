@@ -16,8 +16,9 @@
 //             bridge/evalBridge.js, flush/dirtyFlusher.js, graph/engine/helpers.js
 // MUST LOAD BEFORE: engine/wires.js, engine/nodes/index.js, engine/index.js
 
-var __e_prop = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.prop = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Set of path layer UUIDs that are pending creation in AE.
@@ -93,21 +94,11 @@ var __e_prop = (function() {
   function _dispatchCommand(nodeId, command) {
     if (command === null) return;
     (function(nId, cmd) {
-      // Register pending path UUID so the poller doesn't race with creation.
-      // Uses reference counting because multiple dispatches (e.g. effector +
-      // affected node in a chain) share the same pathLayerUUID. The UUID is
-      // only considered not-pending when all dispatches have completed.
       if (cmd.params && cmd.params.layerUUID) {
         _pendingPathUUIDs[cmd.params.layerUUID] = (_pendingPathUUIDs[cmd.params.layerUUID] || 0) + 1;
       }
       evalBridge.dispatch(cmd).then(function(res) {
-        // Clear pending path UUID — creation dispatch completed
-        if (cmd.params && cmd.params.layerUUID) {
-          _pendingPathUUIDs[cmd.params.layerUUID]--;
-          if (_pendingPathUUIDs[cmd.params.layerUUID] <= 0) {
-            delete _pendingPathUUIDs[cmd.params.layerUUID];
-          }
-        }
+        if (typeof res === 'undefined' || res === null) return;
         if (!res.ok) {
           console.error('[engine] onAlive failed for ' + nId + ': ' + (res.error || 'unknown error'));
           graphState.updateNode(nId, { state: 'error' });
@@ -122,17 +113,26 @@ var __e_prop = (function() {
             }
           }
         } else {
-          // Safety net: if the node was incorrectly set to 'error' by the
-          // poller during the async dispatch window, restore it to 'alive',
-          // since the dispatch succeeded (layer was created in AE).
           var ndOk = graphState.getNode(nId);
           if (ndOk && ndOk.state === 'error') {
             console.warn('[engine] onAlive dispatch succeeded for ' + nId + ' but node was in error state — recovering to alive');
             graphState.updateNode(nId, { state: 'alive' });
           }
         }
+      }).catch(function(err) {
+        console.error('[engine] onAlive dispatch failed for ' + nId + ': ' + (err || 'unknown error'));
+        graphState.updateNode(nId, { state: 'error' });
+      }).finally(function() {
+        if (cmd.params && cmd.params.layerUUID) {
+          if (_pendingPathUUIDs[cmd.params.layerUUID] > 0) {
+            _pendingPathUUIDs[cmd.params.layerUUID]--;
+          }
+          if (_pendingPathUUIDs[cmd.params.layerUUID] <= 0) {
+            delete _pendingPathUUIDs[cmd.params.layerUUID];
+          }
+        }
       });
-    }(nodeId, command));
+    }(nodeId, window.__procedia_internal.deepClone(command)));
   }
 
   /**
@@ -141,7 +141,7 @@ var __e_prop = (function() {
    * @param {string} hostingCompUUID - Hosting comp UUID
    * @param {string} pathLayerUUID - Terminal wire layer UUID
    */
-  function _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID) {
+  function _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID, visited) {
     var wireMap = graphState.getAllWires();
     for (var puId in wireMap) {
       if (!wireMap.hasOwnProperty(puId)) continue;
@@ -157,7 +157,7 @@ var __e_prop = (function() {
       }
       if (alreadyAlive) continue;
       graphState.updateWire(puw.id, { _pathLayerUUID: puw.id });
-      _propagateAlive(puw.fromNode, hostingCompUUID, pathLayerUUID);
+      _propagateAlive(puw.fromNode, hostingCompUUID, pathLayerUUID, visited);
     }
   }
 
@@ -170,7 +170,11 @@ var __e_prop = (function() {
    * @param {string} hostingCompUUID - UUID of the hosting composition
    * @param {string} pathLayerUUID - Terminal wire layer UUID
    */
-  function _propagateAlive(nodeId, hostingCompUUID, pathLayerUUID) {
+  function _propagateAlive(nodeId, hostingCompUUID, pathLayerUUID, visited) {
+    visited = visited || {};
+    if (visited[nodeId]) return;
+    visited[nodeId] = true;
+
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) return;
 
@@ -206,7 +210,7 @@ var __e_prop = (function() {
         hostingComps:         _mergeHostingComps(nodeData.hostingComps, hostingCompUUID),
         _transplantLayerUUID: null
       });
-      _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID);
+      _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID, visited);
       var transplantCmd = _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID);
       if (transplantCmd) transplantCmd.params._moveToBottom = true;
       _dispatchCommand(nodeId, transplantCmd);
@@ -243,7 +247,7 @@ var __e_prop = (function() {
       hasParkedLayer: false
     });
 
-    _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID);
+    _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID, visited);
     if (command !== null) _dispatchCommand(nodeId, command);
 
     if (command !== null &&
@@ -415,3 +419,4 @@ var __e_prop = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('prop', window.__procedia_internal.prop);

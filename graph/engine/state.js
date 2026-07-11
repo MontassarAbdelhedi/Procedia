@@ -17,8 +17,9 @@
 //             graph/engine/helpers.js
 // MUST LOAD BEFORE: engine/index.js
 
-var __e_state = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.eState = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Resets the entire graph: dispatches onDelete for all nodes, clears the
@@ -39,10 +40,7 @@ var __e_state = (function() {
     graphState.clearGraph();
 
     if (typeof viewport !== 'undefined' && viewport.reset) viewport.reset();
-    if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    window.__procedia_internal.refreshUI();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection([]);
 
 
@@ -127,9 +125,9 @@ var __e_state = (function() {
     } else {
       // Default AE action per nodeKind (no custom onDisable hook)
       if (nodeData.nodeKind === 'effector') {
-        _defaultEffectorDisable(nodeData);
+        _defaultSetEffectEnabled(nodeData, false);
       } else if (nodeData.nodeKind === 'affected') {
-        _defaultAffectedDisable(nodeData);
+        _defaultSetLayerEnabled(nodeData, false);
       }
     }
 
@@ -154,9 +152,9 @@ var __e_state = (function() {
     } else {
       // Default AE action per nodeKind (no custom onEnable hook)
       if (nodeData.nodeKind === 'effector') {
-        _defaultEffectorEnable(nodeData);
+        _defaultSetEffectEnabled(nodeData, true);
       } else if (nodeData.nodeKind === 'affected') {
-        _defaultAffectedEnable(nodeData);
+        _defaultSetLayerEnabled(nodeData, true);
       }
     }
 
@@ -194,9 +192,11 @@ var __e_state = (function() {
   }
 
   /**
-   * Default disable for effector nodes: set effect.enabled = false via AE.
+   * Default enable/disable for effector nodes: set effect.enabled via AE.
+   * @param {Object} nodeData
+   * @param {boolean} enabled
    */
-  function _defaultEffectorDisable(nodeData) {
+  function _defaultSetEffectEnabled(nodeData, enabled) {
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def || !def.matchName) return;
 
@@ -213,41 +213,17 @@ var __e_state = (function() {
         hostingCompUUID: hostingCompUUID,
         layerNodeUUID:   upstreamNodeUUID,
         matchName:       def.matchName,
-        enabled:         false
+        enabled:         enabled
       }
     });
   }
 
   /**
-   * Default enable for effector nodes: set effect.enabled = true via AE.
+   * Default enable/disable for affected nodes: set layer.enabled via AE.
+   * @param {Object} nodeData
+   * @param {boolean} enabled
    */
-  function _defaultEffectorEnable(nodeData) {
-    var def = nodeRegistry.getDefinition(nodeData.type);
-    if (!def || !def.matchName) return;
-
-    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
-      ? nodeData.hostingComps[0] : null;
-    if (!hostingCompUUID) return;
-
-    var upstreamNodeUUID = hlp.findPathLayerUUID(nodeData.id);
-
-    evalBridge.dispatch({
-      action: 'setEffectEnabled',
-      params: {
-        nodeUUID:        nodeData.id,
-        hostingCompUUID: hostingCompUUID,
-        layerNodeUUID:   upstreamNodeUUID,
-        matchName:       def.matchName,
-        enabled:         true
-      }
-    });
-  }
-
-  /**
-   * Default disable for affected nodes: set layer.enabled = false via AE.
-   * Injects layerUUID so AE can find the layer by its .comment (pathLayerUUID).
-   */
-  function _defaultAffectedDisable(nodeData) {
+  function _defaultSetLayerEnabled(nodeData, enabled) {
     var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
       ? nodeData.hostingComps[0] : null;
     if (!hostingCompUUID) return;
@@ -258,35 +234,16 @@ var __e_state = (function() {
         nodeUUID:        nodeData.id,
         hostingCompUUID: hostingCompUUID,
         layerUUID:       hlp.findPathLayerUUID(nodeData.id),
-        enabled:         false
-      }
-    });
-  }
-
-  /**
-   * Default enable for affected nodes: set layer.enabled = true via AE.
-   * Injects layerUUID so AE can find the layer by its .comment (pathLayerUUID).
-   */
-  function _defaultAffectedEnable(nodeData) {
-    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
-      ? nodeData.hostingComps[0] : null;
-    if (!hostingCompUUID) return;
-
-    evalBridge.dispatch({
-      action: 'setLayerEnabled',
-      params: {
-        nodeUUID:        nodeData.id,
-        hostingCompUUID: hostingCompUUID,
-        layerUUID:       hlp.findPathLayerUUID(nodeData.id),
-        enabled:         true
+        enabled:         enabled
       }
     });
   }
 
   return {
-    resetAll:           resetAll,
-    setNodeProperty:    setNodeProperty,
-    toggleNodeDisabled: toggleNodeDisabled
+    resetAll:              resetAll,
+    setNodeProperty:       setNodeProperty,
+    toggleNodeDisabled:     toggleNodeDisabled
   };
 
 })();
+window.__procedia_internal.registry.register('eState', window.__procedia_internal.eState);

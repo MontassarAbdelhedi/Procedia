@@ -18,13 +18,28 @@ var __np_render = (function() {
     if (!nodes || nodes.length === 0) {
       return '<div class="nodepicker-item nodepicker-empty">No compatible nodes</div>';
     }
-    var html = '';
+    var groups = {};
+    var order = [];
     for (var i = 0; i < nodes.length; i++) {
-      html +=
-        '<div class="nodepicker-item' + (i === selIndex ? ' selected' : '') + '" data-type="' + nodes[i].type + '">' +
-          '<span class="nodepicker-item-label">' + (nodes[i].label || nodes[i].type) + '</span>' +
-          '<span class="nodepicker-item-kind">' + (nodes[i].nodeKind || '') + '</span>' +
-        '</div>';
+      nodes[i]._flatIndex = i;
+      var cat = nodes[i].category || 'Other';
+      if (!groups[cat]) {
+        groups[cat] = [];
+        order.push(cat);
+      }
+      groups[cat].push(nodes[i]);
+    }
+    var html = '';
+    for (var g = 0; g < order.length; g++) {
+      var catName = order[g];
+      var items = groups[catName];
+      html += '<div class="nodepicker-category">' + catName + '</div>';
+      for (var j = 0; j < items.length; j++) {
+        html +=
+          '<div class="nodepicker-item' + (items[j]._flatIndex === selIndex ? ' selected' : '') + '" data-type="' + items[j].type + '">' +
+            '<span class="nodepicker-item-label">' + (items[j].label || items[j].type) + '</span>' +
+          '</div>';
+      }
     }
     return html;
   }

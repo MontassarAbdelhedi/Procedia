@@ -16,8 +16,9 @@
 //             graph/engine/helpers.js
 // MUST LOAD BEFORE: nodes/deleteNode.js, nodes/index.js
 
-var __e_ndrop = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.ndrop = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Drops a new node onto the graph at the given coordinates. Creates the node
@@ -52,7 +53,9 @@ var __e_ndrop = (function() {
       hostingComps:   [],
       hasParkedLayer: false,
       dynamicSchema:  null,
-      secondaryPorts: null
+      secondaryPorts: null,
+      locked:         false,
+      disabled:       false
     };
 
     graphState.addNode(nodeData);
@@ -70,8 +73,8 @@ var __e_ndrop = (function() {
       _activeComp = graphState.getActiveComp();
       if (_activeComp) {
         if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
-        if (nodeDef.nodeKind !== 'data' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
-          __e_wires.connectWire(id, 'output', _activeComp, 'main_input');
+        if (nodeDef.nodeKind !== 'data' && registry.has('wires') && registry.get('wires').connectWire) {
+          registry.get('wires').connectWire(id, 'output', _activeComp, 'main_input');
         }
       }
       if (typeof undoManager !== 'undefined') undoManager.commit('Drop ' + (nodeDef.label || nodeDef.type));
@@ -86,8 +89,8 @@ var __e_ndrop = (function() {
     if (command === null) {
       _activeComp = graphState.getActiveComp();
       if (_activeComp) {
-        if (nodeDef.nodeKind !== 'effector' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
-          if (__e_wires.connectWire(id, 'output', _activeComp, 'main_input')) {
+        if (nodeDef.nodeKind !== 'effector' && registry.has('wires') && registry.get('wires').connectWire) {
+          if (registry.get('wires').connectWire(id, 'output', _activeComp, 'main_input')) {
             if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(id);
           }
         } else {
@@ -104,8 +107,8 @@ var __e_ndrop = (function() {
           graphState.updateNode(nId, { state: 'alive' });
           var _activeComp = graphState.getActiveComp();
           if (_activeComp) {
-            if (nDef.nodeKind !== 'effector' && typeof __e_wires !== 'undefined' && __e_wires.connectWire) {
-              if (__e_wires.connectWire(nId, 'output', _activeComp, 'main_input')) {
+            if (nDef.nodeKind !== 'effector' && registry.has('wires') && registry.get('wires').connectWire) {
+              if (registry.get('wires').connectWire(nId, 'output', _activeComp, 'main_input')) {
                 if (typeof graphState.addToFilteredNodes === 'function') graphState.addToFilteredNodes(nId);
               }
             } else {
@@ -113,7 +116,7 @@ var __e_ndrop = (function() {
             }
           }
           if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
-          if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
+          window.__procedia_internal.refreshUI({ renderer: false, minimap: false, inspector: false, statusBar: false });
         } else {
           console.error('[engine] onDrop dispatch failed: ' + res.error);
           graphState.updateNode(nId, { state: 'error' });
@@ -135,3 +138,4 @@ var __e_ndrop = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('ndrop', window.__procedia_internal.ndrop);

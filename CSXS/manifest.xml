@@ -27,7 +27,10 @@
       <DispatchInfo>
         <Resources>
           <MainPath>./index.html</MainPath>
-          <CEFCommandLine/>
+          <CEFCommandLine>
+            <Parameter>--disable-web-security=false</Parameter>
+            <Parameter>--allow-file-access-from-files=false</Parameter>
+          </CEFCommandLine>
         </Resources>
         <Lifecycle>
           <AutoVisible>true</AutoVisible>

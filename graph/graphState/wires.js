@@ -50,4 +50,4 @@
   gs.getWire    = getWire;
   gs.getAllWires = getAllWires;
 
-})(window.__gs);
+})(window.__procedia_internal.gs);

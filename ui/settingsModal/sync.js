@@ -22,6 +22,8 @@ var __sm_sync = (function() {
     refs.portLabelsCheckbox.checked = prefs.showPortLabels !== false;
     refs.snapToGridCheckbox.checked = prefs.snapToGrid === true;
 
+    if (refs.autoShyCheckbox) refs.autoShyCheckbox.checked = prefs.autoShy === true;
+
     var reportingCheckbox = document.getElementById('settings-allow-reporting');
     if (reportingCheckbox) reportingCheckbox.checked = prefs.allowReporting !== false;
 

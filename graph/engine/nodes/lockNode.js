@@ -12,8 +12,9 @@
 // DEPENDS ON: graph/graphState.js, graph/engine/helpers.js
 // MUST LOAD BEFORE: nodes/index.js
 
-var __e_nlock = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.nlock = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Toggles the locked state of all selected nodes. If all are locked, unlocks
@@ -41,3 +42,4 @@ var __e_nlock = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('nlock', window.__procedia_internal.nlock);

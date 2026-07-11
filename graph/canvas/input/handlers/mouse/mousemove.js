@@ -65,7 +65,8 @@
     var newX = _maybeSnap(_inpDrag.nodeStartPos.x + dx);
     var newY = _maybeSnap(_inpDrag.nodeStartPos.y + dy);
 
-    graphState.updateNode(_inpDrag.nodeId, { x: newX, y: newY });
+    var patches = {};
+    patches[_inpDrag.nodeId] = { x: newX, y: newY };
 
     var selection = graphState.getSelection();
     if (selection.length > 1) {
@@ -75,7 +76,7 @@
         if (!startPos) continue;
         var newSelX = _maybeSnap(startPos.x + dx);
         var newSelY = _maybeSnap(startPos.y + dy);
-        graphState.updateNode(selection[i], { x: newSelX, y: newSelY });
+        patches[selection[i]] = { x: newSelX, y: newSelY };
         var selEl = renderer.getNodeElement(selection[i]);
         if (selEl) {
           selEl.style.left = newSelX + 'px';
@@ -83,6 +84,8 @@
         }
       }
     }
+
+    graphState.batchUpdateNodes(patches);
 
     var el = renderer.getNodeElement(_inpDrag.nodeId);
     if (el) {

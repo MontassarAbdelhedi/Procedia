@@ -20,7 +20,9 @@
 //             bridge/evalBridge.js, flush/dirtyFlusher.js
 // MUST LOAD BEFORE: engine/propagate.js, engine/wires.js, engine/nodes/index.js, engine/state.js, engine/index.js
 
-var __e_hlp = (function() {
+window.__procedia_internal.hlp = (function() {
+  var registry = window.__procedia_internal.registry;
+  var _pathLayerCache = {};
 
   /**
    * Builds an initial properties object from a node definition's params array.
@@ -43,11 +45,9 @@ var __e_hlp = (function() {
    * and status bar.
    */
   function _refreshNodeUI() {
-    minimap.render();
-    renderer.render();
-    if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-    if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-    if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+    if (window.__procedia_internal._uiScheduler) {
+      window.__procedia_internal._uiScheduler.scheduleUIUpdate();
+    }
   }
 
   /**
@@ -109,9 +109,9 @@ var __e_hlp = (function() {
     for (var _ci = 0; _ci < _cloneIds.length; _ci++) {
       var _clone = graphState.getNode(_cloneIds[_ci]);
       if (!_clone) continue;
-      _clone.secondaryPorts = JSON.parse(JSON.stringify(secondaryPorts));
+      _clone.secondaryPorts = window.__procedia_internal.deepClone(secondaryPorts);
       _clone.dynamicSchema  = schema;
-      _clone.props          = JSON.parse(JSON.stringify(initialProps));
+      _clone.props          = window.__procedia_internal.deepClone(initialProps);
     }
     if (_cloneIds.length > 0) {
       graphState.rebuildTempGraph();
@@ -125,7 +125,14 @@ var __e_hlp = (function() {
    * @returns {string|null} The terminal wire UUID, or null
    */
   function _findPathLayerUUID(nodeId) {
-    return _findPathLayerUUIDWithVisited(nodeId, {});
+    if (_pathLayerCache.hasOwnProperty(nodeId)) return _pathLayerCache[nodeId];
+    var result = _findPathLayerUUIDWithVisited(nodeId, {});
+    _pathLayerCache[nodeId] = result;
+    return result;
+  }
+
+  function _invalidatePathLayerCache() {
+    _pathLayerCache = {};
   }
 
   /**
@@ -241,13 +248,7 @@ var __e_hlp = (function() {
     var copy = {};
     for (var key in src) {
       if (key === 'id' || key === 'dirty' || key === '_transplantLayerUUID') continue;
-      if (Array.isArray(src[key])) {
-        copy[key] = src[key].slice();
-      } else if (typeof src[key] === 'object' && src[key] !== null) {
-        copy[key] = JSON.parse(JSON.stringify(src[key]));
-      } else {
-        copy[key] = src[key];
-      }
+      copy[key] = window.__procedia_internal.deepClone(src[key]);
     }
     return copy;
   }
@@ -259,9 +260,18 @@ var __e_hlp = (function() {
     resolveDynamicSchema:_resolveDynamicSchema,
     applyDynamicSchema:  _applyDynamicSchema,
     findPathLayerUUID:   _findPathLayerUUID,
+    invalidatePathLayerCache: _invalidatePathLayerCache,
     propagateDataValue:  _propagateDataValue,
     propagateDataDefaults:  _propagateDataDefaults,
     repropagateDataValues:  _repropagateDataValues
   };
 
 })();
+window.__procedia_internal.registry.register('hlp', window.__procedia_internal.hlp);
+
+// Invalidate pathLayer cache whenever the graph is rebuilt (wires/nodes change)
+var _origRebuild = graphState.rebuildTempGraph;
+graphState.rebuildTempGraph = function() {
+  window.__procedia_internal.hlp.invalidatePathLayerCache();
+  _origRebuild();
+};

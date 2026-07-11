@@ -45,181 +45,18 @@
   <!-- 1. CEP interface -->
   <script src="lib/CSInterface.js"></script>
 
-  <!-- 1b. Error reporting (Sentry + screenshot + reporter) -->
-  <script src="https://browser.sentry-cdn.com/8.0.0/bundle.min.js"
+  <!-- 1b. Error reporting (Sentry + screenshot + reporter) — vendored locally -->
+  <script src="lib/sentry.bundle.min.js"
+    integrity="sha384-KgfNZ/yPJH4C25ELk249/OmtPWiqwJxTf/Z5CMlCvdas3BGPSktVyCyXMGXg8vg5"
     crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"
+  <script src="lib/html2canvas.min.js"
+    integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H"
     crossorigin="anonymous"></script>
   <script src="reporting/envSnapshot.js"></script>
   <script src="reporting/reporter.js"></script>
 
-  <!-- 2. Infrastructure — no dependencies -->
-  <script src="data/uuidGenerator.js"></script>
-  <script src="bridge/evalBridge.js"></script>
-  <script src="graph/graphState/state.js"></script>
-  <script src="graph/graphState/tempGraph.js"></script>
-  <script src="graph/graphState/nodes.js"></script>
-  <script src="graph/graphState/wires.js"></script>
-  <script src="graph/graphState/props.js"></script>
-  <script src="graph/graphState/selection.js"></script>
-  <script src="graph/graphState/graphOps.js"></script>
-  <script src="graph/graphState/index.js"></script>
-  <script src="graph/undoManager/state.js"></script>
-  <script src="graph/undoManager/aeReconcile.js"></script>
-  <script src="graph/undoManager/restore.js"></script>
-  <script src="graph/undoManager/index.js"></script>
-  <script src="graph/keyframeState.js"></script>
-<script src="graph/nodeRegistry.js"></script>
-  <script src="graph/graphExporter.js"></script>
-  <script src="ui/settings.js"></script>
-
-  <!-- 3. Node definitions — depend on nodeRegistry; loaded via dynamic script loader -->
-  <script src="graph/nodes/loadNodes.js"></script>
-
-  <!-- 4. Schema cache — after nodeRegistry, before engine -->
-  <script src="graph/schemaCache/state.js"></script>
-  <script src="graph/schemaCache/persistence.js"></script>
-  <script src="graph/schemaCache/diff.js"></script>
-  <script src="graph/schemaCache/index.js"></script>
-
-  <!-- 5. Graph engine — depends on graphState, nodeRegistry, all nodes, schemaCache -->
-  <script src="graph/cycleChecker.js"></script>
-  <script src="graph/wireValidator/portUtils.js"></script>
-  <script src="graph/wireValidator/matteValidator.js"></script>
-  <script src="graph/wireValidator/canConnect.js"></script>
-  <script src="graph/wireValidator/filterPickerList.js"></script>
-  <script src="graph/wireValidator/index.js"></script>
-  <script src="graph/cascade/utils.js"></script>
-  <script src="graph/cascade/cascadeGhost/collect.js"></script>
-  <script src="graph/cascade/cascadeGhost/commands.js"></script>
-  <script src="graph/cascade/cascadeGhost/update.js"></script>
-  <script src="graph/cascade/cascadeGhost/cleanup.js"></script>
-  <script src="graph/cascade/cascadeGhost/ghost.js"></script>
-  <script src="graph/cascade/index.js"></script>
-  <script src="flush/dirtyFlusher.js"></script>
-  <script src="graph/engine/effectNodeFactory.js"></script>
-  <script src="graph/engine/helpers.js"></script>
-  <script src="graph/engine/propagate.js"></script>
-  <script src="graph/engine/wires.js"></script>
-  <script src="graph/engine/nodes/dropNode.js"></script>
-  <script src="graph/engine/nodes/deleteNode.js"></script>
-  <script src="graph/engine/nodes/duplicateNode.js"></script>
-  <script src="graph/engine/nodes/lockNode.js"></script>
-  <script src="graph/engine/nodes/cloneNode.js"></script>
-  <script src="graph/engine/nodes/recreateNode.js"></script>
-  <script src="graph/engine/nodes/switchNodes.js"></script>
-  <script src="graph/engine/nodes/index.js"></script>
-  <script src="graph/engine/state.js"></script>
-  <script src="graph/engine/index.js"></script>
-
-  <!-- 6. Canvas — depends on engine -->
-  <script src="graph/canvas/viewport.js"></script>
-  <script src="graph/canvas/renderer/categories.js"></script>
-  <script src="graph/canvas/renderer/helpers.js"></script>
-  <script src="graph/canvas/renderer/builder.js"></script>
-  <script src="graph/canvas/renderer/index.js"></script>
-  <script src="graph/canvas/renderer/nodeToolbar.js"></script>
-  <script src="graph/canvas/input/state.js"></script>
-  <script src="graph/canvas/input/utils.js"></script>
-  <script src="graph/canvas/input/rubberband.js"></script>
-  <script src="graph/canvas/input/handlers/titleEdit/helpers.js"></script>
-  <script src="graph/canvas/input/handlers/titleEdit/exit.js"></script>
-  <script src="graph/canvas/input/handlers/titleEdit/commit.js"></script>
-  <script src="graph/canvas/input/handlers/titleEdit/cancel.js"></script>
-  <script src="graph/canvas/input/handlers/titleEdit/dblclick.js"></script>
-  <script src="graph/canvas/input/handlers/mouse/mousedown.js"></script>
-  <script src="graph/canvas/input/handlers/mouse/mousemove.js"></script>
-  <script src="graph/canvas/input/handlers/mouse/mouseup.js"></script>
-  <script src="graph/canvas/input/handlers/mouse/click.js"></script>
-  <script src="graph/canvas/input/handlers/keyboard.js"></script>
-  <script src="graph/canvas/input/handlers/wheel.js"></script>
-  <script src="graph/canvas/input/handlers/index.js"></script>
-  <script src="graph/canvas/input/index.js"></script>
-  <script src="graph/canvas/minimap/constants.js"></script>
-  <script src="graph/canvas/minimap/state.js"></script>
-  <script src="graph/canvas/minimap/utils.js"></script>
-  <script src="graph/canvas/minimap/renderer.js"></script>
-  <script src="graph/canvas/minimap/interaction.js"></script>
-  <script src="graph/canvas/minimap/index.js"></script>
-  <script src="graph/canvas/drag/helpers.js"></script>
-  <script src="graph/canvas/drag/hitTest.js"></script>
-  <script src="graph/canvas/drag/insert.js"></script>
-  <script src="graph/canvas/drag/preview.js"></script>
-  <script src="graph/wire/wireRenderer/helpers.js"></script>
-  <script src="graph/wire/wireRenderer/draw.js"></script>
-  <script src="graph/wire/wireRenderer/render.js"></script>
-  <script src="graph/wire/wire.js"></script>
-
-  <!-- 7. Auto layout — depends on graphState, nodeRegistry, engine -->
-  <script src="graph/autoLayout/constants.js"></script>
-  <script src="graph/autoLayout/estimateHeight.js"></script>
-  <script src="graph/autoLayout/graphBuilder.js"></script>
-  <script src="graph/autoLayout/layerAssignment.js"></script>
-  <script src="graph/autoLayout/crossingReduction.js"></script>
-  <script src="graph/autoLayout/positioning.js"></script>
-  <script src="graph/autoLayout/index.js"></script>
-
-  <!-- 7b. Import module — depends on graphState, nodeRegistry, engine, uuidGenerator, evalBridge -->
-  <script src="graph/import/mapNodes/helpers.js"></script>
-  <script src="graph/import/mapNodes/buildItems.js"></script>
-  <script src="graph/import/mapNodes/buildEffects.js"></script>
-  <script src="graph/import/mapWires.js"></script>
-  <script src="graph/import/stampUUIDs.js"></script>
-  <script src="graph/import/builder.js"></script>
-  <script src="graph/import/index.js"></script>
-
-  <!-- 8. UI — depends on graphState, nodeRegistry, engine -->
-  <script src="ui/nodeList/categories.js"></script>
-  <script src="ui/nodeList/render.js"></script>
-  <script src="ui/nodeList/search.js"></script>
-  <script src="ui/nodeList/dragdrop.js"></script>
-  <script src="ui/nodeList/index.js"></script>
-  <script src="ui/nodePicker/compatibility.js"></script>
-  <script src="ui/nodePicker/render.js"></script>
-  <script src="ui/nodePicker/filter.js"></script>
-  <script src="ui/nodePicker/events.js"></script>
-  <script src="ui/nodePicker/index.js"></script>
-  <script src="ui/inspector/viewModel.js"></script>
-  <script src="ui/inspector/render.js"></script>
-  <script src="ui/inspector/colorPicker.js"></script>
-  <script src="ui/inspector/events.js"></script>
-  <script src="ui/inspector/layerStack.js"></script>
-  <script src="ui/inspector/index.js"></script>
-  <script src="ui/settingsModal/dom.js"></script>
-  <script src="ui/settingsModal/events.js"></script>
-  <script src="ui/settingsModal/sync.js"></script>
-  <script src="ui/settingsModal/apply.js"></script>
-  <script src="ui/settingsModal/index.js"></script>
-
-  <!-- 10. Infrastructure services -->
-  <script src="polling/missingNodes.js"></script>
-  <script src="polling/notifications.js"></script>
-  <script src="polling/externalDeletions.js"></script>
-  <script src="polling/propertyPoller.js"></script>
-  <script src="polling/poller.js"></script>
-  <script src="notifications/notificationBar.js"></script>
-
-  <!-- 11. UI chrome — no graph dependencies -->
-  <script src="ui/topBar/collapse.js"></script>
-  <script src="ui/topBar/selection.js"></script>
-  <script src="ui/topBar/io.js"></script>
-  <script src="ui/topBar/init.js"></script>
-  <script src="ui/topBar/index.js"></script>
-  <script src="ui/statusBar.js"></script>
-  <script src="ui/sidebarToggle.js"></script>
-  <script src="ui/compList.js"></script>
-  <script src="ui/tipField.js"></script>
-
-  <!-- 12. Walkthrough tutorial — no graph dependencies -->
-  <script src="ui/walkthrough/steps.js"></script>
-  <script src="ui/walkthrough/dom.js"></script>
-  <script src="ui/walkthrough/render.js"></script>
-  <script src="ui/walkthrough/nav.js"></script>
-  <script src="ui/walkthrough/events.js"></script>
-  <script src="ui/walkthrough/index.js"></script>
-
-  <!-- 13. Entry point — depends on everything -->
-  <script src="index.js"></script>
+  <!-- 2. All remaining scripts loaded via manifest (data/scripts.json) -->
+  <script src="ui/scriptLoader.js"></script>
 
 </body>
 

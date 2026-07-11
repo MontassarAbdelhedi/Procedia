@@ -29,7 +29,7 @@
     }
   };
 
-  gs.rebuildTempGraph = function rebuildTempGraph() {
+  function _rebuildFromMaps() {
     var newNodes = {};
     var newWires = {};
 
@@ -57,7 +57,20 @@
 
     gs.tempGraph.nodes = newNodes;
     gs.tempGraph.wires = newWires;
+  }
+
+  gs.rebuildTempGraph = function rebuildTempGraph() {
+    gs._tempDirty = true;
+    gs._dirty = true;
     gs._fireGraphChange();
   };
 
-})(window.__gs);
+  gs.getTempGraph = function getTempGraph() {
+    if (gs._tempDirty) {
+      _rebuildFromMaps();
+      gs._tempDirty = false;
+    }
+    return gs.tempGraph;
+  };
+
+})(window.__procedia_internal.gs);

@@ -171,15 +171,15 @@ var PERSISTENCE = (function() {
       var parsed;
 
       if (nodesStr) {
-        parsed = JSON.parse(nodesStr);
+        try { parsed = JSON.parse(nodesStr); } catch (e) { $.writeln('[Procedia] Corrupt nodes chunk: ' + e.toString()); }
         if (parsed && typeof parsed === 'object') nodes = parsed;
       }
       if (wiresStr) {
-        parsed = JSON.parse(wiresStr);
+        try { parsed = JSON.parse(wiresStr); } catch (e) { $.writeln('[Procedia] Corrupt wires chunk: ' + e.toString()); }
         if (parsed && typeof parsed === 'object') wires = parsed;
       }
       if (kfStr) {
-        parsed = JSON.parse(kfStr);
+        try { parsed = JSON.parse(kfStr); } catch (e) { $.writeln('[Procedia] Corrupt keyframes chunk: ' + e.toString()); }
         if (parsed && typeof parsed === 'object') keyframes = parsed;
       }
 

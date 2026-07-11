@@ -12,7 +12,6 @@
 
   function updateProp(uuid, key, value) {
     if (!gs.nodeMap.hasOwnProperty(uuid)) return;
-    if (typeof undoManager !== 'undefined') undoManager.capture();
     var node = gs.nodeMap[uuid];
     if (!node.props) node.props = {};
     node.props[key] = value;
@@ -26,7 +25,6 @@
     }
 
     gs.rebuildTempGraph();
-    if (typeof undoManager !== 'undefined') undoManager.commitDebounced('Change property');
   }
 
   function clearDirty(uuid) {
@@ -37,4 +35,4 @@
   gs.updateProp = updateProp;
   gs.clearDirty = clearDirty;
 
-})(window.__gs);
+})(window.__procedia_internal.gs);

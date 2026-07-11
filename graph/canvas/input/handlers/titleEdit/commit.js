@@ -22,7 +22,9 @@
     if (!newLabel) return;
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) return;
+    if (typeof undoManager !== 'undefined') undoManager.capture();
     graphState.updateProp(nodeId, 'label', newLabel);
+    if (typeof undoManager !== 'undefined') undoManager.commit('Rename node');
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
     renderer.render();
 

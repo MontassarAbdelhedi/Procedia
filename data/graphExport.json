@@ -1,1 +1,1 @@
-{"reservedComp":{"parkedLayers":[]},"nodes":[],"wires":[]}
+{"reservedComp":{"parkedLayers":[]},"nodes":[{"uuid":"PROC-1783792627974-yrd9","title":"Comp","kind":"affected","compCount":0},{"uuid":"PROC-1783792644867-gs88","title":"Rectangle","kind":"affected","compCount":1},{"uuid":"PROC-1783792662736-i5ln","title":"Rectangle","kind":"affected","compCount":1}],"wires":[{"uuid":"WIRE-1783792646463-5wfu","from":"PROC-1783792644867-gs88","to":"PROC-1783792627974-yrd9"},{"uuid":"WIRE-1783792665673-th6e","from":"PROC-1783792662736-i5ln","to":"PROC-1783792627974-yrd9"}]}

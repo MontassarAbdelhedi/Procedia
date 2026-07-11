@@ -19,9 +19,10 @@
 //             graph/engine/helpers.js, graph/engine/propagate.js
 // MUST LOAD BEFORE: engine/index.js
 
-var __e_wires = (function() {
-  var hlp  = __e_hlp;
-  var prop = __e_prop;
+window.__procedia_internal.wires = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp  = registry.get('hlp');
+  var prop = registry.get('prop');
 
   /**
    * Connects two nodes with a wire. Validates the connection, creates the wire
@@ -281,8 +282,7 @@ var __e_wires = (function() {
                 for (var ti = 0; ti < baked.length; ti++) { times.push(baked[ti].time); }
                 keyframeState.setKeyframes(targetId, targetParam, times);
               }
-              if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-              if (typeof renderer !== 'undefined' && renderer.render) renderer.render();
+              window.__procedia_internal.refreshUI({ wireRenderer: false, minimap: false, statusBar: false });
             });
           }
         }
@@ -311,3 +311,4 @@ var __e_wires = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('wires', window.__procedia_internal.wires);

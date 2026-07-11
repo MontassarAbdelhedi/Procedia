@@ -16,10 +16,12 @@ var pollerHelpers = (function() {
       if (!wires.hasOwnProperty(id)) continue;
       if (!wires[id]._pathLayerUUID) continue;
 
-      // Skip stale _pathLayerUUID from effectors whose main_input was
-      // cascaded away — the layer they pointed to was parked.
+      // Skip stale _pathLayerUUID from nodes that are not alive — the layer
+      // either was never created (e.g. footage node with no imported file)
+      // or was parked/cascaded away.
       var fromNode = graphState.getNode(wires[id].fromNode);
-      if (fromNode && fromNode.nodeKind === 'effector') {
+      if (!fromNode || fromNode.state !== 'alive') continue;
+      if (fromNode.nodeKind === 'effector') {
         var hasMainInput = false;
         for (var wid2 in wires) {
           if (!wires.hasOwnProperty(wid2)) continue;
@@ -41,7 +43,7 @@ var pollerHelpers = (function() {
       // Skip UUIDs that are pending creation in AE — protects against a race
       // condition where the poller runs before the async dispatch that creates
       // the layer (e.g. createTextLayer) has completed.
-      if (typeof __e_prop !== 'undefined' && __e_prop.isPathLayerPending && __e_prop.isPathLayerPending(wires[id]._pathLayerUUID)) continue;
+      if (typeof window.__procedia_internal.prop !== 'undefined' && window.__procedia_internal.prop.isPathLayerPending && window.__procedia_internal.prop.isPathLayerPending(wires[id]._pathLayerUUID)) continue;
 
       uuids.push(wires[id]._pathLayerUUID);
     }

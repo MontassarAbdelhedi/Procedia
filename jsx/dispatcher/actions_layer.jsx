@@ -24,4 +24,6 @@ $.evalFile(_layerDir + 'addCompAsLayer.jsx');
 $.evalFile(_layerDir + 'deletePathLayer.jsx');
 $.evalFile(_layerDir + 'renameNode.jsx');
 $.evalFile(_layerDir + 'setLayerEnabled.jsx');
+$.evalFile(_layerDir + 'setLayerShy.jsx');
+$.evalFile(_layerDir + 'setCompHideShyLayers.jsx');
 $.evalFile(_layerDir + 'restampLayer.jsx');

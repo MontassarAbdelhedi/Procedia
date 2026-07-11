@@ -2,12 +2,12 @@
  * Polls After Effects for current property values of alive affected nodes.
  * Detects changes made directly in AE (e.g. moving a layer with the transform tool)
  * and syncs them back into graphState, triggering a UI refresh.
- * Depends on: evalBridge, graphState, nodeRegistry, helpers (__e_hlp)
+ * Depends on: evalBridge, graphState, nodeRegistry, helpers (window.__procedia_internal.hlp)
  * Exports: propertyPoller.poll
  */
 // polling/propertyPoller.js
 // DEPENDS ON: bridge/evalBridge.js, graph/graphState.js, graph/nodeRegistry.js,
-//             graph/engine/helpers.js (__e_hlp)
+//             graph/engine/helpers.js (window.__procedia_internal.hlp)
 // MUST LOAD BEFORE: polling/poller.js
 
 var propertyPoller = (function() {
@@ -137,8 +137,8 @@ var propertyPoller = (function() {
       }
 
       if (changed) {
-        if (typeof __e_hlp !== 'undefined' && __e_hlp.refreshNodeUI) {
-          __e_hlp.refreshNodeUI();
+        if (typeof window.__procedia_internal.hlp !== 'undefined' && window.__procedia_internal.hlp.refreshNodeUI) {
+          window.__procedia_internal.hlp.refreshNodeUI();
         }
       }
     }).catch(function(err) {
@@ -242,8 +242,8 @@ var propertyPoller = (function() {
       }
 
       if (changed) {
-        if (typeof __e_hlp !== 'undefined' && __e_hlp.refreshNodeUI) {
-          __e_hlp.refreshNodeUI();
+        if (typeof window.__procedia_internal.hlp !== 'undefined' && window.__procedia_internal.hlp.refreshNodeUI) {
+          window.__procedia_internal.hlp.refreshNodeUI();
         }
       }
     }).catch(function(err) {

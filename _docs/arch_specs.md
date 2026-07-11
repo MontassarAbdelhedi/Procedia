@@ -585,14 +585,20 @@ ExtendScript side (dispatcher.jsx):
 | `readSchemaCache` | Reads `effectSchemaCache.json` from the plugin directory and returns its parsed contents. |
 | `writeSchemaCache` | Writes the provided cache object to `effectSchemaCache.json` in the plugin directory. |
 | `getAEVersion` | Returns the running AE version string (`app.version`). |
+| `beginUndoGroup` | Calls `app.beginUndoGroup(name)` — starts an AE undo group for batching. |
+| `endUndoGroup` | Calls `app.endUndoGroup()` — ends the current AE undo group. |
 
-**Adding a new action:** Add one named function to `dispatcher.jsx`. Register it in `_route()`. No other file changes required unless the new node itself needs a new action.
+**Adding a new action:** Add one named function to `dispatcher.jsx`. Register it in `_route()`. Also register in the action whitelist in `bridge/evalBridge.js`. No other file changes required unless the new node itself needs a new action.
 
 ---
 
 ### 5c. Batch Dispatch
 
 When the ghost cascade algorithm ghosts multiple nodes in sequence, the engine collects all returned command objects into an array and sends a single bridge call: `evalBridge.dispatchBatch(commandArray)`. The dispatcher processes the array in order and returns a single `{ ok, data, error }` response.
+
+**Important:** `dispatchBatch` automatically wraps all commands in AE's native `app.beginUndoGroup()` / `app.endUndoGroup()`. This groups all AE API calls from a single batch into one AE undo step, preventing the double-undo problem where Procedia's undo history creates N separate AE undo entries.
+
+Standalone `beginUndoGroup` / `endUndoGroup` actions are also registered for cases where fine-grained undo grouping is needed (e.g., `aeReconcile.js` during undo/redo).
 
 This means: one wire deletion = one bridge crossing, regardless of how deep the cascade is.
 
@@ -805,12 +811,55 @@ var wireMap = {
 
 Rebuilt from `nodeMap` + `wireMap` on every structural change. Never written to AE during a session. Used as the source for persistence writes.
 
+**Deferred rebuild:** To avoid O(n) rebuilds on every mutation, `tempGraph` uses a dirty flag (`_tempDirty`). Mutations (addNode, removeNode, updateNode, etc.) set the flag to `true`. The actual rebuild only happens when `getTempGraph()` is called and the flag is set — so during tight loops like drag mousemove, at most one rebuild occurs per read rather than per write.
+
 ```javascript
 var tempGraph = {
   version: '4.0',
   nodes: { /* nodeMap contents, minus runtime-only fields (dirty, portSlots, _transplantLayerUUID, dynamicSchema) */ },
   wires: { /* wireMap contents */ }
 };
+```
+
+---
+
+### 8d. `deepClone` — Fast Structured Clone Utility
+
+Lives in `data/deepClone.js`. Replaces `JSON.parse(JSON.stringify(obj))` for JSON-safe data shapes. About 2-3x faster for typical graph objects by avoiding string serialization.
+
+```javascript
+deepClone(obj)  // deep clone any JSON-safe value
+```
+
+Used in: undoManager snapshots, dynamic schema resolution, deepCopyNode, and all cases where the old pattern was used. Exposed as `window.__procedia_internal.deepClone`.
+
+### 8e. `refreshUI` — Unified UI Refresh
+
+Lives in `ui/refreshUI.js`. Centralizes the 5-component refresh pattern that was duplicated ~20 times across the codebase.
+
+```javascript
+refreshUI(opts)  // opts: { skipMinimap, skipInspector, skipStatusBar, skipRenderer, skipWireRenderer }
+```
+
+Replaces inline sequences like:
+```javascript
+renderer.render(); wireRenderer.render(null); minimap.render(); inspector.refresh(); statusBar.refresh();
+```
+
+With a single call: `refreshUI()` or `refreshUI({ skipMinimap: true })`. Exposed as `window.__procedia_internal.refreshUI`.
+
+### 8f. `lifecycle` — Shared Node Kind Dispatch
+
+Lives in `graph/engine/lifecycle.js`. Extracts the common kind-dispatch logic (`resolveNodeConnections`, `forEachHostingComp`, `buildLifecycleCommand`, `injectLayerUUID`) that was duplicated between `engine/propagate.js` and `graph/undoManager/aeReconcile.js`. Both files now import from the same source, eliminating ~200 lines of duplicated code.
+
+Exposed as `window.__procedia_internal.lifecycle`.
+
+### 8g. `batchUpdateNodes` — Batched Node Position Updates
+
+Added to `graph/graphState/nodes.js`. During multi-node drag, `batchUpdateNodes(updates)` applies all position changes in a single operation and triggers one `rebuildTempGraph` call instead of N individual calls. This is the primary mechanism for P2 #54.
+
+```javascript
+graphState.batchUpdateNodes(updates)  // updates: [{ id, x, y }, ...]
 ```
 
 ---

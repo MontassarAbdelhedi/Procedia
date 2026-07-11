@@ -75,6 +75,8 @@ var _handlers = {
   'reorderEffect':        _handleReorderEffect,
   'reorderEffectChain':   _handleReorderEffectChain,
   'setLayerEnabled':      _handleSetLayerEnabled,
+  'setLayerShy':          _handleSetLayerShy,
+  'setCompHideShyLayers': _handleSetCompHideShyLayers,
   'restampLayer':         _handleRestampLayer,
   'pollAliveNodes':       _handlePollAliveNodes,
   'pollExternalDeletions': _handlePollExternalDeletions,
@@ -106,8 +108,14 @@ var _handlers = {
   'getCurrentTime':        _handleGetCurrentTime,
   'setCurrentTime':        _handleSetCurrentTime,
   'batchGetKeyframeTimes': _handleBatchGetKeyframeTimes,
-  'getKeyframeData':       _handleGetKeyframeData
+  'getKeyframeData':       _handleGetKeyframeData,
+  'writeCmdChunk':         _handleWriteCmdChunk,
+  'executeCmdFile':        _handleExecuteCmdFile,
+  'cleanupCmdFile':        _handleCleanupCmdFile
 };
+
+_handlers['beginUndoGroup'] = _handleBeginUndoGroup;
+_handlers['endUndoGroup'] = _handleEndUndoGroup;
 
 /**
  * Public entry point called by evalBridge. Parses JSON and routes to the handler.
@@ -138,6 +146,7 @@ function dispatchBatch(jsonStr) {
       result.error = 'dispatchBatch: expected array of commands';
       return JSON.stringify(result);
     }
+    app.beginUndoGroup('Procedia batch');
     var results = [];
     var i;
     for (i = 0; i < commands.length; i++) {
@@ -145,15 +154,27 @@ function dispatchBatch(jsonStr) {
       results.push(res);
       if (!res.ok) {
         result.error = 'Command ' + i + ' failed: ' + res.error;
+        app.endUndoGroup();
         return JSON.stringify(result);
       }
     }
+    app.endUndoGroup();
     result.ok = true;
     result.data = results;
   } catch (e) {
     result.error = 'dispatchBatch error: ' + e.toString();
   }
   return JSON.stringify(result);
+}
+
+function _handleBeginUndoGroup(cmd) {
+  app.beginUndoGroup((cmd && cmd.params && cmd.params.name) || 'Procedia group');
+  return { ok: true, data: null, error: null };
+}
+
+function _handleEndUndoGroup() {
+  app.endUndoGroup();
+  return { ok: true, data: null, error: null };
 }
 
 /**

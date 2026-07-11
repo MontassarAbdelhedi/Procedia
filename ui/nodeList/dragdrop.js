@@ -137,10 +137,7 @@ var __nl_dragdrop = (function() {
               }
             }
             graphState.setSelection(insertNode.id);
-            renderer.render();
-            if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-            if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-            if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+            window.__procedia_internal.refreshUI({ minimap: false });
           }
           return;
         }
@@ -161,10 +158,7 @@ var __nl_dragdrop = (function() {
           }
         }
         graphState.setSelection(node.id);
-        renderer.render();
-        if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
-        if (typeof inspector !== 'undefined' && inspector.refresh) inspector.refresh();
-        if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
+        window.__procedia_internal.refreshUI({ minimap: false });
       }
     });
   }

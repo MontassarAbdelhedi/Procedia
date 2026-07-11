@@ -12,38 +12,7 @@
 
 (function(um) {
 
-  function _getWires() {
-    var wires = graphState.getAllWires();
-    return wires || {};
-  }
-
-  function _findUpstreamNodeUUID(nodeId) {
-    var hlp = window.__e_hlp;
-    if (!hlp) return null;
-    var wires = _getWires();
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      var w = wires[wid];
-      if (w.toNode === nodeId && (w.toPort === 'main_input' || w.toPort === 'output')) {
-        return hlp.findPathLayerUUID(w.fromNode) || w.id;
-      }
-    }
-    return null;
-  }
-
-  function _findPortUUID(nodeId, portId) {
-    var hlp = window.__e_hlp;
-    if (!hlp) return null;
-    var wires = _getWires();
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      var w = wires[wid];
-      if (w.toNode === nodeId && w.toPort === portId) {
-        return hlp.findPathLayerUUID(w.fromNode) || w.id;
-      }
-    }
-    return null;
-  }
+  function _lc() { return window.__procedia_internal.lifecycle; }
 
   function _dispatchNodeDelete(nodeData) {
     var def = nodeRegistry.getDefinition(nodeData.type);
@@ -51,7 +20,8 @@
     var cmd = def.onDelete(nodeData);
     if (cmd) evalBridge.dispatch(cmd);
     if (nodeData.nodeKind === 'effector' && nodeData.hostingComps && nodeData.hostingComps.length > 0) {
-      var ghostCmd = def.onGhost ? def.onGhost(nodeData, nodeData.hostingComps[0], _findUpstreamNodeUUID(nodeData.id)) : null;
+      var conn = _lc().resolveNodeConnections(nodeData);
+      var ghostCmd = def.onGhost ? def.onGhost(nodeData, nodeData.hostingComps[0], conn.upstreamUUID) : null;
       if (ghostCmd) evalBridge.dispatch(ghostCmd);
     }
   }
@@ -59,42 +29,13 @@
   function _dispatchNodeAlive(nodeData) {
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def || !def.onAlive) return;
-    var hlp = window.__e_hlp;
-    if (!hlp) return;
-
-    if (nodeData.nodeKind === 'affected') {
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onAlive(nodeData, hostUUID);
-        if (cmd) {
-          cmd.params = cmd.params || {};
-          cmd.params.layerUUID = hlp.findPathLayerUUID(nodeData.id);
-          evalBridge.dispatch(cmd);
-        }
+    _lc().forEachHostingComp(nodeData, function(hostUUID, conn) {
+      var cmd = _lc().buildLifecycleCommand(nodeData, def, 'onAlive', undefined, undefined, hostUUID);
+      if (cmd) {
+        _lc().injectLayerUUID(cmd, nodeData);
+        evalBridge.dispatch(cmd);
       }
-    } else if (nodeData.nodeKind === 'effector') {
-      var upstreamUUID = _findUpstreamNodeUUID(nodeData.id);
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onAlive(nodeData, hostUUID, upstreamUUID);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    } else if (nodeData.nodeKind === 'blending') {
-      var blendUpstream = _findUpstreamNodeUUID(nodeData.id);
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onAlive(nodeData, hostUUID, blendUpstream);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    } else if (nodeData.nodeKind === 'matte') {
-      var topUUID = _findPortUUID(nodeData.id, 'top_layer');
-      var matteUUID = _findPortUUID(nodeData.id, 'matte_layer');
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onAlive(nodeData, hostUUID, topUUID, matteUUID);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    }
+    });
 
     if (nodeData.state === 'ghost' && nodeData.hasParkedLayer && nodeData.hostingComps && nodeData.hostingComps.length > 0) {
       evalBridge.dispatch({
@@ -107,82 +48,29 @@
   function _dispatchNodeGhost(nodeData) {
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def || !def.onGhost) return;
-    var hlp = window.__e_hlp;
-    if (!hlp) return;
-
-    if (nodeData.nodeKind === 'affected') {
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onGhost(nodeData, hostUUID);
-        if (cmd) evalBridge.dispatch(cmd);
+    _lc().forEachHostingComp(nodeData, function(hostUUID, conn) {
+      var cmd = _lc().buildLifecycleCommand(nodeData, def, 'onGhost', undefined, undefined, hostUUID);
+      if (cmd) {
+        if (nodeData.nodeKind === 'blending') cmd.params.mode = 'NORMAL';
+        evalBridge.dispatch(cmd);
       }
-    } else if (nodeData.nodeKind === 'effector') {
-      var upstreamUUID = _findUpstreamNodeUUID(nodeData.id);
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onGhost(nodeData, hostUUID, upstreamUUID);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    } else if (nodeData.nodeKind === 'blending') {
-      var blendUpstream = _findUpstreamNodeUUID(nodeData.id);
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onGhost(nodeData, hostUUID, blendUpstream);
-        if (cmd) {
-          cmd.params.mode = 'NORMAL';
-          evalBridge.dispatch(cmd);
-        }
-      }
-    } else if (nodeData.nodeKind === 'matte') {
-      var topUUID = _findPortUUID(nodeData.id, 'top_layer');
-      var matteUUID = _findPortUUID(nodeData.id, 'matte_layer');
-      for (var ci = 0; ci < (nodeData.hostingComps || []).length; ci++) {
-        var hostUUID = nodeData.hostingComps[ci];
-        var cmd = def.onGhost(nodeData, hostUUID, topUUID);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    }
+    });
   }
 
   function _dispatchPropChange(nodeData, key, value) {
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def || !def.onPropertyChange) return;
-    var hlp = window.__e_hlp;
-    if (!hlp) return;
-
-    var hostingComps = nodeData.hostingComps || [];
-    if (nodeData.nodeKind === 'affected') {
-      for (var ci = 0; ci < hostingComps.length; ci++) {
-        var cmd = def.onPropertyChange(key, value, nodeData, hostingComps[ci]);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    } else if (nodeData.nodeKind === 'effector') {
-      var upstreamUUID = _findUpstreamNodeUUID(nodeData.id);
-      for (var ci = 0; ci < hostingComps.length; ci++) {
-        var cmd = def.onPropertyChange(key, value, nodeData, hostingComps[ci], upstreamUUID);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    } else if (nodeData.nodeKind === 'blending') {
-      var blendUpstream = _findUpstreamNodeUUID(nodeData.id);
-      for (var ci = 0; ci < hostingComps.length; ci++) {
-        var cmd = def.onPropertyChange(key, value, nodeData, hostingComps[ci], blendUpstream);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    } else if (nodeData.nodeKind === 'matte') {
-      var topUUID = _findPortUUID(nodeData.id, 'top_layer');
-      var matteUUID = _findPortUUID(nodeData.id, 'matte_layer');
-      for (var ci = 0; ci < hostingComps.length; ci++) {
-        var cmd = def.onPropertyChange(key, value, nodeData, hostingComps[ci], topUUID, matteUUID);
-        if (cmd) evalBridge.dispatch(cmd);
-      }
-    }
+    _lc().forEachHostingComp(nodeData, function(hostUUID, conn) {
+      var cmd = _lc().buildLifecycleCommand(nodeData, def, 'onPropertyChange', key, value, hostUUID);
+      if (cmd) evalBridge.dispatch(cmd);
+    });
   }
 
   function _dispatchWireDisconnect(wireData) {
     if (wireData.type === 'parent') {
       var childNodeData = graphState.getNode(wireData.fromNode);
       if (childNodeData && childNodeData.hostingComps && childNodeData.hostingComps.length > 0) {
-        var hlp = window.__e_hlp;
+        var hlp = window.__procedia_internal.hlp;
         if (hlp) {
           var childLayerUUID = hlp.findPathLayerUUID(wireData.fromNode);
           if (childLayerUUID) {
@@ -201,7 +89,7 @@
       var fromNode = graphState.getNode(wireData.fromNode);
       var toNode = graphState.getNode(wireData.toNode);
       if (fromNode && toNode && fromNode.state === 'alive' && toNode.state === 'alive') {
-        var hlp = window.__e_hlp;
+        var hlp = window.__procedia_internal.hlp;
         if (hlp) {
           var childLayerUUID = hlp.findPathLayerUUID(wireData.fromNode);
           var parentLayerUUID = hlp.findPathLayerUUID(wireData.toNode);
@@ -221,6 +109,7 @@
   }
 
   function _reconcileAE(oldState, targetState) {
+    evalBridge.dispatch({ action: 'beginUndoGroup', params: { name: 'Procedia undo' } });
     for (var oldId in oldState.nodes) {
       if (!oldState.nodes.hasOwnProperty(oldId)) continue;
       if (!targetState.nodes[oldId]) {
@@ -274,8 +163,9 @@
         _dispatchWireConnect(targetState.wires[newWId]);
       }
     }
+    evalBridge.dispatch({ action: 'endUndoGroup' });
   }
 
   um._reconcileAE = _reconcileAE;
 
-})(window.__um);
+})(window.__procedia_internal.um);

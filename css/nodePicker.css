@@ -14,7 +14,7 @@
   border: 1px solid #2a2a28;
   border-radius: 6px;
   min-width: 200px;
-  max-width: 280px;
+  max-width: 220px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
 
@@ -75,7 +75,6 @@
 .nodepicker-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 6px 10px;
   cursor: pointer;
   outline: none;
@@ -94,14 +93,18 @@
   color: #d4d2cc;
 }
 
-.nodepicker-item-kind {
+/* --- Category headers --- */
+.nodepicker-category {
   font-size: 10px;
   color: #5F5E5A;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  padding: 8px 10px 2px;
+  cursor: default;
+  user-select: none;
 }
 
-/* --- Empty state --- */
+/* --- Item entries --- */
 .nodepicker-empty {
   cursor: default;
   color: #5F5E5A;

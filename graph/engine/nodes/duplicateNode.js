@@ -13,8 +13,9 @@
 //             graph/engine/helpers.js
 // MUST LOAD BEFORE: nodes/index.js
 
-var __e_ndup = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.ndup = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Duplicates all selected nodes, offsetting copies by 30px in each axis.
@@ -50,3 +51,4 @@ var __e_ndup = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('ndup', window.__procedia_internal.ndup);

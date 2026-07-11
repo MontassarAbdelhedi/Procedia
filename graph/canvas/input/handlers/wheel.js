@@ -12,6 +12,7 @@
 var _handlersWheel = (function() {
 
   function onWheel(e) {
+    if (typeof nodePicker !== 'undefined' && nodePicker.isActive && nodePicker.isActive()) return;
     e.preventDefault();
     var delta = e.deltaY > 0 ? 0.9 : 1.1;
     var currentZoom = viewport.getTransform().zoom;

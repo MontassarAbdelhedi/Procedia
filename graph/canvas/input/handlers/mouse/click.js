@@ -10,7 +10,7 @@
 
 (function() {
 
-  var _FOCUS_DELAY_MS = 280;
+  var _FOCUS_DELAY_MS = 350;
 
   _handlersMouse.onClick = function onClick(e) {
     if (e.button !== 0) return;

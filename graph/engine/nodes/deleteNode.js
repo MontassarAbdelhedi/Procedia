@@ -16,8 +16,9 @@
 //             graph/engine/helpers.js
 // MUST LOAD BEFORE: nodes/index.js
 
-var __e_ndel = (function() {
-  var hlp = __e_hlp;
+window.__procedia_internal.ndel = (function() {
+  var registry = window.__procedia_internal.registry;
+  var hlp = registry.get('hlp');
 
   /**
    * Deletes a node from the graph. Handles node kind-specific cleanup:
@@ -105,35 +106,22 @@ var __e_ndel = (function() {
         if (affBatch.length > 0) evalBridge.dispatchBatch(affBatch);
       }
 
-      // Both branches delegate to cascadeGhost(), which internally skips
-      // CompNodes, dormant wires, and non-layer types. The isCompNode branch
-      // pre-filters to active wires (_pathLayerUUID !== null) as a minor
-      // optimization, but the fallback works identically — cascadeGhost
-      // returns early when the cascade set is empty.
       if (cascadeAlgorithm && cascadeAlgorithm.isCompNode && cascadeAlgorithm.isCompNode(nodeId)) {
-        var cascadeWireIds = [];
+        // Comp node path
+        // Upstream: ghost/park affected nodes and their effectors
         for (var cwId in delWireMap) {
           if (!delWireMap.hasOwnProperty(cwId)) continue;
           var cw = delWireMap[cwId];
           if (cw.toNode === nodeId && cw.type === 'layer' && cw._pathLayerUUID !== null) {
-            cascadeWireIds.push(cwId);
+            cascadeAlgorithm.cascadeGhost(cwId);
           }
         }
-        for (var ci = 0; ci < cascadeWireIds.length; ci++) {
-          cascadeAlgorithm.cascadeGhost(cascadeWireIds[ci]);
-        }
-        var outgoingLayerWires = [];
+        // Downstream: remove the AE layer from all hosting comps
+        var outBatch = [];
         for (var owId in delWireMap) {
           if (!delWireMap.hasOwnProperty(owId)) continue;
           var ow = delWireMap[owId];
           if (ow.fromNode === nodeId && ow.type === 'layer' && ow._pathLayerUUID !== null) {
-            outgoingLayerWires.push(ow);
-          }
-        }
-        if (outgoingLayerWires.length > 0) {
-          var outBatch = [];
-          for (var oi = 0; oi < outgoingLayerWires.length; oi++) {
-            var ow = outgoingLayerWires[oi];
             outBatch.push({
               action: 'deletePathLayer',
               params: {
@@ -142,7 +130,15 @@ var __e_ndel = (function() {
               }
             });
           }
+        }
+        if (outBatch.length > 0) {
           evalBridge.dispatchBatch(outBatch);
+        }
+        // Only delete the AE comp object if no clones reference this comp
+        var cloneIds = graphState.getCloneIds ? graphState.getCloneIds(nodeId) : [];
+        if (cloneIds.length === 0) {
+          var compDeleteCmd = def ? def.onDelete(nodeData) : null;
+          if (compDeleteCmd) evalBridge.dispatch(compDeleteCmd);
         }
       } else if (cascadeAlgorithm && cascadeAlgorithm.cascadeGhost) {
         for (var cwId in delWireMap) {
@@ -152,10 +148,9 @@ var __e_ndel = (function() {
             cascadeAlgorithm.cascadeGhost(cwId);
           }
         }
+        var affDeleteCmd = def ? def.onDelete(nodeData) : null;
+        if (affDeleteCmd) evalBridge.dispatch(affDeleteCmd);
       }
-
-      var affDeleteCmd = def ? def.onDelete(nodeData) : null;
-      if (affDeleteCmd) evalBridge.dispatch(affDeleteCmd);
     }
 
     var parentCleanupBatch = [];
@@ -223,3 +218,4 @@ var __e_ndel = (function() {
   };
 
 })();
+window.__procedia_internal.registry.register('ndel', window.__procedia_internal.ndel);

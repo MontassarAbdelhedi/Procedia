@@ -19,7 +19,8 @@ var settings = (function() {
     layoutHSpacing:   80,
     layoutVSpacing:   40,
     allowReporting:   true,
-    showPortLabels:   true
+    showPortLabels:   true,
+    autoShy:          false
   };
 
   var _cache = null;

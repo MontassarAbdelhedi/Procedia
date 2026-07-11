@@ -27,11 +27,12 @@
 //                   graph/portManager.js, graph/wireValidator/index.js, graph/cycleChecker.js
 
 (function() {
-  var gs = window.__gs;
+  var gs = window.__procedia_internal.gs;
   var graphState = {
     addNode:              gs.addNode,
     removeNode:           gs.removeNode,
     updateNode:           gs.updateNode,
+    batchUpdateNodes:     gs.batchUpdateNodes,
     getNode:              gs.getNode,
     getAllNodes:          gs.getAllNodes,
 
@@ -56,9 +57,12 @@
     onSelectionChange:    gs.onSelectionChange,
 
     rebuildTempGraph:     gs.rebuildTempGraph,
+    getTempGraph:         gs.getTempGraph,
     loadGraph:            gs.loadGraph,
     clearGraph:           gs.clearGraph,
     getCloneIds:          gs.getCloneIds,
+    isDirty:              function() { return !!gs._dirty; },
+    markClean:            function() { gs._dirty = false; },
 
     setActiveComp: function(id) { gs._activeCompId = id || null; },
     getActiveComp: function()   { return gs._activeCompId; },
@@ -99,11 +103,11 @@
       for (var wid in wires) { if (wires.hasOwnProperty(wid)) gs.wireMap[wid] = wires[wid]; }
       gs.selection = selection ? selection.slice() : [];
       gs._viewFilter = null;
-      gs._keyframes = {};
+      if (typeof keyframeState !== 'undefined' && keyframeState.reset) keyframeState.reset();
       gs.rebuildTempGraph();
     }
   };
 
   window.graphState = graphState;
-  delete window.__gs;
+  delete window.__procedia_internal.gs;
 })();

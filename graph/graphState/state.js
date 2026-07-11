@@ -12,16 +12,18 @@
 //                   graph/graphState/selection.js, graph/graphState/graphOps.js,
 //                   graph/graphState/index.js
 
-window.__gs = {
+window.__procedia_internal.gs = {
   nodeMap:   {},
   wireMap:   {},
   tempGraph: { version: '4.0', nodes: {}, wires: {} },
+  _tempDirty: true,
   selection: [],
   _onSelectionChangeCb: null,
   _graphChangeListeners: [],
 
   _activeCompId: null,
   _viewFilter:   null,
+  _dirty:        false,
 
   _strippedNodeFields: {
     dirty:                true,
@@ -44,4 +46,4 @@ window.__gs = {
     }
     return ids;
   };
-})(window.__gs);
+})(window.__procedia_internal.gs);
