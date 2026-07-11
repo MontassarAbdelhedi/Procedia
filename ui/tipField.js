@@ -16,7 +16,8 @@ var tipField = (function() {
     'Tip: Right-click a node for quick actions (duplicate, delete, etc.)',
     'Tip: Press Ctrl+D to duplicate the selected node(s)',
     'Tip: Scroll to zoom, drag the background to pan around the canvas',
-    'Tip: Double-click a node title to rename it'
+    'Tip: Double-click a node title to rename it',
+    'Tip: The Foreground and Matte inputs of a Track Matte node must be wired to layers inside the same composition'
   ];
 
   var _el = null;

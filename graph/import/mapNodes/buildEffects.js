@@ -78,7 +78,7 @@
     return {
       id:             uuidGenerator.node(),
       type:           type,
-      nodeKind:       'effector',
+      nodeKind:       'matte',
       dedicated:      false,
       state:          'alive',
       dirty:          false,

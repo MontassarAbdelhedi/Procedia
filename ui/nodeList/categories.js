@@ -36,7 +36,8 @@ var __nl_cat = (function() {
     'Time':            '#27AE60',
     'Transition':      '#27AE60',
     'obsolete':        '#27AE60',
-    'Utility':         '#5F5E5A'
+    'Utility':         '#5F5E5A',
+    'Track Matte':     '#E74C3C'
   };
 
   var CATEGORY_NAMES = {
@@ -44,7 +45,7 @@ var __nl_cat = (function() {
   };
 
   var CATEGORY_ORDER = [
-    'Core', 'Data', 'Layers', 'Shapes', 'Effects'
+    'Core', 'Data', 'Layers', 'Shapes', 'Track Matte', 'Effects'
   ];
 
   var EFFECTS_SUBCATEGORIES = {

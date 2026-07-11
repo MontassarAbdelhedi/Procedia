@@ -1,5 +1,8 @@
 # Progress Log
 
+## Sat 2026-07-11
+[x] Fix Alpha Matte & Luma Matte nodes: add matte_layer secondary input, change nodeKind to 'matte', move to new Track Matte top-level category, fix secondaryInput port rendering, fix wire validator to allow partial connections, fix wire insertion and forward wiring port resolution
+
 ## Wed 2026-07-08
 [x] Fix comp node deletion: ghost upstream with correct path UUID, remove downstream pre-comp layers, guard missing onGhost
 

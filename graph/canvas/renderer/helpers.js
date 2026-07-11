@@ -142,16 +142,27 @@ var __r_hlp = (function() {
   }
 
   /**
-   * Returns all ports in the definition with category 'mainInput' that are NOT named 'main_input'.
-   * Used to render additional input port dots for nodes with multiple explicit inputs (e.g. Merge).
+   * Returns all explicit input ports that should render as separate port dots:
+   * - mainInput ports that are NOT named 'main_input'
+   * - secondaryInput ports that do NOT have a matching param key (those are rendered inline in param body)
+   * Used to render additional input port dots for nodes with multiple explicit inputs (e.g. Merge, Matte).
    * @param {object} def - Node definition.
    * @returns {Array} Array of port definition objects.
    */
   function getExplicitInputPorts(def) {
+    var paramKeys = {};
+    if (def.params) {
+      for (var k = 0; k < def.params.length; k++) {
+        paramKeys[def.params[k].key] = true;
+      }
+    }
     var ports = [];
     for (var i = 0; i < def.ports.length; i++) {
-      if (def.ports[i].category === 'mainInput' && def.ports[i].id !== 'main_input') {
-        ports.push(def.ports[i]);
+      var p = def.ports[i];
+      if (p.category === 'mainInput' && p.id !== 'main_input') {
+        ports.push(p);
+      } else if (p.category === 'secondaryInput' && !paramKeys[p.id]) {
+        ports.push(p);
       }
     }
     return ports;

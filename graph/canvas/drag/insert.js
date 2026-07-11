@@ -12,6 +12,22 @@
 
 (function() {
 
+  function _findInputPort(def, wireType) {
+    for (var i = 0; i < def.ports.length; i++) {
+      var p = def.ports[i];
+      if (p.id === 'main_input' && p.type === wireType) return p.id;
+    }
+    for (var j = 0; j < def.ports.length; j++) {
+      var q = def.ports[j];
+      if (q.category === 'mainInput' && q.type === wireType) return q.id;
+    }
+    for (var k = 0; k < def.ports.length; k++) {
+      var r = def.ports[k];
+      if (r.category === 'secondaryInput' && r.type === wireType) return r.id;
+    }
+    return null;
+  }
+
   canvasDrag.insertNodeOnWire = function insertNodeOnWire(wireId, def, canvasX, canvasY) {
     var wire = graphState.getWire(wireId);
     if (!wire) return null;
@@ -51,9 +67,11 @@
 
     graphState.addNode(nodeData);
 
-    if (def.params === 'dynamic' && def.matchName && typeof __e_hlp !== 'undefined') {
-      __e_hlp.resolveDynamicSchema(nodeId, def.matchName);
+    if (def.params === 'dynamic' && def.matchName && typeof window.__procedia_internal.hlp !== 'undefined') {
+      window.__procedia_internal.hlp.resolveDynamicSchema(nodeId, def.matchName);
     }
+
+    var inPort = _findInputPort(def, wire.type);
 
     if (isComp) {
       if (def.onDrop) {
@@ -61,10 +79,10 @@
       }
       engine.disconnectWire(wireId);
       engine.connectWire(nodeId, 'output', wire.toNode, wire.toPort);
-      engine.connectWire(wire.fromNode, wire.fromPort, nodeId, 'main_input');
+      engine.connectWire(wire.fromNode, wire.fromPort, nodeId, inPort || 'main_input');
     } else {
       graphState.removeWire(wireId);
-      engine.connectWire(wire.fromNode, wire.fromPort, nodeId, 'main_input');
+      engine.connectWire(wire.fromNode, wire.fromPort, nodeId, inPort || 'main_input');
       engine.connectWire(nodeId, 'output', wire.toNode, wire.toPort);
     }
 
@@ -75,13 +93,13 @@
 
   canvasDrag.canInsertOnWire = function canInsertOnWire(wireId, def) {
     if (!def || !def.ports) return false;
-    var hasMainInput = false;
     var hasOutput = false;
     for (var i = 0; i < def.ports.length; i++) {
-      if (def.ports[i].id === 'main_input') hasMainInput = true;
-      if (def.ports[i].id === 'output')     hasOutput = true;
+      if (def.ports[i].id === 'output') hasOutput = true;
     }
-    return hasMainInput && hasOutput;
+    if (!hasOutput) return false;
+    var inPort = _findInputPort(def, 'layer');
+    return inPort !== null;
   };
 
 })();

@@ -15,9 +15,12 @@
   var wv = window.__wv = window.__wv || {};
 
   /**
-   * Validates matte node constraints: both top_layer and matte_layer inputs
-   * must be connected, their upstream nodes must share the same first-level
-   * hosting comp, and the matte output must connect to that shared comp.
+   * Validates matte node input wiring constraints.
+   * When connecting to top_layer or matte_layer: if both inputs are already
+   * connected, their upstream layers must share the same first-level hosting
+   * comp. Does not require the output to be connected yet.
+   * Output connections are validated separately by the engine's
+   * _checkMatteActivation.
    * @param {string} fromNodeId - Source node UUID
    * @param {string} fromPort - Source port ID
    * @param {string} toNodeId - Target node UUID
@@ -27,6 +30,8 @@
   wv._validateMatteConditions = function(fromNodeId, fromPort, toNodeId, toPort) {
     var toNode = graphState.getNode(toNodeId);
     if (!toNode || toNode.nodeKind !== 'matte') return null;
+
+    if (toPort !== 'top_layer' && toPort !== 'matte_layer') return null;
 
     var wireMap = graphState.getAllWires();
     var topWire = null;
@@ -42,23 +47,20 @@
 
     if (toPort === 'top_layer') {
       topWire = { fromNode: fromNodeId, fromPort: fromPort, toNode: toNodeId, toPort: toPort };
-    } else if (toPort === 'matte_layer') {
-      matteWire = { fromNode: fromNodeId, fromPort: fromPort, toNode: toNodeId, toPort: toPort };
     } else {
-      return null;
+      matteWire = { fromNode: fromNodeId, fromPort: fromPort, toNode: toNodeId, toPort: toPort };
     }
 
     if (!topWire || !matteWire) return null;
 
     var topUpstream = graphState.getNode(topWire.fromNode);
     var matteUpstream = graphState.getNode(matteWire.fromNode);
-    if (!topUpstream || !matteUpstream) {
-      return 'Matte conditions not met: upstream nodes not found';
-    }
+    if (!topUpstream || !matteUpstream) return null;
 
     if (!topUpstream.hostingComps || !matteUpstream.hostingComps) {
-      return 'Matte conditions not met: both upstream layers must share the same first-level hosting comp';
+      return 'Matte conditions not met: both upstream layers must be in a composition';
     }
+
     var _sharedComp = null;
     for (var _ti = 0; _ti < topUpstream.hostingComps.length; _ti++) {
       for (var _mi = 0; _mi < matteUpstream.hostingComps.length; _mi++) {
@@ -71,20 +73,6 @@
     }
     if (!_sharedComp) {
       return 'Matte conditions not met: both upstream layers must share the same first-level hosting comp';
-    }
-
-    var sharedComp = _sharedComp;
-    var outputFound = false;
-    for (var wId in wireMap) {
-      if (!wireMap.hasOwnProperty(wId)) continue;
-      var outWire = wireMap[wId];
-      if (outWire.fromNode === toNodeId && outWire.type === 'layer' && outWire.toNode === sharedComp) {
-        outputFound = true;
-        break;
-      }
-    }
-    if (!outputFound) {
-      return 'Matte conditions not met: output must connect to the shared hosting comp';
     }
 
     return null;

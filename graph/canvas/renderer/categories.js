@@ -38,7 +38,8 @@ var __r_cat = (function() {
       'Time':               'effects',
       'Transition':         'effects',
       'Uncategorized':      'effects',
-      'Utility':            'utility'
+      'Utility':            'utility',
+      'Track Matte':        'trackmatte'
     },
     colors: {
       'core':    '#534AB7',
@@ -47,7 +48,8 @@ var __r_cat = (function() {
       'effects': '#27AE60',
       'data':    '#D4AC0D',
       'utility': '#E07B39',
-      'obsolete':'#7F8C8D'
+      'obsolete':'#7F8C8D',
+      'trackmatte':'#E74C3C'
     }
   };
 })();

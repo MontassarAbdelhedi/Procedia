@@ -24,8 +24,8 @@ document.write('<script src="graph/nodes/categories/Shapes/Gear.js"><\/script>')
 document.write('<script src="graph/nodes/categories/Shapes/Wave.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Shapes/Flower.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Effects/utility/Blending.js"><\/script>');
-document.write('<script src="graph/nodes/categories/Effects/utility/MatteAlpha.js"><\/script>');
-document.write('<script src="graph/nodes/categories/Effects/utility/MatteLuma.js"><\/script>');
+document.write('<script src="graph/nodes/categories/TrackMatte/MatteAlpha.js"><\/script>');
+document.write('<script src="graph/nodes/categories/TrackMatte/MatteLuma.js"><\/script>');
 
 // Effect node metadata files — loaded synchronously to build NODE_METADATA (22 category files)
 document.write('<script src="graph/nodeMetadata/3DChannel.js"><\/script>');

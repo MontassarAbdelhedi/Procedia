@@ -131,11 +131,14 @@ var nodePicker = (function() {
           node = engine.dropNode(def, canvasPos.x, canvasPos.y);
           if (node) {
             if (isReverse) {
-              // Reverse: connect new node's output to the original input port
               engine.connectWire(node.id, 'output', fromNodeId, fromPortId);
             } else {
-              // Forward: connect original source to new node's main_input
-              engine.connectWire(fromNodeId, fromPortId, node.id, 'main_input');
+              var inPort = 'main_input';
+              for (var pi = 0; pi < def.ports.length; pi++) {
+                if (def.ports[pi].id === 'main_input') { inPort = 'main_input'; break; }
+                if (def.ports[pi].category === 'mainInput') { inPort = def.ports[pi].id; break; }
+              }
+              engine.connectWire(fromNodeId, fromPortId, node.id, inPort);
             }
           }
         }
@@ -170,7 +173,8 @@ var nodePicker = (function() {
 
   return {
     show:  show,
-    close: close
+    close: close,
+    isActive: function() { return _state.active; }
   };
 
 })();

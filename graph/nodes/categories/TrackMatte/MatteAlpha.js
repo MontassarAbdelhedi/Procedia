@@ -1,7 +1,7 @@
 /**
  * @file Alpha Matte utility node definition (utility/matte-alpha).
- * Sets or clears an alpha matte on a layer using the upstream layer as the matte source.
- * Ports: mainInput (layer, required), output (layer).
+ * Sets or clears an alpha matte on a foreground layer using the matte layer as the mask source.
+ * Ports: top_layer (Foreground, required), matte_layer (Matte, required), output (layer).
  * Params: label, invert (boolean).
  * Dispatches: setAlphaMatte, clearMatte, setLayerProperty.
  */
@@ -13,14 +13,15 @@
 var MatteAlphaNode = {
   type:      'utility/matte-alpha',
   label:     'Alpha Matte',
-  category:  'Utility',
+  category:  'Track Matte',
   version:   '1.0.0',
-  nodeKind:  'effector',
+  nodeKind:  'matte',
   dedicated: false,
 
   ports: [
-    { id: 'main_input', category: 'mainInput', type: 'layer', capacity: 'single', required: true },
-    { id: 'output',     category: 'output',    type: 'layer', capacity: 'single' }
+    { id: 'top_layer',   category: 'mainInput',      type: 'layer', capacity: 'single', required: true, label: 'Foreground' },
+    { id: 'matte_layer', category: 'secondaryInput',  type: 'layer', capacity: 'single', required: true, label: 'Matte' },
+    { id: 'output',      category: 'output',          type: 'layer', capacity: 'single' }
   ],
 
   params: [
@@ -36,38 +37,40 @@ var MatteAlphaNode = {
   onDrop: function(nodeData) { return null; },
 
   /**
-   * Sets the upstream layer as an alpha matte on the host layer.
+   * Sets the foreground layer's track matte to the matte layer with alpha.
    * @param {Object} nodeData - The full node data object.
    * @param {string} hostingCompUUID - UUID of the hosting composition.
-   * @param {string} upstreamNodeUUID - UUID of the layer to use as the matte source.
+   * @param {string} topUUID - UUID of the foreground layer.
+   * @param {string} matteUUID - UUID of the matte layer.
    * @return {Object} Action to set an alpha matte in AE.
    */
-  onAlive: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
+  onAlive: function(nodeData, hostingCompUUID, topUUID, matteUUID) {
     return {
       action: 'setAlphaMatte',
       params: {
         nodeUUID:        nodeData.id,
         hostingCompUUID: hostingCompUUID,
-        topLayerUUID:    upstreamNodeUUID,
+        topLayerUUID:    topUUID,
+        matteLayerUUID:  matteUUID,
         invert:          nodeData.props.invert
       }
     };
   },
 
   /**
-   * Clears the alpha matte from the upstream layer.
+   * Clears the alpha matte from the foreground layer.
    * @param {Object} nodeData - The full node data object.
    * @param {string} hostingCompUUID - UUID of the hosting composition.
-   * @param {string} upstreamNodeUUID - UUID of the layer to clear the matte from.
+   * @param {string} topUUID - UUID of the foreground layer.
    * @return {Object} Action to clear a matte in AE.
    */
-  onGhost: function(nodeData, hostingCompUUID, upstreamNodeUUID) {
+  onGhost: function(nodeData, hostingCompUUID, topUUID) {
     return {
       action: 'clearMatte',
       params: {
         nodeUUID:        nodeData.id,
         hostingCompUUID: hostingCompUUID,
-        topLayerUUID:    upstreamNodeUUID
+        topLayerUUID:    topUUID
       }
     };
   },
@@ -81,10 +84,11 @@ var MatteAlphaNode = {
    * @param {*} value - The new property value.
    * @param {Object} nodeData - The full node data object.
    * @param {string} hostingCompUUID - UUID of the hosting composition.
-   * @param {string} upstreamNodeUUID - UUID of the layer owning the matte.
+   * @param {string} topUUID - UUID of the foreground layer.
+   * @param {string} matteUUID - UUID of the matte layer (unused for property changes).
    * @return {Object} Action to set a layer property in AE.
    */
-  onPropertyChange: function(key, value, nodeData, hostingCompUUID, upstreamNodeUUID) {
+  onPropertyChange: function(key, value, nodeData, hostingCompUUID, topUUID, matteUUID) {
     return {
       action: 'setLayerProperty',
       params: {
