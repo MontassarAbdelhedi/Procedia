@@ -135,6 +135,7 @@ function init() {
   if (typeof sidebarToggle !== 'undefined' && sidebarToggle.init) sidebarToggle.init();
   if (typeof settingsModal !== 'undefined' && settingsModal.init) settingsModal.init();
   if (typeof compList !== 'undefined' && compList.init) compList.init();
+  if (typeof graphSearch !== 'undefined' && graphSearch.init) graphSearch.init();
   if (typeof tipField !== 'undefined' && tipField.init) tipField.init();
   evalBridge.onReady(function(ready) {
     if (!ready) {

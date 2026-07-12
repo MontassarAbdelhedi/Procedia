@@ -11,7 +11,7 @@ function _handleCreateAdjustmentLayer(cmd) {
     var params = _cmdParams(cmd);
     var comp = findCompByUUID(params.hostingCompUUID);
     if (!comp) { result.error = 'createAdjustmentLayer: host comp not found'; return result; }
-    var layer = comp.layers.addShape();
+    var layer = comp.layers.addSolid([1, 1, 1], 'Adjustment', comp.width, comp.height, comp.pixelAspect);
     layer.adjustmentLayer = true;
     if (params.layerUUID) layer.comment = params.layerUUID;
     result.ok = true;

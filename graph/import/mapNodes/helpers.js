@@ -32,6 +32,7 @@ var __imp_nodes = {};
   function aeTypeToNodeType(aeLayerType) {
     var map = {
       'text':       'layers/text',
+      'camera':     'layers/camera',
       'null':       'layers/null',
       'shape':      'layers/shape',
       'adjustment': 'layers/adjustment',

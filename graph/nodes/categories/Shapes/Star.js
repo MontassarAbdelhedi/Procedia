@@ -1,6 +1,6 @@
 /**
  * @file Star shape node definition (shapes/star).
- * A star shape layer with points, radii, roundness, fill, stroke, transform.
+ * A star shape layer with points, radii, roundness, fill, stroke, and transform properties.
  * Ports: output (layer), secondaryInput (data) for each param, child_of/parent_of (parent).
  * Params: label, points, outerRadius, innerRadius, roundness, fill, stroke, position, rotation, scale, opacity.
  * Dispatches: createStarLayer, parkLayer, deleteParkedLayer, setLayerProperty.
@@ -39,7 +39,7 @@ var StarNode = {
     { key: 'points',      type: 'number',  default: 5,                     label: 'Points',      min: 3, max: 64,       animatable: true },
     { key: 'outerRadius', type: 'number',  default: 100,                   label: 'Outer Radius', min: 1,                animatable: true },
     { key: 'innerRadius', type: 'number',  default: 40,                    label: 'Inner Radius', min: 1,                animatable: true },
-    { key: 'roundness',   type: 'number',  default: 0,                     label: 'Roundness',    min: 0,                animatable: true },
+    { key: 'roundness',   type: 'number',  default: 0,                     label: 'Roundness (px)', min: 0,              animatable: true },
     { key: 'fill',        type: 'color',   default: [1, 1, 1, 1],         label: 'Fill',                               animatable: true },
     { key: 'stroke',      type: 'color',   default: [0, 0, 0, 0],         label: 'Stroke',                             animatable: true },
     { key: 'position',    type: 'vector2', default: [960, 540],            label: 'Position',                           animatable: true },
@@ -95,13 +95,29 @@ var StarNode = {
   },
 
   onPropertyChange: function(key, value, nodeData, hostingCompUUID) {
+    if (['position', 'rotation', 'scale', 'opacity'].indexOf(key) !== -1) {
+      return {
+        action: 'setLayerProperty',
+        params: {
+          nodeUUID:        nodeData.id,
+          hostingCompUUID: hostingCompUUID,
+          key:             key,
+          value:           value
+        }
+      };
+    }
     return {
-      action: 'setLayerProperty',
+      action: 'createStarLayer',
       params: {
         nodeUUID:        nodeData.id,
         hostingCompUUID: hostingCompUUID,
-        key:             key,
-        value:           value
+        points:          nodeData.props.points,
+        outerRadius:     nodeData.props.outerRadius,
+        innerRadius:     nodeData.props.innerRadius,
+        roundness:       nodeData.props.roundness,
+        fill:            nodeData.props.fill,
+        stroke:          nodeData.props.stroke,
+        label:           nodeData.props.label
       }
     };
   },

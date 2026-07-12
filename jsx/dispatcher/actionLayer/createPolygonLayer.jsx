@@ -1,31 +1,28 @@
 /**
- * @fileoverview Creates a star shape layer with computed parametric path. (ES3-safe)
- * The star path is generated programmatically with alternating outer/inner radii.
+ * @fileoverview Creates a regular polygon shape layer with computed vertices. (ES3-safe)
+ * The polygon path is generated programmatically with N equally-spaced vertices on a circle.
  * REQUIRES: json.jsx, utils.jsx
  * Load BEFORE: dispatcher.jsx
  */
-// actionLayer/createStarLayer.jsx — Create star layer handler (ES3-safe)
+// actionLayer/createPolygonLayer.jsx — Create polygon layer handler (ES3-safe)
 
-function _computeStarVertices(points, outerRadius, innerRadius) {
-  var total = points * 2;
+function _computePolygonVertices(sides, radius) {
   var vertices = [];
-  var i;
   var startAngle = -Math.PI / 2;
-  var step = Math.PI / points;
-  for (i = 0; i < total; i++) {
+  var step = (2 * Math.PI) / sides;
+  for (var i = 0; i < sides; i++) {
     var a = startAngle + i * step;
-    var r = (i % 2 === 0) ? outerRadius : innerRadius;
-    vertices.push([r * Math.cos(a), r * Math.sin(a)]);
+    vertices.push([radius * Math.cos(a), radius * Math.sin(a)]);
   }
   return vertices;
 }
 
-function _handleCreateStarLayer(cmd) {
+function _handleCreatePolygonLayer(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
     var params = _cmdParams(cmd);
     var comp = findCompByUUID(params.hostingCompUUID);
-    if (!comp) { result.error = 'createStarLayer: host comp not found'; return result; }
+    if (!comp) { result.error = 'createPolygonLayer: host comp not found'; return result; }
 
     var layer = null;
     var isUpdate = false;
@@ -41,7 +38,7 @@ function _handleCreateStarLayer(cmd) {
     if (params.label) layer.name = params.label;
 
     var shapes = layer.property('ADBE Root Vectors Group');
-    if (!shapes) { result.error = 'createStarLayer: no shape contents'; return result; }
+    if (!shapes) { result.error = 'createPolygonLayer: no shape contents'; return result; }
 
     if (isUpdate) {
       var numProps = shapes.numProperties;
@@ -56,10 +53,9 @@ function _handleCreateStarLayer(cmd) {
       }
     }
 
-    var nPoints = params.points !== undefined ? params.points : 5;
-    var outerR = params.outerRadius !== undefined ? params.outerRadius : 100;
-    var innerR = params.innerRadius !== undefined ? params.innerRadius : 40;
-    var vertices = _computeStarVertices(nPoints, outerR, innerR);
+    var nSides = params.sides !== undefined ? params.sides : 6;
+    var rad = params.radius !== undefined ? params.radius : 100;
+    var vertices = _computePolygonVertices(nSides, rad);
 
     var pathGroup = shapes.addProperty('ADBE Vector Shape - Group');
     pathGroup.name = '__ProcediaPath__';

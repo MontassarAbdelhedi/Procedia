@@ -395,6 +395,11 @@
   box-shadow: 0 0 0 2px #FFD700, 0 0 24px rgba(255, 215, 0, 0.4) !important;
 }
 
+.node.search-highlight {
+  border-color: #f5c542;
+  box-shadow: 0 0 0 2px #f5c542, 0 0 24px rgba(245, 197, 66, 0.35);
+}
+
 .node.selected {
   border-color: #534AB7;
   box-shadow: 0 0 0 1px #534AB7, 0 2px 12px rgba(0,0,0,0.55);

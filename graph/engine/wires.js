@@ -119,6 +119,20 @@ window.__procedia_internal.wires = (function() {
     }
 
     if (wireType === 'parent') {
+      // Reparent: disconnect any existing parent wire for this child
+      var allWires = graphState.getAllWires();
+      for (var _ewid in allWires) {
+        if (!allWires.hasOwnProperty(_ewid)) continue;
+        var _ew = allWires[_ewid];
+        if (_ew.type !== 'parent') continue;
+        var isChild = (_ew.fromNode === toNodeId && _ew.fromPort === 'child_of') ||
+                      (_ew.toNode === toNodeId && _ew.toPort === 'child_of');
+        if (!isChild) continue;
+        if (_ew.fromNode === fromNodeId || _ew.toNode === fromNodeId) continue;
+        disconnectWire(_ewid);
+        break;
+      }
+
       if (fromNodeData.state === 'alive' && toNodeData.state === 'alive') {
         var childLayerUUID = hlp.findPathLayerUUID(fromNodeData.id);
         var parentLayerUUID = hlp.findPathLayerUUID(toNodeData.id);
@@ -190,6 +204,19 @@ window.__procedia_internal.wires = (function() {
       var terminalUUID = hlp.findPathLayerUUID(fromNodeId) || wireData.id;
       graphState.updateWire(wireData.id, { _pathLayerUUID: terminalUUID });
       prop.propagateAlive(fromNodeId, toNodeData.hostingComps[0], terminalUUID);
+      if (toNodeData.nodeKind === 'effector') {
+        var _toDef = nodeRegistry.getDefinition(toNodeData.type);
+        if (_toDef && _toDef.onAlive) {
+          var _effUpUUID = hlp.findPathLayerUUID(fromNodeId);
+          if (_effUpUUID) {
+            var _effCmd = _toDef.onAlive(toNodeData, toNodeData.hostingComps[0], _effUpUUID);
+            if (_effCmd) {
+              _effCmd.params._moveToBottom = true;
+              evalBridge.dispatch(_effCmd);
+            }
+          }
+        }
+      }
       if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
       return true;
     }

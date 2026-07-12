@@ -80,6 +80,7 @@
         if (!wireMap.hasOwnProperty(wireId)) continue;
         var occupied = wireMap[wireId];
         if (occupied.toNode === toNodeId && occupied.toPort === toPort) {
+          if (wireType === 'parent') break;
           return { valid: false, reason: 'Port already has a connected wire' };
         }
       }

@@ -81,7 +81,7 @@ var __imp_builder = (function() {
           for (var li = 0; li < layers.length; li++) {
             var layerData = layers[li];
 
-            if (layerData.type === 'camera' || layerData.type === 'light' || layerData.type === 'unknown') {
+            if (layerData.type === 'light' || layerData.type === 'unknown') {
               continue;
             }
 

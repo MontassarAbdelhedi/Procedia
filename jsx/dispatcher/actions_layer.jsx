@@ -10,9 +10,12 @@
 
 var _layerDir = $.fileName.replace(/[\/\\][^\/\\]+$/, '') + '/actionLayer/';
 $.evalFile(_layerDir + 'createTextLayer.jsx');
+$.evalFile(_layerDir + 'createCameraLayer.jsx');
+$.evalFile(_layerDir + 'createLightLayer.jsx');
 $.evalFile(_layerDir + 'createNullLayer.jsx');
 $.evalFile(_layerDir + 'createAdjustmentLayer.jsx');
 $.evalFile(_layerDir + 'createShapeLayer.jsx');
+$.evalFile(_layerDir + 'createSolidLayer.jsx');
 $.evalFile(_layerDir + 'createRectangleLayer.jsx');
 $.evalFile(_layerDir + 'createEllipseLayer.jsx');
 $.evalFile(_layerDir + 'createStarLayer.jsx');
@@ -20,6 +23,7 @@ $.evalFile(_layerDir + 'createSquircleLayer.jsx');
 $.evalFile(_layerDir + 'createGearLayer.jsx');
 $.evalFile(_layerDir + 'createWaveLayer.jsx');
 $.evalFile(_layerDir + 'createFlowerLayer.jsx');
+$.evalFile(_layerDir + 'createPolygonLayer.jsx');
 $.evalFile(_layerDir + 'addCompAsLayer.jsx');
 $.evalFile(_layerDir + 'deletePathLayer.jsx');
 $.evalFile(_layerDir + 'renameNode.jsx');

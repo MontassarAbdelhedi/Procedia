@@ -1,0 +1,94 @@
+/* graphSearch.css — Search widget at top-left of canvas */
+
+#graph-search {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  font-size: 11px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+
+.graph-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(30,30,28,0.92);
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+  color: #B4B2A9;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+  padding: 0;
+}
+
+.graph-search-btn:hover {
+  background: rgba(40,40,38,0.95);
+  border-color: #3a3a38;
+  color: #E0DFD5;
+}
+
+.graph-search-btn .ti {
+  font-size: 14px;
+}
+
+.graph-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(30,30,28,0.92);
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+}
+
+.graph-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #d4d2cc;
+  font-size: 11px;
+  font-family: system-ui, -apple-system, sans-serif;
+  width: 140px;
+  padding: 0;
+}
+
+.graph-search-input::placeholder {
+  color: #5F5E5A;
+}
+
+.graph-search-results {
+  color: #888780;
+  font-size: 10px;
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: right;
+}
+
+.graph-search-focus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: #888780;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.graph-search-focus:hover {
+  color: #d4d2cc;
+  background: rgba(255,255,255,0.07);
+}
+
+.graph-search-focus .ti {
+  font-size: 12px;
+}

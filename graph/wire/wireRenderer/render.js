@@ -164,6 +164,10 @@
       c._hideInsertBtn();
       return;
     }
+    if (wire.type === 'parent') {
+      c._hideInsertBtn();
+      return;
+    }
     var mid = c._wireMidpoint(wire);
     if (!mid) {
       c._hideInsertBtn();

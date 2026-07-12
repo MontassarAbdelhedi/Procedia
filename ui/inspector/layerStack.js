@@ -56,6 +56,19 @@ var __ins_layerStack = (function() {
         // wire at index 0 is oldest (bottom of stack), assign highest order
         wireList[wi]._layerOrder = wireList.length - wi;
       }
+    } else {
+      // Some wires have _layerOrder but not others (newly added wires).
+      // New wires become the top layer (order 1), shifting existing down.
+      for (var wi = 0; wi < wireList.length; wi++) {
+        if (wireList[wi]._layerOrder === undefined) {
+          for (var wj = 0; wj < wireList.length; wj++) {
+            if (wireList[wj]._layerOrder !== undefined) {
+              wireList[wj]._layerOrder++;
+            }
+          }
+          wireList[wi]._layerOrder = 1;
+        }
+      }
     }
 
     for (var wi = 0; wi < wireList.length; wi++) {

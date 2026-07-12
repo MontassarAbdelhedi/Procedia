@@ -31,12 +31,20 @@
 [x] debug and fix deleting comp
 [x] infinite background
 [x] investigate polygon node: breaking AE: node removed.
-[ ] stress test: create 10, 30, 50, 100, 200 affected nodes with 5, 10, 20, 30 comp nodes, with 5, 10, 20 affecters.
+[o] stress test: create 10, 30, 50, 100, 200 affected nodes with 5, 10, 20, 30 comp nodes, with 5, 10, 20 affecters.
 [x] auto calculate math expressions in inspector
 [ ] group nodes: a new node with a list of encapsulated nodes, 
 [ ] save preset: save custom nodes: add a new category Presets
 [ ] duplicate comp is not creating new comp object
 [ ] test import: an unessessary blending node
-[ ] fix licence
+[o] fix licence
 [x] add a new step Comp list in tutorial
-[ ] auto shy selected node + settings
+[x] auto shy selected node + settings
+[x] camera
+[x] null
+[o] adjustment layer
+[x] text
+[x] shape
+[x] solid
+[x] light
+[x] search node in graph

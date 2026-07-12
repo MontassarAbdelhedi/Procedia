@@ -40,6 +40,24 @@ window.__procedia_internal.ndup = (function() {
       }
       graphState.addNode(copy);
       newIds.push(copy.id);
+
+      var def = nodeRegistry.getDefinition(src.type);
+      if (def && typeof def.onDrop === 'function') {
+        var dropCommand = def.onDrop(copy);
+        if (dropCommand !== null) {
+          (function(copyId, cmd) {
+            evalBridge.dispatch(cmd).then(function(res) {
+              if (res && res.ok) {
+                graphState.updateNode(copyId, { state: 'alive' });
+              } else {
+                console.error('[engine] duplicate onDrop failed for ' + copyId + ': ' + (res && res.error || 'unknown error'));
+                graphState.updateNode(copyId, { state: 'error' });
+              }
+              hlp.refreshNodeUI();
+            });
+          })(copy.id, dropCommand);
+        }
+      }
     }
     graphState.replaceSelection(newIds);
     if (typeof undoManager !== 'undefined') undoManager.commit('Duplicate ' + newIds.length + ' node' + (newIds.length > 1 ? 's' : ''));

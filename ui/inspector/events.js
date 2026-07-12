@@ -614,13 +614,61 @@ var __ins_events = (function() {
     var layerUUID = wire._pathLayerUUID;
     if (!layerUUID) return;
 
+    // Optimistic update: recalculate _layerOrder based on direction
+    // before dispatching to AE.
+    var wires = graphState.getAllWires();
+    var compWires = [];
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.toNode === compId && w.toPort === 'main_input' && w.type === 'layer') {
+        compWires.push(w);
+      }
+    }
+    compWires.sort(function(a, b) {
+      return (a._layerOrder || 999) - (b._layerOrder || 999);
+    });
+    var orderedIds = [];
+    for (var i = 0; i < compWires.length; i++) {
+      orderedIds.push(compWires[i].id);
+    }
+    var idx = orderedIds.indexOf(wireId);
+    if (idx !== -1) {
+      if (direction === 'top') {
+        orderedIds.splice(idx, 1);
+        orderedIds.unshift(wireId);
+      } else if (direction === 'up') {
+        if (idx > 0) {
+          orderedIds.splice(idx, 1);
+          orderedIds.splice(idx - 1, 0, wireId);
+        }
+      } else if (direction === 'down') {
+        if (idx < orderedIds.length - 1) {
+          orderedIds.splice(idx, 1);
+          orderedIds.splice(idx + 1, 0, wireId);
+        }
+      } else if (direction === 'bottom') {
+        orderedIds.splice(idx, 1);
+        orderedIds.push(wireId);
+      }
+      var order = 1;
+      for (var i = 0; i < orderedIds.length; i++) {
+        var w2 = wires[orderedIds[i]];
+        if (w2 && w2._pathLayerUUID) {
+          w2._layerOrder = order;
+          order++;
+        }
+      }
+    }
+
+    if (typeof inspector !== 'undefined' && inspector.refresh) {
+      inspector.refresh();
+    }
+
     evalBridge.dispatch({
       action: 'setLayerOrder',
       params: { layerUUID: layerUUID, hostingCompUUID: compId, direction: direction }
     }).then(function() {
-      if (typeof __ins_layerStack !== 'undefined' && __ins_layerStack.recalculateLayerOrder) {
-        __ins_layerStack.recalculateLayerOrder(compId);
-      }
       if (typeof inspector !== 'undefined' && inspector.refresh) {
         inspector.refresh();
       }
@@ -698,15 +746,66 @@ var __ins_events = (function() {
     var layerUUID = draggedWire._pathLayerUUID;
 
     var targetRow = e.target.closest('.inspector-ls-row');
-
-    var dispatchPromise;
+    var targetWireId = null;
 
     if (targetRow) {
-      var targetWireId = targetRow.getAttribute('data-wire-id');
+      targetWireId = targetRow.getAttribute('data-wire-id');
       if (!targetWireId || targetWireId === draggedWireId) return;
       var targetWire = graphState.getWire(targetWireId);
       if (!targetWire || !targetWire._pathLayerUUID) return;
+    }
 
+    // Optimistic update: recalculate _layerOrder based on the new drop position
+    // BEFORE dispatching to AE, so the panel reflects the change immediately.
+    // We cannot use __ins_layerStack.recalculateLayerOrder here because it
+    // reads the stale _layerOrder from _buildViewModel, producing a no-op.
+    var wires = graphState.getAllWires();
+    var compWires = [];
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.toNode === compId && w.toPort === 'main_input' && w.type === 'layer') {
+        compWires.push(w);
+      }
+    }
+    compWires.sort(function(a, b) {
+      return (a._layerOrder || 999) - (b._layerOrder || 999);
+    });
+    var orderedIds = [];
+    for (var i = 0; i < compWires.length; i++) {
+      orderedIds.push(compWires[i].id);
+    }
+    var draggedIdx = orderedIds.indexOf(draggedWireId);
+    if (draggedIdx !== -1) {
+      orderedIds.splice(draggedIdx, 1);
+      if (targetRow) {
+        var targetIdx = orderedIds.indexOf(targetWireId);
+        if (targetIdx !== -1) {
+          orderedIds.splice(targetIdx, 0, draggedWireId);
+        } else {
+          orderedIds.push(draggedWireId);
+        }
+      } else {
+        orderedIds.push(draggedWireId);
+      }
+      var order = 1;
+      for (var i = 0; i < orderedIds.length; i++) {
+        var wire = wires[orderedIds[i]];
+        if (wire && wire._pathLayerUUID) {
+          wire._layerOrder = order;
+          order++;
+        }
+      }
+    }
+
+    // Refresh panel optimistically
+    if (typeof inspector !== 'undefined' && inspector.refresh) {
+      inspector.refresh();
+    }
+
+    // Dispatch to AE to move the actual layer
+    var dispatchPromise;
+    if (targetRow) {
       dispatchPromise = evalBridge.dispatch({
         action: 'moveLayerBefore',
         params: {
@@ -716,7 +815,6 @@ var __ins_events = (function() {
         }
       });
     } else {
-      // Drop on empty area — move to bottom of stack
       dispatchPromise = evalBridge.dispatch({
         action: 'setLayerOrder',
         params: {
@@ -727,11 +825,14 @@ var __ins_events = (function() {
       });
     }
 
+    // On AE response, refresh again to confirm
     if (dispatchPromise) {
       dispatchPromise.then(function() {
-        if (typeof __ins_layerStack !== 'undefined' && __ins_layerStack.recalculateLayerOrder) {
-          __ins_layerStack.recalculateLayerOrder(compId);
+        if (typeof inspector !== 'undefined' && inspector.refresh) {
+          inspector.refresh();
         }
+      }).catch(function() {
+        // AE move failed — re-read current order from AE by refreshing
         if (typeof inspector !== 'undefined' && inspector.refresh) {
           inspector.refresh();
         }

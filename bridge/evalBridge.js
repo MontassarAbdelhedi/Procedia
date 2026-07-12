@@ -21,10 +21,10 @@ var evalBridge = (function() {
   var _CMD_CHUNK_LIMIT = 15000;
   var _ALLOWED_ACTIONS = {
     'createComp': true, 'deleteComp': true, 'createTextLayer': true,
-    'createNullLayer': true, 'createAdjustmentLayer': true, 'createShapeLayer': true,
+    'createCameraLayer': true, 'createLightLayer': true, 'createNullLayer': true, 'createAdjustmentLayer': true, 'createShapeLayer': true, 'createSolidLayer': true,
     'createRectangleLayer': true, 'createEllipseLayer': true, 'createStarLayer': true,
     'createSquircleLayer': true, 'createGearLayer': true, 'createWaveLayer': true,
-    'createFlowerLayer': true, 'addCompAsLayer': true, 'clearLayerParent': true,
+    'createFlowerLayer': true, 'createPolygonLayer': true, 'addCompAsLayer': true, 'clearLayerParent': true,
     'parkLayer': true, 'unparkLayer': true, 'deleteParkedLayer': true,
     'deletePathLayer': true, 'setLayerProperty': true, 'setCompProperty': true,
     'setLayerParent': true, 'setLayerOrder': true, 'moveLayerBefore': true,

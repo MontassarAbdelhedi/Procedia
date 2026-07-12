@@ -107,6 +107,16 @@ function _handleSetLayerProperty(cmd) {
           stroke.property('ADBE Vector Stroke Color').setValue(value);
         }
       }
+    } else if (key === 'depthOfField') {
+      try { layer.depthOfField = Boolean(value); } catch (e) {}
+    } else if (key === 'zoom') {
+      try { layer.zoom.setValue(value); } catch (e) {}
+    } else if (key === 'focusDistance') {
+      try { layer.focusDistance.setValue(value); } catch (e) {}
+    } else if (key === 'aperture') {
+      try { layer.aperture.setValue(value); } catch (e) {}
+    } else if (key === 'blurLevel') {
+      try { layer.blurLevel.setValue(value); } catch (e) {}
     } else if (key === 'position') {
       layer.position.setValue(value);
     } else if (key === 'rotation') {

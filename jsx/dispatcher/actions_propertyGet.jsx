@@ -31,7 +31,11 @@ function _handleBatchGetLayerProperties(cmd) {
         var key = entry.keys[k];
         if (key === 'position') {
           var v = layer.position.value;
-          layerProps[key] = [v[0], v[1]];
+          if (layer instanceof CameraLayer) {
+            layerProps[key] = [v[0], v[1], v[2]];
+          } else {
+            layerProps[key] = [v[0], v[1]];
+          }
         } else if (key === 'rotation') {
           layerProps[key] = layer.rotation.value;
         } else if (key === 'scale') {

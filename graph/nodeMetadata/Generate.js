@@ -320,7 +320,7 @@
   },
   "generate/ellipse": {
     "type": "generate/ellipse",
-    "label": "Ellipse",
+    "label": "Ellipse Effect",
     "category": "Generate",
     "nodeKind": "effector",
     "dedicated": false,

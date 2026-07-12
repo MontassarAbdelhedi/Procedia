@@ -126,6 +126,7 @@ var __r_hlp = (function() {
     if (graphState.isSelected(nodeData.id)) classes.push('selected');
     if (nodeData.collapsed) classes.push('node--collapsed');
     if (nodeData.disabled) classes.push('disabled');
+    if (window.__graphSearchMatches && window.__graphSearchMatches[nodeData.id]) classes.push('search-highlight');
     return classes.join(' ');
   }
 

@@ -1,5 +1,22 @@
 # Progress Log
 
+## Sun 2026-07-12
+[x] Create Solid layer node (layers/solid): color, width, height params; createSolidLayer AE action handler using addSolid(); strip alpha from RGBA array; store layer.comment = params.layerUUID (terminal wire UUID, not nodeUUID)
+[x] Create Camera layer node (layers/camera): zoom, depthOfField, focusDistance, aperture, blurLevel params; createCameraLayer AE action handler; camera property support in setLayerProperty; CameraLayer 3D position in batch get
+[x] Create Light layer node (layers/light): light type enum (point/spot/parallel/ambient), intensity, color, cone angle/feather, shadow params; createLightLayer AE action handler
+[x] Create Polygon shape node (shapes/polygon): N-sided regular polygon with computed parametric path vertices; createPolygonLayer AE action handler; onPropertyChange recreates shape for geometry changes
+[x] Refactor Star node: replace Polystar with computed parametric path vertices; fix onPropertyChange to recreate shape for geometry (points/radii/fill/stroke) and use setLayerProperty for transform only
+[x] Add graph search widget: search icon button at top-left of canvas (same 12px margin as complist), expands to search field on click, filters nodes by label with live highlighting (gold border/glow), shows match count ("N found"), focus button centers first result and selects it. Clicking outside clears search and reverts to icon. Highlights persist across re-renders via `window.__graphSearchMatches`.
+[x] Fix duplicate comp node not creating AE CompItem: `duplicateSelectedNodes` dispatches `def.onDrop()` lifecycle command after adding ghost copy, matching dropNode.js async dispatch pattern
+[x] Fix Adjustment layer: use addSolid instead of addShape for proper adjustment layer behavior
+[x] Fix Squircle default roundness to 99, rename Ellipse effect label to "Ellipse Effect"
+[x] Fix parent wire handling: hide insert button on parent wires, disconnect existing parent wire before reparenting, allow multiple parent wires to occupy same port
+[x] Fix effector re-trigger on wire connect: re-dispatch effector onAlive to move effect to bottom of layer stack
+[x] Fix propagate: lookup upstream UUID from wireMap for effector/blending/merge nodes; allow effector nodes through command execution gate
+[x] Add camera layer import support: map AE camera layer type to layers/camera node type in import builder
+[x] Optimistic layer reorder for up/down/top/bottom buttons and drag-and-drop: recalculate _layerOrder before AE dispatch
+[x] Fix newly added wires without _layerOrder: auto-assign top position in layer stack
+
 ## Sat 2026-07-11
 [x] Fix Alpha Matte & Luma Matte nodes: add matte_layer secondary input, change nodeKind to 'matte', move to new Track Matte top-level category, fix secondaryInput port rendering, fix wire validator to allow partial connections, fix wire insertion and forward wiring port resolution
 [x] Add auto-shy feature: when enabled, selecting an affected node automatically shies all other affected layers in the same comp and enables the Hide Shy Layers toggle; on deselect, unshies all and disables the toggle. Configurable via Settings -> General -> Auto Shy.

@@ -142,6 +142,7 @@
   "ui/statusBar.js",
   "ui/sidebarToggle.js",
   "ui/compList.js",
+  "ui/graphSearch.js",
   "ui/tipField.js",
   "ui/walkthrough/steps.js",
   "ui/walkthrough/dom.js",

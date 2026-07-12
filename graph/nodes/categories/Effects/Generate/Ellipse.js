@@ -12,7 +12,7 @@
 
 var EllipseNode = {
   type:      'generate/ellipse',
-  label:     'Ellipse',
+  label:     'Ellipse Effect',
   category:  'Generate',
   version:   '1.0.0',
   nodeKind:  'effector',
