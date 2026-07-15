@@ -38,6 +38,7 @@ window.__procedia_internal.eState = (function() {
     }
 
     graphState.clearGraph();
+    if (typeof commentManager !== 'undefined' && commentManager.removeAll) commentManager.removeAll();
 
     if (typeof viewport !== 'undefined' && viewport.reset) viewport.reset();
     window.__procedia_internal.refreshUI();

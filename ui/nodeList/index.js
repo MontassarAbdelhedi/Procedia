@@ -32,11 +32,43 @@ var nodeList = (function() {
     searchClear = document.getElementById('leftbar-search-clear');
     listEl = document.getElementById('leftbar-list');
 
+    rebuildList();
+    _wirePresetDelete(listEl);
+  }
+
+  /**
+   * Rebuilds the category list after presets change.
+   * Re-reads from nodeRegistry, re-renders, and re-wires all interactions.
+   */
+  function rebuildList() {
+    if (!listEl) return;
+    __nl_cat.refresh();
     __nl_render.renderCategories(listEl);
     __nl_search.wireSearch(searchInput, searchClear, listEl);
     __nl_dragdrop.wireCanvasDrop(listEl);
   }
 
-  return { init: init };
+  function _wirePresetDelete(listEl) {
+    listEl.addEventListener('click', function(e) {
+      var delBtn = e.target.closest('.leftbar-node-delete');
+      if (!delBtn) return;
+      e.stopPropagation();
+      var item = delBtn.closest('.leftbar-node-item');
+      if (!item) return;
+      var name = item.getAttribute('data-node');
+      if (!name || !confirm('Delete preset "' + name + '"?')) return;
+      presetManager.deletePreset(name);
+      rebuildList();
+      if (typeof notificationBar !== 'undefined' && notificationBar.push) {
+        notificationBar.push({
+          severity: 'info',
+          message: 'Preset "' + name + '" deleted',
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  return { init: init, rebuildList: rebuildList };
 
 })();

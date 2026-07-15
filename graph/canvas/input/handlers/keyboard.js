@@ -1,11 +1,11 @@
 /**
  * @fileoverview Keyboard event handlers for the graph canvas.
- * Handles keydown (Delete/Backspace for node/wire deletion, Space for pan mode,
+ * Handles keydown (Delete/Backspace for node/wire/comment deletion, Space for pan mode,
  * Enter/Escape for title editing) and keyup (Space release).
  * @dependencies input/state.js, input/utils.js, input/handlers/titleEdit/helpers.js,
  *               input/handlers/titleEdit/exit.js, input/handlers/titleEdit/commit.js,
  *               input/handlers/titleEdit/cancel.js, input/handlers/titleEdit/dblclick.js,
- *               graph/graphState.js, graph/engine/index.js
+ *               graph/graphState.js, graph/engine/index.js, graph/comment/commentManager.js
  * @exports _handlersKeyboard { onKeyDown, onKeyUp }
  */
 
@@ -13,7 +13,7 @@
 // DEPENDS ON: input/state.js, input/utils.js, input/handlers/titleEdit/helpers.js,
 //             input/handlers/titleEdit/exit.js, input/handlers/titleEdit/commit.js,
 //             input/handlers/titleEdit/cancel.js, input/handlers/titleEdit/dblclick.js,
-//             graph/graphState.js, graph/engine/index.js,
+//             graph/graphState.js, graph/engine/index.js, graph/comment/commentManager.js,
 //             graph/canvas/viewport.js, graph/canvas/renderer/index.js
 // MUST LOAD BEFORE: input/handlers/index.js
 
@@ -66,6 +66,16 @@ var _handlersKeyboard = (function() {
         if (wireRenderer.render) wireRenderer.render(null);
       }
       return;
+    }
+
+    if (typeof commentManager !== 'undefined') {
+      var commentId = commentManager.getSelected();
+      if (commentId) {
+        e.preventDefault();
+        commentManager.deselect();
+        commentManager.remove(commentId);
+        return;
+      }
     }
 
     var sel = graphState.getSelection();

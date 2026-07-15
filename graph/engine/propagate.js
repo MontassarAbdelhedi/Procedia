@@ -90,6 +90,7 @@ window.__procedia_internal.prop = (function() {
           break;
         }
       }
+      if (!_upUUID) _upUUID = pathLayerUUID;
       if (!_upUUID) return null;
       return def.onAlive(nodeData, hostingCompUUID, _upUUID);
     }

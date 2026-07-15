@@ -9,6 +9,11 @@
 
 var __nl_render = (function() {
 
+  function _isPresetLabel(label) {
+    var def = __nl_cat.resolveDefByLabel(label);
+    return def && def._isPreset;
+  }
+
   /**
    * Renders all categories into the list element and wires toggle events.
    * @param {HTMLElement} listEl The container element for the category list.
@@ -44,11 +49,14 @@ var __nl_render = (function() {
     for (var i = 0; i < cat.nodes.length; i++) {
       var nodeColor = __nl_cat.getCategoryColor(cat.nodes[i]);
       var isMerge = cat.nodes[i] === 'Merge' || cat.nodes[i] === 'Multimerge';
+      var isPreset = _isPresetLabel(cat.nodes[i]);
       itemsHtml +=
-        '<div class="leftbar-node-item" data-node="' + cat.nodes[i] + '">' +
+        '<div class="leftbar-node-item' + (isPreset ? ' leftbar-node-item--preset' : '') + '" data-node="' + cat.nodes[i] + '"' +
+          (isPreset ? ' data-preset="true"' : '') + '>' +
           '<div class="leftbar-node-dot" style="background:' + nodeColor + '"></div>' +
           '<span class="leftbar-node-name">' + cat.nodes[i] + '</span>' +
           (isMerge ? '<span class="leftbar-node-alert ti ti-alert-circle" title="Requires Procedia to run"></span>' : '') +
+          (isPreset ? '<span class="leftbar-node-delete ti ti-trash" title="Delete preset"></span>' : '') +
         '</div>';
     }
 

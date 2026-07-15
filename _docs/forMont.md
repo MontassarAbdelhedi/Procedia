@@ -35,7 +35,7 @@
 [x] auto calculate math expressions in inspector
 [ ] group nodes: a new node with a list of encapsulated nodes, 
 [ ] save preset: save custom nodes: add a new category Presets
-[ ] duplicate comp is not creating new comp object
+[x] duplicate comp is not creating new comp object
 [ ] test import: an unessessary blending node
 [o] fix licence
 [x] add a new step Comp list in tutorial
@@ -48,3 +48,4 @@
 [x] solid
 [x] light
 [x] search node in graph
+[x] expression node

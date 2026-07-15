@@ -113,6 +113,7 @@ function init() {
   if (typeof reporter !== 'undefined' && reporter.init) reporter.init();
   canvasView.init();
   canvasInput.init();
+  if (typeof commentManager !== 'undefined' && commentManager.init) commentManager.init();
   graphState.onSelectionChange(function(sel) {
     window.__procedia_internal.refreshUI();
     if (typeof topBar !== 'undefined' && topBar.refreshSelection) topBar.refreshSelection(sel);
@@ -134,6 +135,7 @@ function init() {
   if (typeof statusBar !== 'undefined' && statusBar.init) statusBar.init();
   if (typeof sidebarToggle !== 'undefined' && sidebarToggle.init) sidebarToggle.init();
   if (typeof settingsModal !== 'undefined' && settingsModal.init) settingsModal.init();
+  if (typeof presetModal !== 'undefined' && presetModal.init) presetModal.init();
   if (typeof compList !== 'undefined' && compList.init) compList.init();
   if (typeof graphSearch !== 'undefined' && graphSearch.init) graphSearch.init();
   if (typeof tipField !== 'undefined' && tipField.init) tipField.init();

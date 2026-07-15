@@ -93,6 +93,8 @@
 
   canvasDrag.canInsertOnWire = function canInsertOnWire(wireId, def) {
     if (!def || !def.ports) return false;
+    var wire = graphState.getWire(wireId);
+    if (!wire || wire.type === 'data') return false;
     var hasOutput = false;
     for (var i = 0; i < def.ports.length; i++) {
       if (def.ports[i].id === 'output') hasOutput = true;

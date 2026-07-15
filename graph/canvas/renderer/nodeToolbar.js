@@ -17,6 +17,7 @@ var nodeToolbar = (function() {
   var _colorPickerVisible = false;
   var _switchState = null;
   var _docListenerAdded = false;
+  var _savePresetBtn = null;
 
   var COLORS = [
     { name: 'white',  hex: '#FFFFFF' },
@@ -44,6 +45,57 @@ var nodeToolbar = (function() {
       '<button class="node-toolbar-btn node-toolbar-btn--delete" data-action="delete" title="Delete"><i class="ti ti-trash"></i></button>';
 
     _toolbar.addEventListener('click', _onToolbarClick);
+  }
+
+  function _ensureSavePresetBtn() {
+    if (_savePresetBtn) return;
+    _savePresetBtn = document.createElement('div');
+    _savePresetBtn.className = 'node-toolbar-save-preset';
+    _savePresetBtn.style.display = 'none';
+    _savePresetBtn.innerHTML =
+      '<button class="node-toolbar-btn" data-action="save-preset" title="Save Preset"><i class="ti ti-device-floppy"></i> Save Preset</button>';
+    _savePresetBtn.addEventListener('mousedown', function(e) {
+      e.stopPropagation();
+      var sel = graphState.getSelection();
+      if (sel.length > 0 && typeof presetModal !== 'undefined') {
+        presetModal.open(sel);
+      }
+    });
+  }
+
+  function _positionSavePresetBtn() {
+    var sel = graphState.getSelection();
+    if (sel.length === 0) {
+      if (_savePresetBtn) _savePresetBtn.style.display = 'none';
+      return;
+    }
+    _ensureSavePresetBtn();
+    var vp = document.getElementById('canvas-nodes');
+    if (!vp) return;
+    if (_savePresetBtn.parentNode !== vp) {
+      vp.appendChild(_savePresetBtn);
+    }
+
+    var minX = Infinity, minY = Infinity;
+    var maxX = -Infinity, maxY = -Infinity;
+    for (var i = 0; i < sel.length; i++) {
+      var nd = graphState.getNode(sel[i]);
+      if (!nd) continue;
+      if (nd.x < minX) minX = nd.x;
+      if (nd.y < minY) minY = nd.y;
+      var el = renderer.getNodeElement(sel[i]);
+      var w = el ? el.offsetWidth || 160 : 160;
+      var h = el ? el.offsetHeight || 60 : 60;
+      if (nd.x + w > maxX) maxX = nd.x + w;
+      if (nd.y + h > maxY) maxY = nd.y + h;
+    }
+    if (minX === Infinity) { _savePresetBtn.style.display = 'none'; return; }
+
+    var btnW = _savePresetBtn.offsetWidth || 120;
+    var cx = minX + (maxX - minX) / 2;
+    _savePresetBtn.style.left = Math.round(cx - btnW / 2) + 'px';
+    _savePresetBtn.style.top = Math.round(maxY + 8) + 'px';
+    _savePresetBtn.style.display = 'flex';
   }
 
   function _ensureColorPicker() {
@@ -238,10 +290,18 @@ var nodeToolbar = (function() {
     } else {
       hide();
     }
+    _positionSavePresetBtn();
+  }
+
+  function _detachSavePresetBtn() {
+    if (_savePresetBtn && _savePresetBtn.parentNode) {
+      _savePresetBtn.parentNode.removeChild(_savePresetBtn);
+    }
   }
 
   function init() {
     _ensureToolbar();
+    _ensureSavePresetBtn();
   }
 
   return {

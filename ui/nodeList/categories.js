@@ -37,7 +37,8 @@ var __nl_cat = (function() {
     'Transition':      '#27AE60',
     'obsolete':        '#27AE60',
     'Utility':         '#5F5E5A',
-    'Track Matte':     '#E74C3C'
+    'Track Matte':     '#E74C3C',
+    'Presets':         '#9B59B6'
   };
 
   var CATEGORY_NAMES = {
@@ -45,7 +46,7 @@ var __nl_cat = (function() {
   };
 
   var CATEGORY_ORDER = [
-    'Core', 'Data', 'Layers', 'Shapes', 'Track Matte', 'Effects'
+    'Core', 'Data', 'Layers', 'Shapes', 'Track Matte', 'Presets', 'Effects'
   ];
 
   var EFFECTS_SUBCATEGORIES = {
@@ -76,7 +77,15 @@ var __nl_cat = (function() {
   var LABEL_TO_TYPE = {};
   var CATEGORIES = [];
 
-  function init() {
+  function refresh() {
+    LABEL_TO_TYPE = {};
+    CATEGORIES = [];
+    build();
+    __nl_cat.LABEL_TO_TYPE = LABEL_TO_TYPE;
+    __nl_cat.CATEGORIES = CATEGORIES;
+  }
+
+  function build() {
     var all = nodeRegistry.getAll();
     var groups = {};
 
@@ -154,7 +163,7 @@ var __nl_cat = (function() {
     };
   }
 
-  init();
+  build();
 
   function getCategoryColor(label) {
     for (var i = 0; i < CATEGORIES.length; i++) {
@@ -184,7 +193,8 @@ var __nl_cat = (function() {
     LABEL_TO_TYPE: LABEL_TO_TYPE,
     CATEGORIES: CATEGORIES,
     getCategoryColor: getCategoryColor,
-    resolveDefByLabel: resolveDefByLabel
+    resolveDefByLabel: resolveDefByLabel,
+    refresh: refresh
   };
 
 })();

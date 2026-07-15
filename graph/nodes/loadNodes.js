@@ -12,6 +12,7 @@ document.write('<script src="graph/nodes/categories/Core/Merge.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Core/Multimerge.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Data/Color.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Data/Number.js"><\/script>');
+document.write('<script src="graph/nodes/categories/Data/Expression.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Layers/Adjustment.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Layers/Camera.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Layers/Light.js"><\/script>');

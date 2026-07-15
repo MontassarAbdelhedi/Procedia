@@ -164,7 +164,7 @@
       c._hideInsertBtn();
       return;
     }
-    if (wire.type === 'parent') {
+    if (wire.type === 'parent' || wire.type === 'data') {
       c._hideInsertBtn();
       return;
     }

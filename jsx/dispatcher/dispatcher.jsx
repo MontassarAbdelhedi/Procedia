@@ -74,6 +74,7 @@ var _handlers = {
   'pollAliveEffects':     _handlePollAliveEffects,
   'removeEffect':         _handleRemoveEffect,
   'setEffectProperty':    _handleSetEffectProperty,
+  'setExpression':        _handleSetExpression,
   'renameEffect':         _handleRenameEffect,
   'setEffectEnabled':     _handleSetEffectEnabled,
   'reorderEffect':        _handleReorderEffect,
@@ -118,6 +119,7 @@ var _handlers = {
   'cleanupCmdFile':        _handleCleanupCmdFile
 };
 
+_handlers['getProjectIdentifier'] = _handleGetProjectIdentifier;
 _handlers['beginUndoGroup'] = _handleBeginUndoGroup;
 _handlers['endUndoGroup'] = _handleEndUndoGroup;
 

@@ -144,6 +144,27 @@ function _handleFocusComp(cmd) {
 }
 
 /**
+ * Returns a unique identifier for the current AE project.
+ * Uses fullPath if saved, otherwise constructs from project name.
+ * @param {Object} cmd Command (params unused).
+ * @return {Object} Result with .ok, .data (projectId), .error.
+ */
+function _handleGetProjectIdentifier(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var proj = app.project;
+    var projectId = proj.fullPath && proj.fullPath !== ''
+      ? proj.fullPath
+      : 'unsaved_' + (proj.name || 'Untitled');
+    result.ok = true;
+    result.data = { projectId: projectId };
+  } catch (e) {
+    result.error = e.toString();
+  }
+  return result;
+}
+
+/**
  * Ensures the reserved DO NOT DELETE comp exists, creating it if needed.
  * @param {Object} cmd Command (params unused).
  * @return {Object} Result with .ok, .data (compName), .error.

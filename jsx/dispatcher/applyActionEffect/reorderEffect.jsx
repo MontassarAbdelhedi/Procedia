@@ -48,11 +48,11 @@ function _handleReorderEffect(cmd) {
       }
 
       if (idx1 < idx2) {
-        fx1.moveAfter(fx2);
-        fx2.moveToBeginning();
+        fx1.moveTo(idx2);
+        fx2.moveTo(idx1);
       } else {
-        fx2.moveAfter(fx1);
-        fx1.moveToBeginning();
+        fx2.moveTo(idx1);
+        fx1.moveTo(idx2);
       }
       result.ok = true;
       result.data = { swapped: true };
@@ -74,9 +74,9 @@ function _handleReorderEffect(cmd) {
     }
     if (!found) { result.error = 'reorderEffect: effect not found'; return result; }
     if (params.position === 'first') {
-      fx.moveToBeginning();
+      fx.moveTo(1);
     } else if (params.position === 'last') {
-      fx.moveToEnd();
+      fx.moveTo(effects.numProperties);
     }
     result.ok = true;
     result.data = { moved: params.position };

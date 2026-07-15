@@ -1,5 +1,18 @@
 # Progress Log
 
+## Thu 2026-07-16
+[x] Add Expression data node (data/expression): string expression wired to effect/layer properties via data wires; setExpression dispatcher handler that finds property by match name or shorthand accessor; propagateDataValue intercepts expression key and dispatches to AE instead of in-memory prop update
+[x] Add canvas comments: sticky notes on graph canvas with CMT- UUID, double-click empty canvas creates comment, Delete key removes selected comment, selection/deselect integration with mouse handlers, cleared on graph reset
+[x] Add Save Preset feature: presetManager (save/load/delete/drop presets via localStorage), preset save button above multi-selection, presets appear as dynamic node types in Presets category with delete button; nodeRegistry.unregister added for cleanup; nodeList refresh() for dynamic category rebuild
+[x] Fix effect reorder: replace moveToBeginning/moveToEnd with moveTo(1)/moveTo(numProperties) in reorderEffect.jsx and applyDynamicEffect.jsx for reliable AE positioning
+[x] Fix engine: prevent wire insertion on data wires; fix effector propagate fallback to pathLayerUUID; add per-comp terminal wire resolution in deleteNode (resolveLayerUUIDForComp) for correct multi-comp layer parking; cleanup comments on graph reset
+[x] Fix layer stack deduplication: resolve affected nodes upstream of terminal wires and deduplicate so multiple effectors on same layer don't create duplicate entries
+[x] Fix Merge warning: per-project localStorage key via new getProjectIdentifier AE action (fullPath or unsaved_name); refactored into _maybeWarnMerge helper
+[x] Add getProjectIdentifier dispatcher action: returns fullPath if saved or "unsaved_name" for unsaved projects
+
+## Mon 2026-07-13
+[x] Add canvas comment feature: double-click empty canvas creates a sticky-note comment with textarea for editing, color swatches via floating picker (palette button in header), delete button, collapse/expand, drag from header. No AE presence — pure canvas annotation. Comment UUID generator (`CMT-` prefix). Cleared on graph reset.
+
 ## Sun 2026-07-12
 [x] Create Solid layer node (layers/solid): color, width, height params; createSolidLayer AE action handler using addSolid(); strip alpha from RGBA array; store layer.comment = params.layerUUID (terminal wire UUID, not nodeUUID)
 [x] Create Camera layer node (layers/camera): zoom, depthOfField, focusDistance, aperture, blurLevel params; createCameraLayer AE action handler; camera property support in setLayerProperty; CameraLayer 3D position in batch get

@@ -21,6 +21,56 @@ window.__procedia_internal.ndel = (function() {
   var hlp = registry.get('hlp');
 
   /**
+   * Resolves the terminal wire UUID for a specific hosting comp.
+   * Unlike hlp.findPathLayerUUID (which caches and returns the first path),
+   * this follows each outgoing layer wire and only returns a match when
+   * the downstream chain terminates at the given compUUID.
+   *
+   * @param {string} nodeId - Source node ID
+   * @param {string} compUUID - Target comp node UUID
+   * @returns {string|null} Terminal wire UUID, or null
+   */
+  function _resolveLayerUUIDForComp(nodeId, compUUID) {
+    var wires = graphState.getAllWires();
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.fromNode !== nodeId || w.type !== 'layer') continue;
+      var uuid = _walkToTerminalComp(w, compUUID, {});
+      if (uuid) return uuid;
+    }
+    return null;
+  }
+
+  /**
+   * Walks downstream from a wire to find if its chain terminates at targetCompUUID.
+   *
+   * @param {Object} wire - Wire data
+   * @param {string} targetCompUUID - Target comp node UUID
+   * @param {Object} visited - Visited set for cycle prevention
+   * @returns {string|null} Terminal wire UUID, or null
+   */
+  function _walkToTerminalComp(wire, targetCompUUID, visited) {
+    if (visited[wire.id]) return null;
+    visited[wire.id] = true;
+    var toData = graphState.getNode(wire.toNode);
+    if (!toData) return null;
+    if (toData.type === 'core/comp') {
+      return wire.toNode === targetCompUUID ? (wire._pathLayerUUID || wire.id) : null;
+    }
+    var allWires = graphState.getAllWires();
+    for (var wid in allWires) {
+      if (!allWires.hasOwnProperty(wid)) continue;
+      var nw = allWires[wid];
+      if (nw.fromNode === wire.toNode && nw.type === 'layer') {
+        var found = _walkToTerminalComp(nw, targetCompUUID, visited);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Deletes a node from the graph. Handles node kind-specific cleanup:
    * dispatching onGhost/onDelete commands, cascade ghosting for comp nodes,
    * and removing all associated wires.
@@ -84,7 +134,7 @@ window.__procedia_internal.ndel = (function() {
           if (nodeData.nodeKind === 'affected') {
             affGhostCmd = def && typeof def.onGhost === 'function' ? def.onGhost(nodeData, affHostUUID) : null;
             if (affGhostCmd && affGhostCmd.params) {
-              affGhostCmd.params.layerUUID = hlp.findPathLayerUUID(nodeData.id);
+              affGhostCmd.params.layerUUID = _resolveLayerUUIDForComp(nodeData.id, affHostUUID) || hlp.findPathLayerUUID(nodeData.id);
             }
           } else {
             var effPathUUID = null;

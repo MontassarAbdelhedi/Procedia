@@ -38,9 +38,14 @@ var uuidGenerator = (function() {
     return 'WIRE-' + Date.now() + '-' + rand4();
   }
 
+  function comment() {
+    return 'CMT-' + Date.now() + '-' + rand4();
+  }
+
   return {
     node: node,
-    wire: wire
+    wire: wire,
+    comment: comment
   };
 
 })();

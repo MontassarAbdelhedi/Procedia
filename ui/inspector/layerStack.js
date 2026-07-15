@@ -31,66 +31,92 @@ var __ins_layerStack = (function() {
    * @param {string} compId The comp node UUID.
    * @return {Array} Array of layer objects: {nodeId, wireId, label, layerUUID, alive, type}
    */
-  function _buildViewModel(compId) {
-    var aliveLayers = [];
-    var dormantLayers = [];
+  function _resolveCompLayerAffectedNode(nodeId, visited) {
+    if (visited[nodeId]) return null;
+    visited[nodeId] = true;
+    var nodeData = graphState.getNode(nodeId);
+    if (!nodeData) return null;
+    if (nodeData.nodeKind === 'affected') return nodeId;
     var wires = graphState.getAllWires();
-    var wireList = [];
+    for (var wid in wires) {
+      if (!wires.hasOwnProperty(wid)) continue;
+      var w = wires[wid];
+      if (w.toNode === nodeId && w.type === 'layer') {
+        var result = _resolveCompLayerAffectedNode(w.fromNode, visited);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  function _buildViewModel(compId) {
+    var wires = graphState.getAllWires();
+
+    // Step 1: Collect all terminal wires into comp's main_input
+    var compWires = [];
     for (var wid in wires) {
       if (!wires.hasOwnProperty(wid)) continue;
       var w = wires[wid];
       if (w.toNode === compId && w.toPort === 'main_input' && w.type === 'layer') {
-        wireList.push(w);
+        compWires.push(w);
       }
     }
 
-    // Assign _layerOrder to any wires that lack it (initial assignment)
-    // wireMap iteration order: first wire = bottom of AE stack = highest order
-    // last wire = top of AE stack = lowest order (1)
+    // Step 2: Assign _layerOrder to any terminal wires that lack it
     var hasAnyOrder = false;
-    for (var wi = 0; wi < wireList.length; wi++) {
-      if (wireList[wi]._layerOrder !== undefined) { hasAnyOrder = true; break; }
+    for (var wi = 0; wi < compWires.length; wi++) {
+      if (compWires[wi]._layerOrder !== undefined) { hasAnyOrder = true; break; }
     }
     if (!hasAnyOrder) {
-      for (var wi = 0; wi < wireList.length; wi++) {
-        // wire at index 0 is oldest (bottom of stack), assign highest order
-        wireList[wi]._layerOrder = wireList.length - wi;
+      for (var wi = 0; wi < compWires.length; wi++) {
+        compWires[wi]._layerOrder = compWires.length - wi;
       }
     } else {
-      // Some wires have _layerOrder but not others (newly added wires).
-      // New wires become the top layer (order 1), shifting existing down.
-      for (var wi = 0; wi < wireList.length; wi++) {
-        if (wireList[wi]._layerOrder === undefined) {
-          for (var wj = 0; wj < wireList.length; wj++) {
-            if (wireList[wj]._layerOrder !== undefined) {
-              wireList[wj]._layerOrder++;
+      for (var wi = 0; wi < compWires.length; wi++) {
+        if (compWires[wi]._layerOrder === undefined) {
+          for (var wj = 0; wj < compWires.length; wj++) {
+            if (compWires[wj]._layerOrder !== undefined) {
+              compWires[wj]._layerOrder++;
             }
           }
-          wireList[wi]._layerOrder = 1;
+          compWires[wi]._layerOrder = 1;
         }
       }
     }
 
-    for (var wi = 0; wi < wireList.length; wi++) {
-      var w = wireList[wi];
-      var nodeId = w.fromNode;
-      var nodeData = graphState.getNode(nodeId);
-      var def = nodeData ? nodeRegistry.getDefinition(nodeData.type) : null;
+    // Step 3: Resolve affected node upstream of each terminal wire, deduplicate
+    var aliveLayers = [];
+    var dormantLayers = [];
+    var seenAffected = {};
+
+    for (var wi = 0; wi < compWires.length; wi++) {
+      var w = compWires[wi];
+      var affectedNodeId = _resolveCompLayerAffectedNode(w.fromNode, {});
+      if (!affectedNodeId) continue;
+      if (seenAffected[affectedNodeId]) continue;
+      seenAffected[affectedNodeId] = true;
+
+      var nodeData = graphState.getNode(affectedNodeId);
+      if (!nodeData) continue;
+
+      var def = nodeRegistry.getDefinition(nodeData.type);
       var label = 'Layer';
-      if (nodeData && nodeData.props && nodeData.props.label) {
+      if (nodeData.props && nodeData.props.label) {
         label = nodeData.props.label;
       } else if (def && def.label) {
         label = def.label;
       }
+
       var layer = {
-        nodeId:    nodeId,
+        nodeId:    affectedNodeId,
         wireId:    w.id,
         label:     label,
         layerUUID: w._pathLayerUUID || null,
         alive:     !!w._pathLayerUUID,
-        type:      nodeData ? nodeData.type : 'unknown',
+        type:      nodeData.type,
         _order:    w._layerOrder !== undefined ? w._layerOrder : 999
       };
+
       if (layer.alive) {
         aliveLayers.push(layer);
       } else {

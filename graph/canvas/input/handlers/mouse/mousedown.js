@@ -1,6 +1,6 @@
 /**
  * @fileoverview onMouseDown handler — handles drag, pan, rubber-band start,
- * node selection, wire selection, and title-edit commit.
+ * node selection, wire selection, title-edit commit, and comment selection.
  * Also declares the _handlersMouse container.
  * @dependencies input/state.js, input/utils.js, input/rubberband.js,
  *               input/handlers/titleEdit/helpers.js, input/handlers/titleEdit/exit.js,
@@ -10,7 +10,7 @@
  *               graph/engine/index.js, graph/canvas/viewport.js,
  *               graph/canvas/renderer/index.js, graph/canvas/drag/helpers.js,
  *               graph/canvas/drag/hitTest.js, graph/canvas/drag/insert.js,
- *               graph/canvas/drag/preview.js
+ *               graph/canvas/drag/preview.js, graph/comment/commentManager.js
  */
 
 // graph/canvas/input/handlers/mouse/mousedown.js
@@ -22,7 +22,7 @@
 //             graph/engine/index.js, graph/canvas/viewport.js,
 //             graph/canvas/renderer/index.js, graph/canvas/drag/helpers.js,
 //             graph/canvas/drag/hitTest.js, graph/canvas/drag/insert.js,
-//             graph/canvas/drag/preview.js
+//             graph/canvas/drag/preview.js, graph/comment/commentManager.js
 // MUST LOAD BEFORE: input/handlers/index.js
 // FIRST IN LOAD ORDER among mouse/ sub-files
 
@@ -107,6 +107,20 @@ var _handlersMouse = {};
         }
       }
       return;
+    }
+
+    if (typeof commentManager !== 'undefined') {
+      var commentEl = commentManager.findByElement(e.target);
+      if (commentEl) {
+        var commentId = commentEl.getAttribute('data-comment-id');
+        if (commentId && e.target.tagName !== 'TEXTAREA' && !e.target.closest('[data-action]')) {
+          commentManager.select(commentId);
+        }
+        graphState.clearSelection();
+        renderer.render();
+        return;
+      }
+      commentManager.deselect();
     }
 
     _selectedWireId = null;

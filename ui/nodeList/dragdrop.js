@@ -14,6 +14,26 @@ var __nl_dragdrop = (function() {
   var _dragLabel = null;
   var _ghostEl = null;
   var _previewWireId = null;
+  var _mergeProjectId = null;
+
+  function _maybeWarnMerge() {
+    if (typeof notificationBar === 'undefined') return;
+    if (_mergeProjectId === null) {
+      _mergeProjectId = evalBridge.dispatch({ action: 'getProjectIdentifier' })
+        .then(function(res) { return res.ok ? res.data.projectId : 'unknown'; })
+        .catch(function() { return 'unknown'; });
+    }
+    Promise.resolve(_mergeProjectId).then(function(projectId) {
+      var key = 'procedia_merge_warned_' + projectId;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+      notificationBar.push({
+        severity: 'warning',
+        message: 'Using the Merge node will make this project always require Procedia to run.',
+        duration: 8000
+      });
+    });
+  }
 
   /**
    * Wires mousedown/mousemove/mouseup for drag-from-list onto the canvas.
@@ -114,6 +134,20 @@ var __nl_dragdrop = (function() {
       var def = __nl_cat.resolveDefByLabel(label);
       if (!def) return;
 
+      // Preset nodes: drop via presetManager instead of engine.dropNode
+      if (def._isPreset && typeof presetManager !== 'undefined') {
+        var pos = viewport.screenToCanvas(e.clientX, e.clientY);
+        if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
+          pos.x = viewport.snapToGrid(pos.x);
+          pos.y = viewport.snapToGrid(pos.y);
+        }
+        var result = presetManager.dropPreset(def._presetName, pos.x, pos.y);
+        if (result && result.nodeIds && result.nodeIds.length > 0) {
+          window.__procedia_internal.refreshUI({ minimap: false });
+        }
+        return;
+      }
+
       var pos = viewport.screenToCanvas(e.clientX, e.clientY);
       if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
         pos.x = viewport.snapToGrid(pos.x);
@@ -125,17 +159,7 @@ var __nl_dragdrop = (function() {
         if (hitWire && canvasDrag.canInsertOnWire(hitWire.id, def)) {
           var insertNode = canvasDrag.insertNodeOnWire(hitWire.id, def, pos.x, pos.y);
           if (insertNode) {
-            if ((def.type === 'utility/merge' || def.type === 'utility/multimerge') && typeof notificationBar !== 'undefined') {
-              var warned = localStorage.getItem('procedia_merge_warned');
-              if (!warned) {
-                localStorage.setItem('procedia_merge_warned', '1');
-                notificationBar.push({
-                  severity: 'warning',
-                  message: 'Using the Merge node will make this project always require Procedia to run.',
-                  duration: 8000
-                });
-              }
-            }
+            if (def.type === 'utility/merge' || def.type === 'utility/multimerge') _maybeWarnMerge();
             graphState.setSelection(insertNode.id);
             window.__procedia_internal.refreshUI({ minimap: false });
           }
@@ -145,18 +169,7 @@ var __nl_dragdrop = (function() {
 
       var node = engine.dropNode(def, pos.x, pos.y);
       if (node) {
-        // First-drop warning for Merge/Multimerge nodes
-        if ((def.type === 'utility/merge' || def.type === 'utility/multimerge') && typeof notificationBar !== 'undefined') {
-          var warned = localStorage.getItem('procedia_merge_warned');
-          if (!warned) {
-            localStorage.setItem('procedia_merge_warned', '1');
-            notificationBar.push({
-              severity: 'warning',
-              message: 'Using the Merge node will make this project always require Procedia to run.',
-              duration: 8000
-            });
-          }
-        }
+        if (def.type === 'utility/merge' || def.type === 'utility/multimerge') _maybeWarnMerge();
         graphState.setSelection(node.id);
         window.__procedia_internal.refreshUI({ minimap: false });
       }

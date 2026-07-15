@@ -160,6 +160,51 @@ window.__procedia_internal.hlp = (function() {
   }
 
   /**
+   * Dispatches a setExpression AE command for an Expression node wired to a target.
+   * Handles both effector (effect property) and affected (layer property) targets.
+   *
+   * @param {string} targetNodeId - The target node ID
+   * @param {string} propMatchName - The property match name (wire.toPort)
+   * @param {string} expression - The expression string
+   */
+  function _dispatchExpressionToTarget(targetNodeId, propMatchName, expression) {
+    var targetNode = graphState.getNode(targetNodeId);
+    if (!targetNode) return;
+    var targetDef = nodeRegistry.getDefinition(targetNode.type);
+    if (!targetDef) return;
+    if (!targetNode.hostingComps || targetNode.hostingComps.length === 0) return;
+    var hostingCompUUID = targetNode.hostingComps[0];
+    var upstreamNodeUUID = _findPathLayerUUID(targetNodeId);
+    if (!upstreamNodeUUID) return;
+
+    if (targetDef.nodeKind === 'effector' && targetDef.matchName) {
+      evalBridge.dispatch({
+        action: 'setExpression',
+        params: {
+          nodeUUID:        targetNodeId,
+          hostingCompUUID: hostingCompUUID,
+          layerNodeUUID:   upstreamNodeUUID,
+          effectMatchName: targetDef.matchName,
+          propMatchName:   propMatchName,
+          expression:      expression
+        }
+      });
+    } else {
+      evalBridge.dispatch({
+        action: 'setExpression',
+        params: {
+          nodeUUID:        targetNodeId,
+          hostingCompUUID: hostingCompUUID,
+          layerNodeUUID:   upstreamNodeUUID,
+          effectMatchName: null,
+          propMatchName:   propMatchName,
+          expression:      expression
+        }
+      });
+    }
+  }
+
+  /**
    * Propagates a data property value from a node to all connected data wire
    * targets and schedules a dirty flush.
    *
@@ -168,6 +213,25 @@ window.__procedia_internal.hlp = (function() {
    * @param {*} value - Property value
    */
   function _propagateDataValue(fromNodeId, key, value) {
+    var fromNodeData = graphState.getNode(fromNodeId);
+    if (!fromNodeData) return;
+
+    // Expression nodes: skip in-memory prop update (expression is an AE-level
+    // concern, not a property value) and dispatch setExpression to AE instead.
+    if (fromNodeData.type === 'data/expression' && key === 'expression') {
+      if (typeof value !== 'string' || value.trim() === '') return;
+      if (typeof evalBridge === 'undefined') return;
+      var wires = graphState.getAllWires();
+      for (var wid in wires) {
+        if (!wires.hasOwnProperty(wid)) continue;
+        var w = wires[wid];
+        if (w.fromNode === fromNodeId && w.type === 'data') {
+          _dispatchExpressionToTarget(w.toNode, w.toPort, value);
+        }
+      }
+      return;
+    }
+
     var wires = graphState.getAllWires();
     for (var wid in wires) {
       if (!wires.hasOwnProperty(wid)) continue;

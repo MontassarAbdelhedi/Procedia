@@ -1,0 +1,192 @@
+/* comment.css — Canvas comment (sticky note) styling */
+
+.comment {
+  position: absolute;
+  pointer-events: all;
+  width: 220px;
+  background: #1e1e1c;
+  border: 1px solid #FFD700;
+  border-radius: 8px;
+  user-select: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.55);
+  z-index: 4;
+  transition: box-shadow 0.12s ease;
+}
+
+.comment:hover {
+  box-shadow: 0 2px 16px rgba(0,0,0,0.7);
+}
+
+.comment--selected {
+  box-shadow: 0 0 0 1px #534AB7, 0 2px 16px rgba(0,0,0,0.7);
+}
+
+.comment--hover {
+  z-index: 6;
+}
+
+/* ── Header ── */
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 8px 8px 0 0;
+  gap: 6px;
+}
+
+.comment-color-bar {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background: #FFD700;
+}
+
+.comment-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888780;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.comment--hover .comment-actions,
+.comment--selected .comment-actions {
+  opacity: 1;
+}
+
+.comment-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #5F5E5A;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.comment-btn:hover {
+  color: #d4d2cc;
+  background: rgba(255,255,255,0.07);
+}
+
+.comment-btn .ti {
+  font-size: 13px;
+  display: block;
+}
+
+.comment-btn--delete:hover {
+  color: #e05555;
+  background: rgba(224,85,85,0.12);
+}
+
+/* ── Body / textarea ── */
+
+.comment-body {
+  padding: 0;
+}
+
+.comment-body--hidden {
+  display: none;
+}
+
+.comment-textarea {
+  width: 100%;
+  min-height: 48px;
+  max-height: 160px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: #d4d2cc;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: vertical;
+  outline: none;
+  pointer-events: all;
+  display: block;
+}
+
+.comment-textarea::placeholder {
+  color: #5F5E5A;
+}
+
+/* ── Floating color picker ── */
+
+.comment-color-picker {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  display: flex;
+  gap: 3px;
+  padding: 4px 6px;
+  background: #1e1e1c;
+  border: 1px solid #3a3a38;
+  border-radius: 6px;
+  z-index: 70;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+
+.comment-color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.1s ease, transform 0.1s ease;
+}
+
+.comment-color-swatch:hover {
+  border-color: rgba(255,255,255,0.5);
+  transform: scale(1.2);
+}
+
+/* ── Collapsed comment ── */
+
+.comment--collapsed .comment-body {
+  display: none;
+}
+
+.comment--collapsed .comment-header {
+  border-radius: 8px;
+}
+
+.comment--collapsed .comment-btn--collapse .ti {
+  transform: rotate(-90deg);
+}
+
+/* ── Dragging state ── */
+
+.comment--dragging {
+  z-index: 100 !important;
+  opacity: 0.85;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+  cursor: grabbing;
+}
+
+.comment-header:active {
+  cursor: grabbing;
+}

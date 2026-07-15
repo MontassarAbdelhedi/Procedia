@@ -30,7 +30,7 @@ function _handleApplyDynamicEffect(cmd) {
       }
     }
     if (!params._moveToBottom) {
-      effect.moveToBeginning();
+      effect.moveTo(1);
     }
     result.ok = true;
     result.data = { applied: params.matchName };

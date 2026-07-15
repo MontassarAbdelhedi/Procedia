@@ -192,6 +192,31 @@
   cursor: grabbing;
 }
 
+/* --- Preset item delete badge --- */
+
+.leftbar-node-item--preset {
+  padding-right: 6px;
+}
+
+.leftbar-node-delete {
+  margin-left: auto;
+  font-size: 13px;
+  color: #5F5E5A;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+  transition: color 0.1s ease, opacity 0.1s ease;
+}
+
+.leftbar-node-item--preset:hover .leftbar-node-delete {
+  opacity: 1;
+  color: #888780;
+}
+
+.leftbar-node-delete:hover {
+  color: #e05555 !important;
+}
+
 /* --- Drag ghost --- */
 
 .node-drag-ghost {

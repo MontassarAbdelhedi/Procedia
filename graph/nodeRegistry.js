@@ -103,9 +103,21 @@ var nodeRegistry = (function() {
     return Object.keys(_registry);
   }
 
+  /**
+   * Removes a type from the registry.
+   * @param {string} type - Type identifier to remove
+   */
+  function unregister(type) {
+    if (_registry.hasOwnProperty(type)) {
+      delete _registry[type];
+      delete _stubs[type];
+    }
+  }
+
   return {
     register:      register,
     registerStub:  registerStub,
+    unregister:    unregister,
     getDefinition: getDefinition,
     getAll:        getAll,
     getByCategory: getByCategory,

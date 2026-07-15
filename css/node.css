@@ -698,3 +698,37 @@
   margin: 0 4px;
   flex-shrink: 0;
 }
+
+/* ── Save Preset floating button ────────────────────────── */
+
+.node-toolbar-save-preset {
+  position: absolute;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  pointer-events: all;
+}
+
+.node-toolbar-save-preset .node-toolbar-btn {
+  width: auto;
+  padding: 4px 10px;
+  gap: 4px;
+  background: #1e1e1c;
+  border: 1px solid #3a3a38;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  color: #d4d2cc;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.node-toolbar-save-preset .node-toolbar-btn:hover {
+  background: #2a2a28;
+  border-color: #534AB7;
+}
+
+.node-toolbar-save-preset .node-toolbar-btn .ti {
+  font-size: 14px;
+  margin-right: 2px;
+}

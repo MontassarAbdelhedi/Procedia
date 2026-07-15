@@ -4,7 +4,7 @@
  *               graph/canvas/viewport.js, graph/canvas/renderer/index.js,
  *               graph/canvas/drag/helpers.js, graph/canvas/drag/hitTest.js,
  *               graph/canvas/drag/insert.js, graph/canvas/drag/preview.js,
- *               graph/engine/index.js
+ *               graph/engine/index.js, graph/comment/commentManager.js
  */
 
 // graph/canvas/input/handlers/titleEdit/dblclick.js
@@ -12,7 +12,7 @@
 //             graph/canvas/viewport.js, graph/canvas/renderer/index.js,
 //             graph/canvas/drag/helpers.js, graph/canvas/drag/hitTest.js,
 //             graph/canvas/drag/insert.js, graph/canvas/drag/preview.js,
-//             graph/engine/index.js
+//             graph/engine/index.js, graph/comment/commentManager.js
 // MUST LOAD AFTER: input/handlers/titleEdit/helpers.js, input/handlers/titleEdit/exit.js,
 //                  input/handlers/titleEdit/commit.js, input/handlers/titleEdit/cancel.js
 // MUST LOAD BEFORE: input/handlers/index.js
@@ -62,7 +62,17 @@
       if (target.classList && target.classList.contains('node')) { nodeEl = target; break; }
       target = target.parentElement;
     }
-    if (!nodeEl) return;
+    if (!nodeEl) {
+      if (typeof commentManager !== 'undefined') {
+        var dblComment = commentManager.findByElement(e.target);
+        if (!dblComment) {
+          e.preventDefault();
+          var canvasPos = viewport.screenToCanvas(e.clientX, e.clientY);
+          commentManager.create(canvasPos.x, canvasPos.y);
+        }
+      }
+      return;
+    }
     var nodeId = nodeEl.getAttribute('data-node-id');
     if (!nodeId) return;
     var nodeData = graphState.getNode(nodeId);

@@ -73,6 +73,7 @@ window.__procedia_internal.wires = (function() {
     }
 
     var activeComp = typeof graphState.getActiveComp === 'function' ? graphState.getActiveComp() : null;
+    var _targetHadHostingComps = toNodeData.hostingComps.length > 0;
     var _replacedAutoWire = false;
     if (activeComp && fromNodeId !== activeComp) {
       var existingWires = graphState.getAllWires();
@@ -200,7 +201,7 @@ window.__procedia_internal.wires = (function() {
       return true;
     }
 
-    if (toNodeData.hostingComps.length > 0) {
+    if (_targetHadHostingComps) {
       var terminalUUID = hlp.findPathLayerUUID(fromNodeId) || wireData.id;
       graphState.updateWire(wireData.id, { _pathLayerUUID: terminalUUID });
       prop.propagateAlive(fromNodeId, toNodeData.hostingComps[0], terminalUUID);

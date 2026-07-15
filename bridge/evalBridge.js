@@ -31,7 +31,7 @@ var evalBridge = (function() {
     'renameNode': true, 'focusComp': true, 'listComps': true,
     'focusCompByName': true, 'applyDynamicEffect': true, 'pollAliveEffects': true,
     'removeEffect': true, 'setEffectProperty': true, 'renameEffect': true,
-    'setEffectEnabled': true, 'reorderEffect': true, 'reorderEffectChain': true,
+    'setEffectEnabled': true, 'setExpression': true, 'reorderEffect': true, 'reorderEffectChain': true,
     'setLayerEnabled': true, 'setLayerShy': true, 'setCompHideShyLayers': true, 'restampLayer': true, 'pollAliveNodes': true,
     'pollExternalDeletions': true, 'setBlendingMode': true, 'setLumaMatte': true,
     'setAlphaMatte': true, 'clearMatte': true, 'getMasksForLayer': true,
@@ -45,7 +45,8 @@ var evalBridge = (function() {
     'getKeyframeTimes': true, 'getCurrentTime': true, 'setCurrentTime': true,
     'batchGetKeyframeTimes': true, 'getKeyframeData': true, 'writeCmdChunk': true,
     'executeCmdFile': true, 'cleanupCmdFile': true,
-    'beginUndoGroup': true, 'endUndoGroup': true
+    'beginUndoGroup': true, 'endUndoGroup': true,
+    'getProjectIdentifier': true
   };
   var _MAX_PARAMS_DEPTH = 6;
 
@@ -242,6 +243,7 @@ var evalBridge = (function() {
       '/jsx/dispatcher/actionEffect/introspect.jsx',
       '/jsx/dispatcher/actionEffect/pollAlive.jsx',
       '/jsx/dispatcher/actionEffect/batchGetEffectProperties.jsx',
+      '/jsx/dispatcher/actionEffect/setExpression.jsx',
       '/jsx/dispatcher/actions_cmdChunk.jsx',
       '/jsx/dispatcher/actionImport/helpers.jsx',
       '/jsx/dispatcher/actionImport/read.jsx',
