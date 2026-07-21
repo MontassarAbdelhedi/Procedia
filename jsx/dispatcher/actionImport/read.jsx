@@ -28,7 +28,7 @@ function _readLayer(layer) {
   var trackMatteType = null;
   try {
     if (layer.hasTrackMatte) {
-      trackMatteType = String(layer.trackMatteType);
+      trackMatteType = _stripEnumPrefix(String(layer.trackMatteType));
     }
   } catch (e) {}
   var trackMatteLayerUUID = null;
@@ -40,11 +40,14 @@ function _readLayer(layer) {
     }
   }
   var blendingMode = 'NORMAL';
-  try { blendingMode = String(layer.blendingMode); } catch (e) {}
+  try { blendingMode = _stripEnumPrefix(String(layer.blendingMode)); } catch (e) {}
   var sourceInfo = null;
   if (type === 'precomp' && layer.source instanceof CompItem) {
-    var ref = layer.source.comment || '';
-    if (ref.indexOf('PROC-') !== 0) ref = '';
+    var ref = layer.source.comment;
+    if (!ref || ref.indexOf('PROC-') !== 0) {
+      ref = _import_uuid('PROC');
+      if (!layer.source.comment) layer.source.comment = ref;
+    }
     sourceInfo = { type: 'precomp', ref: ref };
   } else if (type === 'solid' && layer.source instanceof FootageItem) {
     var solidColor = [1, 1, 1];

@@ -190,7 +190,10 @@ function init() {
   var importBtn = document.getElementById('topbar-import');
   if (importBtn) {
     importBtn.addEventListener('click', function() {
-      if (typeof evalBridge === 'undefined' || typeof graphImport === 'undefined') return;
+      if (typeof evalBridge === 'undefined' || typeof graphImport === 'undefined') {
+        console.error('[Procedia] Import not available — evalBridge or graphImport is undefined');
+        return;
+      }
       var existingNodes = (typeof graphState !== 'undefined') ? graphState.getAllNodes() : {};
       var hasExisting = false;
       for (var _k in existingNodes) { hasExisting = true; break; }
@@ -204,18 +207,39 @@ function init() {
           console.error('[Procedia] Import failed: ' + (res.error || 'unknown error'));
           importBtn.disabled = false;
           importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+          if (typeof notificationBar !== 'undefined' && notificationBar.push) {
+            notificationBar.push({ message: 'Import failed: ' + (res.error || 'unknown error'), severity: 'error', duration: 6000 });
+          }
+          return;
+        }
+        if (!res.data || (!res.data.comps || !res.data.comps.length) && (!res.data.footage || !res.data.footage.length)) {
+          importBtn.disabled = false;
+          importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+          if (typeof notificationBar !== 'undefined' && notificationBar.push) {
+            notificationBar.push({ message: 'No comps or footage found in the AE project.', severity: 'warning', duration: 5000 });
+          }
           return;
         }
         return graphImport.importProject(res.data).then(function(summary) {
-
           window.__procedia_internal.refreshUI({ inspector: false });
           importBtn.disabled = false;
           importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+          if (typeof notificationBar !== 'undefined' && notificationBar.push) {
+            var msg = 'Imported ' + summary.comps + ' comps, ' + summary.layers + ' layers, ' + summary.effects + ' effects, ' + summary.footage + ' footage items';
+            if (summary.errors && summary.errors.length > 0) {
+              msg += ' (' + summary.errors.length + ' warnings)';
+            }
+            var sev = (summary.errors && summary.errors.length > 0) ? 'warning' : 'info';
+            notificationBar.push({ message: msg, severity: sev, duration: 5000 });
+          }
         });
       }).catch(function(err) {
         console.error('[Procedia] Import error:', err);
         importBtn.disabled = false;
         importBtn.innerHTML = '<i class="ti ti-file-import"></i>';
+        if (typeof notificationBar !== 'undefined' && notificationBar.push) {
+          notificationBar.push({ message: 'Import error: ' + (err && err.message ? err.message : 'unknown'), severity: 'error', duration: 6000 });
+        }
       });
     });
   }

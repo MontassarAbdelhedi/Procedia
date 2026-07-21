@@ -20,6 +20,13 @@ function _import_uuid(prefix) {
   return prefix + '-' + ts + '-' + String(_import_uuid_counter);
 }
 
+function _stripEnumPrefix(s) {
+  if (!s) return s;
+  var dot = s.indexOf('.');
+  if (dot === -1) return s;
+  return s.substr(dot + 1);
+}
+
 function _readTransformProp(layer, matchName, def) {
   try {
     var prop = layer.property(matchName);

@@ -59,6 +59,19 @@ var __imp_nodes = {};
     'ADBE Drop Shadow':      'perspective/drop-shadow'
   };
 
+  (function _buildEffectMapFromMetadata() {
+    var meta = (typeof window !== 'undefined') ? window.NODE_METADATA : null;
+    if (!meta) return;
+    for (var nodeType in meta) {
+      if (!meta.hasOwnProperty(nodeType)) continue;
+      var entry = meta[nodeType];
+      if (!entry || !entry.matchName) continue;
+      if (!KNOWN_EFFECT_MATCHNAMES.hasOwnProperty(entry.matchName)) {
+        KNOWN_EFFECT_MATCHNAMES[entry.matchName] = nodeType;
+      }
+    }
+  })();
+
   function isKnownEffect(matchName) {
     return KNOWN_EFFECT_MATCHNAMES.hasOwnProperty(matchName);
   }

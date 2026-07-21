@@ -44,6 +44,8 @@ var __imp_builder = (function() {
     var nodeMap = {};
     var wireMap = {};
     var allAliveUUIDs = [];
+    var layerUUIDToNodeID = {};
+    var allRestamps = [];
 
     var posIndex = 0;
 
@@ -60,8 +62,10 @@ var __imp_builder = (function() {
       }
     }
 
-    // 2. Process comps
+    // 2. Process comps — two passes so precomp layers can reference any comp
     if (aeData.comps) {
+      // Pass 1: Create all CompNodes first
+      var compMetaList = [];
       for (var ci = 0; ci < aeData.comps.length; ci++) {
         var compData = aeData.comps[ci];
         try {
@@ -69,6 +73,17 @@ var __imp_builder = (function() {
           nodeMap[compNode.id] = compNode;
           allAliveUUIDs.push(compNode.id);
           summary.comps++;
+          compMetaList.push({ compData: compData, compNode: compNode });
+        } catch (e) {
+          summary.errors.push('comp ' + ci + ': ' + e.message);
+        }
+      }
+
+      // Pass 2: Process layers and build wires (all comp nodes now exist)
+      for (var ci = 0; ci < compMetaList.length; ci++) {
+        var compData = compMetaList[ci].compData;
+        var compNode = compMetaList[ci].compNode;
+        try {
 
           var layerNodes = [];
           var effectMap = {};
@@ -85,21 +100,29 @@ var __imp_builder = (function() {
               continue;
             }
 
+            var layerNode;
             if (layerData.type === 'precomp') {
-              summary.errors.push('Precomp layer "' + layerData.name + '" skipped — precomp support coming later');
-              continue;
-            }
-
-            if (!nodes.aeTypeToNodeType(layerData.type)) {
-              summary.errors.push('Unsupported layer type "' + layerData.type + '" for "' + layerData.name + '"');
-              continue;
+              var refCompId = layerData.source && layerData.source.ref;
+              if (!refCompId || !nodeMap[refCompId]) {
+                summary.errors.push('Precomp layer "' + layerData.name + '" skipped — source comp not found');
+                continue;
+              }
+              layerNode = nodeMap[refCompId];
+            } else {
+              if (!nodes.aeTypeToNodeType(layerData.type)) {
+                summary.errors.push('Unsupported layer type "' + layerData.type + '" for "' + layerData.name + '"');
+                continue;
+              }
             }
 
             try {
-              var layerNode = nodes.buildLayerNode(layerData, compData.uuid, posIndex++);
-              if (!layerNode) continue;
-              nodeMap[layerNode.id] = layerNode;
+              if (layerData.type !== 'precomp') {
+                layerNode = nodes.buildLayerNode(layerData, compData.uuid, posIndex++);
+                if (!layerNode) continue;
+                nodeMap[layerNode.id] = layerNode;
+              }
               layerNodes.push({ node: layerNode, layerData: layerData });
+              layerUUIDToNodeID[layerData.uuid] = layerNode.id;
               summary.layers++;
 
               // Effects on this layer
@@ -147,13 +170,17 @@ var __imp_builder = (function() {
           summary.effects += effectCount;
 
           // 4. Build wires for this comp
-          var compWires = wires.buildCompWires(compData, compNode, layerNodes, effectMap, blendingMap, matteMap);
+          var compResult = wires.buildCompWires(compData, compNode, layerNodes, effectMap, blendingMap, matteMap, layerUUIDToNodeID);
+          var compWires = compResult.wires;
           for (var wi = 0; wi < compWires.length; wi++) {
             wireMap[compWires[wi].id] = compWires[wi];
           }
+          for (var ri = 0; ri < compResult.restamps.length; ri++) {
+            allRestamps.push(compResult.restamps[ri]);
+          }
 
           // 5. Build parent wires for this comp's layers
-          var parentWires = wires.buildParentWires(layerNodes);
+          var parentWires = wires.buildParentWires(layerNodes, layerUUIDToNodeID);
           for (var pwi = 0; pwi < parentWires.length; pwi++) {
             wireMap[parentWires[pwi].id] = parentWires[pwi];
           }
@@ -244,8 +271,24 @@ var __imp_builder = (function() {
       wires: wireMergeCount
     };
 
-    // 8. Verify stamps (fire-and-forget)
-    stamp.verifyStamps(allAliveUUIDs);
+    // 8. Restamp AE layer comments from node UUIDs → terminal wire UUIDs
+    if (allRestamps.length > 0 && typeof evalBridge !== 'undefined' && evalBridge.dispatchBatch) {
+      var restampCmds = [];
+      for (var rsi = 0; rsi < allRestamps.length; rsi++) {
+        var rs = allRestamps[rsi];
+        restampCmds.push({
+          action: 'restampLayer',
+          params: {
+            hostingCompUUID: rs.compUUID,
+            oldUUID:         rs.oldUUID,
+            newUUID:         rs.newUUID
+          }
+        });
+      }
+      evalBridge.dispatchBatch(restampCmds).catch(function(err) {
+        console.warn('[Procedia] import restamp error:', err);
+      });
+    }
 
     return Promise.resolve(summary);
   }

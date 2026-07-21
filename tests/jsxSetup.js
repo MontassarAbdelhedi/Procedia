@@ -4,16 +4,19 @@ var STUB = function() { return { ok: false, error: 'stub — not implemented in 
 
 var _handlerNames = [
   'createComp', 'deleteComp', 'createTextLayer', 'createNullLayer',
+  'createCameraLayer', 'createLightLayer', 'createSolidLayer',
   'createAdjustmentLayer', 'createShapeLayer', 'createRectangleLayer',
   'createEllipseLayer', 'createStarLayer', 'createSquircleLayer',
   'createGearLayer', 'createWaveLayer', 'createFlowerLayer',
+  'createPolygonLayer',
   'addCompAsLayer', 'clearLayerParent', 'parkLayer', 'unparkLayer',
   'deleteParkedLayer', 'deletePathLayer', 'setLayerProperty',
   'setCompProperty', 'setLayerParent', 'setLayerOrder', 'moveLayerBefore',
   'renameNode', 'focusComp', 'listComps', 'focusCompByName',
   'applyDynamicEffect', 'pollAliveEffects', 'removeEffect',
-  'setEffectProperty', 'renameEffect', 'setEffectEnabled',
-  'reorderEffect', 'reorderEffectChain', 'setLayerEnabled',
+  'setEffectProperty', 'setExpression', 'renameEffect', 'setEffectEnabled',
+  'reorderEffect', 'reorderEffectChain', 'setLayerEnabled', 'setLayerShy',
+  'setCompHideShyLayers',
   'restampLayer', 'pollAliveNodes', 'pollExternalDeletions',
   'setBlendingMode', 'setLumaMatte', 'setAlphaMatte', 'clearMatte',
   'getMasksForLayer', 'batchGetLayerProperties', 'batchGetEffectProperties',
@@ -24,7 +27,9 @@ var _handlerNames = [
   'importProject', 'addKeyframe', 'removeKeyframe', 'removeAllKeyframes',
   'getKeyframeTimes', 'getCurrentTime', 'setCurrentTime',
   'batchGetKeyframeTimes', 'getKeyframeData', 'writeCmdChunk',
-  'executeCmdFile', 'cleanupCmdFile'
+  'executeCmdFile', 'cleanupCmdFile', 'enumerateAllEffects',
+  'buildFullEffectCatalog', 'writeTextFile', 'getProjectIdentifier',
+  'beginUndoGroup', 'endUndoGroup'
 ];
 
 _handlerNames.forEach(function(name) {

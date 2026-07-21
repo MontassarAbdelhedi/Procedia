@@ -8,7 +8,7 @@
 [x] new node: footage item: audio
 [x] rework inspector logic; each node export proper inspector in node definition.
 [x] unwiring an affected from an effector wrongly trigger alert: effect is deleted outside of procedia.
-[ ] import: unnecessary blending node checked on import
+[x] import: unnecessary blending node checked on import
 [x] remove footages from memory when deleting footage node (currently just hides layer)
 [x] scrollbar on node list when filter collapses many sections
 [ ] auto-layout sometimes places nodes outside canvas bounds
@@ -36,7 +36,7 @@
 [ ] group nodes: a new node with a list of encapsulated nodes, 
 [ ] save preset: save custom nodes: add a new category Presets
 [x] duplicate comp is not creating new comp object
-[ ] test import: an unessessary blending node
+[x] test import: an unessessary blending node
 [o] fix licence
 [x] add a new step Comp list in tutorial
 [x] auto shy selected node + settings
