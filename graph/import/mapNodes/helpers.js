@@ -36,7 +36,7 @@ var __imp_nodes = {};
       'null':       'layers/null',
       'shape':      'layers/shape',
       'adjustment': 'layers/adjustment',
-      'solid':      'core/footage',
+      'solid':      'layers/solid',
       'footage':    'core/footage',
       'precomp':    null
     };

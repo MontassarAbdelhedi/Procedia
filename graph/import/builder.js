@@ -103,7 +103,7 @@ var __imp_builder = (function() {
             }
 
             var layerNode;
-            var isFootageLayer = (layerData.type === 'solid' || layerData.type === 'footage');
+            var isFootageLayer = (layerData.type === 'footage');
             if (layerData.type === 'precomp') {
               var refCompId = layerData.source && layerData.source.ref;
               if (!refCompId || !nodeMap[refCompId]) {

@@ -11,6 +11,7 @@ window.nodeRegistry = {
     'layers/null':         { type: 'layers/null', nodeKind: 'affected', dedicated: true },
     'layers/shape':        { type: 'layers/shape', nodeKind: 'affected', dedicated: false },
     'layers/adjustment':   { type: 'layers/adjustment', nodeKind: 'affected', dedicated: true },
+    'layers/solid':        { type: 'layers/solid', nodeKind: 'affected', dedicated: true },
     'layers/camera':       { type: 'layers/camera', nodeKind: 'affected', dedicated: true },
     'utility/blending':    { type: 'utility/blending', nodeKind: 'blending', dedicated: false },
     'utility/matte-alpha': { type: 'utility/matte-alpha', nodeKind: 'matte', dedicated: false },
@@ -136,8 +137,8 @@ describe('aeTypeToNodeType', function() {
     expect(fn()('adjustment')).toBe('layers/adjustment');
   });
 
-  it('maps solid to core/footage', function() {
-    expect(fn()('solid')).toBe('core/footage');
+  it('maps solid to layers/solid', function() {
+    expect(fn()('solid')).toBe('layers/solid');
   });
 
   it('maps footage to core/footage', function() {
@@ -290,15 +291,27 @@ describe('buildLayerNode', function() {
     expect(node.dedicated).toBe(true);
   });
 
-  it('builds a valid footage (solid) layer node from source', function() {
+  it('builds a valid solid layer node', function() {
     var ld = makeLayerData({
       type: 'solid',
       name: 'Blue Solid',
       source: { type: 'solid', color: [0, 0, 1] }
     });
     var node = window.__imp_nodes.buildLayerNode(ld, 'PROC-host', 0);
+    expect(node.type).toBe('layers/solid');
+    expect(node.dedicated).toBe(true);
+    expect(node.props.color).toEqual([0, 0, 1]);
+  });
+
+  it('builds a valid footage layer node from source', function() {
+    var ld = makeLayerData({
+      type: 'footage',
+      name: 'video.mp4',
+      source: { type: 'footage', file: 'C:/video.mp4' }
+    });
+    var node = window.__imp_nodes.buildLayerNode(ld, 'PROC-host', 0);
     expect(node.type).toBe('core/footage');
-    expect(node.props.solidColor).toEqual([0, 0, 1]);
+    expect(node.props.filePath).toBe('C:/video.mp4');
   });
 
   it('returns null for precomp (aeTypeToNodeType returns null)', function() {

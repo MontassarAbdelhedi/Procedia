@@ -99,12 +99,14 @@
       props.rotation = t.rotation;
       props.opacity  = t.opacity;
       props.scale    = t.scale;
+    } else if (type === 'layers/solid') {
+      props.position = t.position;
+      props.rotation = t.rotation;
+      props.opacity  = t.opacity;
+      props.scale    = t.scale;
+      props.color    = (layerData.source && layerData.source.color) ? layerData.source.color : [0.5, 0.5, 0.5, 1];
     } else if (type === 'core/footage') {
       if (layerData.source) {
-        if (layerData.source.type === 'solid' && layerData.source.color) {
-          props.label = layerData.name;
-          props.solidColor = layerData.source.color;
-        }
         if (layerData.source.file) {
           props.filePath = layerData.source.file;
         }
