@@ -8,7 +8,7 @@
 [x] new node: footage item: audio
 [x] rework inspector logic; each node export proper inspector in node definition.
 [x] unwiring an affected from an effector wrongly trigger alert: effect is deleted outside of procedia.
-[x] import: unnecessary blending node checked on import
+[ ] import: unnecessary blending node checked on import
 [x] remove footages from memory when deleting footage node (currently just hides layer)
 [x] scrollbar on node list when filter collapses many sections
 [ ] auto-layout sometimes places nodes outside canvas bounds

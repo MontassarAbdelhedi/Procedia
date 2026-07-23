@@ -2,16 +2,8 @@
 
 ## Tue 2026-07-21
 
-[x] Fix import project: normalize AE enum strings (blendingMode, trackMatteType) with _stripEnumPrefix() to prevent BlendingMode.NORMAL → useless blending nodes on import
-[x] Expand import effect mapping: build KNOWN_EFFECT_MATCHNAMES dynamically from NODE_METADATA (460+ entries) instead of hardcoding only 3 (Fill, Gaussian Blur, Drop Shadow)
-[x] Implement precomp layer import support: reuse existing CompNode when layerData.type === 'precomp', stamp source comp UUID in scanner, use layerUUIDToNodeID map in builder/mapWires for matte/parent wire node ID translation
-[x] Fix nested precomp failure: two-pass comp processing in builder (Pass 1: create all CompNodes, Pass 2: process layers/wires) so forward-referenced precomps always find their source CompNode
-[x] Fix layer.comment UUID mismatch after import: scanner stamped PROC-XXX node UUIDs but polling expects WIRE-XXX terminal wire UUIDs per SKILL 8. buildCompWires now returns { wires, restamps } and builder dispatches restampLayer for every terminal wire
-[x] Fix missing buildCatalog.jsx causing preamble load failure: _handleEnumerateAllEffects and _handleBuildFullEffectCatalog stubs created so all evalBridge dispatch() calls work
-[x] Add findOrCreateProcediaFolder() call in import handler so Procedia Reserved folder is created if missing
-[x] Add Ctrl+I keyboard shortcut for import action in canvas keyboard handler
-[x] Add user-facing import result feedback via notificationBar (comps/layers/effects/footage count on success, error/warning when empty or failed)
-[x] Add 52 unit tests for import module (aeTypeToNodeType, effect mapping, all node builders, wire construction, restamp info, blending bug fix, precomp support)
+[x] Remove import project feature entirely for clean rebuild: deleted graph/import/ (7 files), jsx/dispatcher/actionImport/ (3 files), tests/import.test.js; cleaned registrations in scripts.json, evalBridge.js (whitelist + preamble), dispatcher.jsx, index.js (click handler), topBar/init.js (button HTML), keyboard.js (Ctrl+I shortcut), jsxSetup.js (stub)
+[x] Fix missing buildCatalog.jsx: created _handleEnumerateAllEffects and _handleBuildFullEffectCatalog stubs so evalBridge preamble loads successfully
 [x] Fix 13 missing handler stubs in tests/jsxSetup.js (createCameraLayer, createLightLayer, createSolidLayer, createPolygonLayer, setExpression, setLayerShy, setCompHideShyLayers, enumerateAllEffects, buildFullEffectCatalog, writeTextFile, getProjectIdentifier, beginUndoGroup, endUndoGroup)
 
 ## Sun 2026-07-19
