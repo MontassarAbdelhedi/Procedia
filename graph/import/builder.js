@@ -157,12 +157,13 @@ var __imp_builder = (function() {
               }
               effectMap[layerData.uuid] = effectNodes;
 
-               // Blending mode — defensively normalize in case AE enum prefix survives JSON round-trip
+               // Blending mode — normalise in case AE enum prefix / whitespace survives
                var bm = layerData.blendingMode;
-               if (bm) {
-                 var dot = bm.indexOf('.');
-                 if (dot !== -1) bm = bm.substr(dot + 1);
-                 if (bm.indexOf('NORMAL') === 0) bm = 'NORMAL';
+               if (bm && typeof bm === 'string') {
+                 bm = bm.replace(/^\s+|\s+$/g, '');
+                 var dotIdx = bm.lastIndexOf('.');
+                 if (dotIdx !== -1) bm = bm.substr(dotIdx + 1);
+                 if (bm.toUpperCase() === 'NORMAL') bm = 'NORMAL';
                }
                if (bm && bm !== 'NORMAL') {
                  var blendNode = nodes.buildBlendingNode(bm, posIndex++);
@@ -304,8 +305,11 @@ var __imp_builder = (function() {
           }
         });
       }
-      evalBridge.dispatchBatch(restampCmds).catch(function(err) {
+      return evalBridge.dispatchBatch(restampCmds).then(function() {
+        return summary;
+      }).catch(function(err) {
         console.warn('[Procedia] import restamp error:', err);
+        return summary;
       });
     }
 
