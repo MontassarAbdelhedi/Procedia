@@ -40,13 +40,17 @@ var evalBridge = (function() {
     'introspectEffect': true, 'readGraph': true, 'writeGraph': true,
     'writeGraphExport': true, 'saveGraphToFile': true, 'openGraphFile': true,
     'ensureReservedComp': true, 'browseAndImportFootage': true,
-    'createFootageLayer': true, 'deleteFootageItem': true, 'importProject': true,
+    'createFootageLayer': true,
+    'deleteFootageItem': true,
     'addKeyframe': true, 'removeKeyframe': true, 'removeAllKeyframes': true,
     'getKeyframeTimes': true, 'getCurrentTime': true, 'setCurrentTime': true,
     'batchGetKeyframeTimes': true, 'getKeyframeData': true, 'writeCmdChunk': true,
     'executeCmdFile': true, 'cleanupCmdFile': true,
     'beginUndoGroup': true, 'endUndoGroup': true,
-    'getProjectIdentifier': true
+    'getProjectIdentifier': true,
+    'enumerateAllEffects': true,
+    'buildFullEffectCatalog': true,
+    'writeTextFile': true
   };
   var _MAX_PARAMS_DEPTH = 6;
 
@@ -243,11 +247,9 @@ var evalBridge = (function() {
       '/jsx/dispatcher/actionEffect/introspect.jsx',
       '/jsx/dispatcher/actionEffect/pollAlive.jsx',
       '/jsx/dispatcher/actionEffect/batchGetEffectProperties.jsx',
+      '/jsx/dispatcher/actionEffect/buildCatalog.jsx',
       '/jsx/dispatcher/actionEffect/setExpression.jsx',
       '/jsx/dispatcher/actions_cmdChunk.jsx',
-      '/jsx/dispatcher/actionImport/helpers.jsx',
-      '/jsx/dispatcher/actionImport/read.jsx',
-      '/jsx/dispatcher/actionImport/handler.jsx',
       '/jsx/dispatcher/actions_compList.jsx',
       '/jsx/dispatcher/actions_graphExport.jsx',
       '/jsx/dispatcher/dispatcher.jsx'

@@ -105,7 +105,6 @@ var _handlers = {
   'browseAndImportFootage': _handleBrowseAndImportFootage,
   'createFootageLayer':    _handleCreateFootageLayer,
   'deleteFootageItem':     _handleDeleteFootageItem,
-  'importProject':         _handleImportProject,
   'addKeyframe':           _handleAddKeyframe,
   'removeKeyframe':        _handleRemoveKeyframe,
   'removeAllKeyframes':    _handleRemoveAllKeyframes,
@@ -116,7 +115,10 @@ var _handlers = {
   'getKeyframeData':       _handleGetKeyframeData,
   'writeCmdChunk':         _handleWriteCmdChunk,
   'executeCmdFile':        _handleExecuteCmdFile,
-  'cleanupCmdFile':        _handleCleanupCmdFile
+  'cleanupCmdFile':        _handleCleanupCmdFile,
+  'enumerateAllEffects':   _handleEnumerateAllEffects,
+  'buildFullEffectCatalog': _handleBuildFullEffectCatalog,
+  'writeTextFile':          _handleWriteTextFile
 };
 
 _handlers['getProjectIdentifier'] = _handleGetProjectIdentifier;

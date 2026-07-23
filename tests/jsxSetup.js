@@ -24,7 +24,7 @@ var _handlerNames = [
   'introspectEffect', 'readGraph', 'writeGraph', 'writeGraphExport',
   'saveGraphToFile', 'openGraphFile', 'ensureReservedComp',
   'browseAndImportFootage', 'createFootageLayer', 'deleteFootageItem',
-  'importProject', 'addKeyframe', 'removeKeyframe', 'removeAllKeyframes',
+  'addKeyframe', 'removeKeyframe', 'removeAllKeyframes',
   'getKeyframeTimes', 'getCurrentTime', 'setCurrentTime',
   'batchGetKeyframeTimes', 'getKeyframeData', 'writeCmdChunk',
   'executeCmdFile', 'cleanupCmdFile', 'enumerateAllEffects',

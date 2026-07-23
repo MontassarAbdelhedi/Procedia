@@ -46,14 +46,6 @@ var _handlersKeyboard = (function() {
       return;
     }
 
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
-      if (inputUtils.isEditableTarget(e.target)) return;
-      e.preventDefault();
-      var importBtn = document.getElementById('topbar-import');
-      if (importBtn && !importBtn.disabled) importBtn.click();
-      return;
-    }
-
     if (e.code === 'Space' && !inputUtils.isEditableTarget(e.target)) {
       _inpSpaceHeld = true;
       e.preventDefault();
