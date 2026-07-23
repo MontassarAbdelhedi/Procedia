@@ -55,8 +55,11 @@ function _readLayer(layer) {
       var ms = layer.source.mainSource;
       if (ms instanceof SolidSource) solidColor = ms.color;
     } catch (e) {}
-    var ref = layer.source.comment || '';
-    if (ref.indexOf('PROC-') !== 0) ref = '';
+    var ref = layer.source.comment;
+    if (!ref || ref.indexOf('PROC-') !== 0) {
+      ref = _import_uuid('PROC');
+      if (!layer.source.comment) layer.source.comment = ref;
+    }
     sourceInfo = { type: 'solid', color: solidColor, ref: ref };
   } else if (type === 'footage' && layer.source instanceof FootageItem) {
     var filePath = '';
@@ -64,8 +67,11 @@ function _readLayer(layer) {
       var fs = layer.source.mainSource;
       if (fs instanceof FileSource && fs.file) filePath = fs.file.fsName;
     } catch (e) {}
-    var ref = layer.source.comment || '';
-    if (ref.indexOf('PROC-') !== 0) ref = '';
+    var ref = layer.source.comment;
+    if (!ref || ref.indexOf('PROC-') !== 0) {
+      ref = _import_uuid('PROC');
+      if (!layer.source.comment) layer.source.comment = ref;
+    }
     sourceInfo = {
       type: 'footage',
       file: filePath,

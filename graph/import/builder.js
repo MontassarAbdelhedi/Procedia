@@ -46,6 +46,7 @@ var __imp_builder = (function() {
     var allAliveUUIDs = [];
     var layerUUIDToNodeID = {};
     var allRestamps = [];
+    var footageLayerIds = {};
 
     var posIndex = 0;
 
@@ -56,6 +57,7 @@ var __imp_builder = (function() {
           var fNode = nodes.buildFootageNode(aeData.footage[fi], posIndex++);
           nodeMap[fNode.id] = fNode;
           summary.footage++;
+          footageLayerIds[fNode.id] = true;
         } catch (e) {
           summary.errors.push('footage[' + fi + ']: ' + e.message);
         }
@@ -101,6 +103,7 @@ var __imp_builder = (function() {
             }
 
             var layerNode;
+            var isFootageLayer = (layerData.type === 'solid' || layerData.type === 'footage');
             if (layerData.type === 'precomp') {
               var refCompId = layerData.source && layerData.source.ref;
               if (!refCompId || !nodeMap[refCompId]) {
@@ -108,6 +111,16 @@ var __imp_builder = (function() {
                 continue;
               }
               layerNode = nodeMap[refCompId];
+            } else if (isFootageLayer) {
+              var refFootageId = layerData.source && layerData.source.ref;
+              if (refFootageId && nodeMap[refFootageId]) {
+                layerNode = nodeMap[refFootageId];
+              } else {
+                if (!nodes.aeTypeToNodeType(layerData.type)) {
+                  summary.errors.push('Unsupported layer type "' + layerData.type + '" for "' + layerData.name + '"');
+                  continue;
+                }
+              }
             } else {
               if (!nodes.aeTypeToNodeType(layerData.type)) {
                 summary.errors.push('Unsupported layer type "' + layerData.type + '" for "' + layerData.name + '"');
@@ -116,7 +129,7 @@ var __imp_builder = (function() {
             }
 
             try {
-              if (layerData.type !== 'precomp') {
+              if (layerData.type !== 'precomp' && !(isFootageLayer && layerNode)) {
                 layerNode = nodes.buildLayerNode(layerData, compData.uuid, posIndex++);
                 if (!layerNode) continue;
                 nodeMap[layerNode.id] = layerNode;
@@ -144,12 +157,18 @@ var __imp_builder = (function() {
               }
               effectMap[layerData.uuid] = effectNodes;
 
-              // Blending mode
-              if (layerData.blendingMode && layerData.blendingMode !== 'NORMAL') {
-                var blendNode = nodes.buildBlendingNode(layerData.blendingMode, posIndex++);
-                nodeMap[blendNode.id] = blendNode;
-                blendingMap[layerData.uuid] = blendNode;
-              }
+               // Blending mode — defensively normalize in case AE enum prefix survives JSON round-trip
+               var bm = layerData.blendingMode;
+               if (bm) {
+                 var dot = bm.indexOf('.');
+                 if (dot !== -1) bm = bm.substr(dot + 1);
+                 if (bm.indexOf('NORMAL') === 0) bm = 'NORMAL';
+               }
+               if (bm && bm !== 'NORMAL') {
+                 var blendNode = nodes.buildBlendingNode(bm, posIndex++);
+                 nodeMap[blendNode.id] = blendNode;
+                 blendingMap[layerData.uuid] = blendNode;
+               }
 
               // Track matte
               if (layerData.hasTrackMatte && layerData.trackMatteLayerUUID) {
