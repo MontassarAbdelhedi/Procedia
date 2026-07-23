@@ -14,7 +14,7 @@ function _readLayer(layer) {
     uuid = layer.comment;
   } else {
     uuid = _import_uuid('PROC');
-    if (!layer.comment) layer.comment = uuid;
+    layer.comment = uuid;
   }
   var type = _layerType(layer);
   var parentUUID = null;
@@ -22,7 +22,7 @@ function _readLayer(layer) {
     parentUUID = layer.parent.comment;
     if (!parentUUID || parentUUID.indexOf('PROC-') !== 0) {
       parentUUID = _import_uuid('PROC');
-      if (!layer.parent.comment) layer.parent.comment = parentUUID;
+      layer.parent.comment = parentUUID;
     }
   }
   var trackMatteType = null;
@@ -36,7 +36,7 @@ function _readLayer(layer) {
     trackMatteLayerUUID = layer.trackMatteLayer.comment;
     if (!trackMatteLayerUUID || trackMatteLayerUUID.indexOf('PROC-') !== 0) {
       trackMatteLayerUUID = _import_uuid('PROC');
-      if (!layer.trackMatteLayer.comment) layer.trackMatteLayer.comment = trackMatteLayerUUID;
+      layer.trackMatteLayer.comment = trackMatteLayerUUID;
     }
   }
   var blendingMode = 'NORMAL';
@@ -46,7 +46,7 @@ function _readLayer(layer) {
     var ref = layer.source.comment;
     if (!ref || ref.indexOf('PROC-') !== 0) {
       ref = _import_uuid('PROC');
-      if (!layer.source.comment) layer.source.comment = ref;
+      layer.source.comment = ref;
     }
     sourceInfo = { type: 'precomp', ref: ref };
   } else if (type === 'solid' && layer.source instanceof FootageItem) {
@@ -58,7 +58,7 @@ function _readLayer(layer) {
     var ref = layer.source.comment;
     if (!ref || ref.indexOf('PROC-') !== 0) {
       ref = _import_uuid('PROC');
-      if (!layer.source.comment) layer.source.comment = ref;
+      layer.source.comment = ref;
     }
     sourceInfo = { type: 'solid', color: solidColor, ref: ref };
   } else if (type === 'footage' && layer.source instanceof FootageItem) {
@@ -70,7 +70,7 @@ function _readLayer(layer) {
     var ref = layer.source.comment;
     if (!ref || ref.indexOf('PROC-') !== 0) {
       ref = _import_uuid('PROC');
-      if (!layer.source.comment) layer.source.comment = ref;
+      layer.source.comment = ref;
     }
     sourceInfo = {
       type: 'footage',
@@ -108,7 +108,7 @@ function _readComp(comp) {
     compUUID = comp.comment;
   } else {
     compUUID = _import_uuid('PROC');
-    if (!comp.comment) comp.comment = compUUID;
+    comp.comment = compUUID;
   }
   var layers = [];
   for (var li = 1; li <= comp.numLayers; li++) {
@@ -136,7 +136,7 @@ function _readFootage(item) {
     uuid = item.comment;
   } else {
     uuid = _import_uuid('PROC');
-    if (!item.comment) item.comment = uuid;
+    item.comment = uuid;
   }
   var filePath = '';
   var type = 'unknown';

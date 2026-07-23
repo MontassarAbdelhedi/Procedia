@@ -11,7 +11,7 @@
 function _handleImportProject(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
-    findOrCreateProcediaFolder();
+    findOrCreateReservedComp();
     var comps = [];
     var i;
     for (i = 1; i <= app.project.numItems; i++) {
