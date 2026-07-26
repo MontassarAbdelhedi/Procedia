@@ -110,7 +110,12 @@ The bridge between the CEP panel and AE is **string-based only**. Objects cannot
 - Panel JS must always `JSON.parse(result)` on the response
 - Never pass complex objects as arguments — serialize them first, inject as strings
 - `evalBridge.js` is the **only** file that calls `csInterface.evalScript()`. No other file touches it directly.
-- `evalBridge` exposes exactly two functions: `dispatch(commandObj)` and `dispatchBatch(commandArr)` — both return Promises.
+- `evalBridge` public API:
+  - `init(csInterface)` — probes AE with a `"probe"` call (up to 5 retries), then loads the JSX preamble one file at a time via `$.evalFile` (2 attempts per file). Idempotent — safe to call multiple times.
+  - `onReady(callback)` — registers a callback invoked once after the preamble is loaded and ready. Multiple callbacks are queued.
+  - `dispatch(commandObj)` — primary call. Returns a Promise. Wraps `evalScript` with a 10-second hard timeout (configurable via `_DISPATCH_TIMEOUT_MS`). On `TypeError` / JSON parse errors retries up to 3 times with `50 * _attempt` ms backoff. Rejects unknown actions before reaching AE (whitelist enforced in `_ALLOWED_ACTIONS`). Large commands whose serialized JSON exceeds `_CMD_CHUNK_LIMIT` (15 000 chars) transparently switch to a chunk-write → `executeCmdFile` → `cleanupCmdFile` flow via `actions_cmdChunk.jsx`.
+  - `dispatchBatch(commandArr)` — returns a Promise of a single `{ ok, data, error }`. Falls back to sequential `dispatch()` if the batch exceeds the chunk limit. **Important:** the JSX side wraps batch commands in `app.beginUndoGroup()` / `app.endUndoGroup()` so all AE API calls from a single batch collapse into one AE undo step (prevents the double-undo problem).
+  - `fireAndForget(commandObj)` — best-effort one-shot dispatch, no retry, errors only logged. Used on `window.beforeunload` for emergency saves.
 
 **✅ Correct — panel JS calls evalBridge only:**
 ```javascript
@@ -288,7 +293,8 @@ AE layer `.comment` stores the **terminal wire UUID** — not the node UUID. One
 **Rules:**
 - Node UUID format: `PROC-{timestamp}-{rand4}` e.g. `PROC-1716000000000-a3f2`
 - Wire UUID format: `WIRE-{timestamp}-{rand4}`
-- UUIDs are generated in panel JS via `uuidGenerator.js`, never in ExtendScript
+- Comment UUID format: `CMT-{timestamp}-{rand4}` — references the canvas-sticky-note comment object, not an AE object
+- UUIDs are generated in panel JS via `uuidGenerator.js` (`node()`, `wire()`, `comment()`), never in ExtendScript
 - Node UUIDs are stored in `comp.comment` in AE (CompNode only)
 - **Layer `.comment` = terminal wire UUID** (not node UUID). This is how the dispatcher finds the correct layer for a given path.
 - UUID is never shown in the UI except in the inspector's read-only state field
@@ -306,57 +312,160 @@ This is the most important architectural rule in v4. **Nodes never write ExtendS
 3. `evalBridge` serializes it and calls `csInterface.evalScript('dispatch(...)')`
 4. `dispatcher.jsx` receives the serialized command, routes to the named action handler, returns `JSON.stringify({ ok, data, error })`
 
-**Complete dispatcher action table:**
+**Dispatcher action table**
+
+Every action below is registered in `dispatcher.jsx`'s `_route()` table and whitelisted in `evalBridge.js`'s `_ALLOWED_ACTIONS` map. ~89 actions total. Grouped by purpose:
+
+**Layer creation (handled in `actionLayer/` subdirectory):**
+
+| Action | What it does in AE |
+|---|---|
+| `createTextLayer` | `comp.layers.addText(...)` |
+| `createNullLayer` | `comp.layers.addNull(...)` |
+| `createShapeLayer` | `comp.layers.addShape(...)` for the generic Shape node |
+| `createAdjustmentLayer` | Adds a solid layer with the adjustment flag enabled |
+| `createSolidLayer` | Adds a solid (used by the dedicated Solid node) |
+| `createCameraLayer` | Adds a `CameraLayer` |
+| `createLightLayer` | Adds a `LightLayer` |
+| `createRectangleLayer` / `createEllipseLayer` / `createStarLayer` / `createSquircleLayer` / `createGearLayer` / `createWaveLayer` / `createFlowerLayer` / `createPolygonLayer` | Add the corresponding parametric shape path on a new shape layer |
+| `addCompAsLayer` | Adds an existing `CompItem` as a pre-comp layer in the hosting comp |
+
+**Layer & comp lifecycle (handlers live in `actions_comp.jsx`, `actionLayer/`, `actions_park.jsx`):**
 
 | Action | What it does in AE |
 |---|---|
 | `createComp` | Creates a new `CompItem` in the Procedia folder |
-| `createTextLayer` | `comp.layers.addText(...)` |
-| `createNullLayer` | `comp.layers.addNull(...)` |
-| `createShapeLayer` | `comp.layers.addShape(...)` |
-| `createAdjustmentLayer` | `comp.layers.addShape(...)` with adjustment layer flag enabled |
-| `addCompAsLayer` | Adds an existing `CompItem` as a pre-comp layer in the hosting comp |
+| `deleteComp` | Deletes the `CompItem` from the project panel |
+| `setCompProperty` | Sets comp-level properties (dimensions, fps, duration, bg color) |
+| `focusComp` | `app.project.activeItem = comp` — brings comp into view |
+| `listComps` | Returns all comps in the AE project (excluded: reserved comp) — used by `ui/compList.js` |
+| `focusCompByName` | Brings a comp into view matched by name (used by comp list) |
+| `getProjectIdentifier` | Returns `proj.fullPath` if saved, otherwise `unsaved_<name>` — used to scope per-project warnings (Merge/Multimerge notice) |
+| `ensureReservedComp` | Find-or-create the Reserved Comp. Called on panel startup. |
+| `saveAsDialog` | Triggers `app.project.saveWithDialog()` — used by Import Project flow before overwriting the working graph |
 | `parkLayer` | Moves the layer from hosting comp to Reserved Comp |
 | `unparkLayer` | Moves the layer from Reserved Comp to hosting comp; re-stamps `layer.comment` |
 | `deleteParkedLayer` | Removes a layer permanently from Reserved Comp |
 | `deletePathLayer` | Removes a layer from the hosting comp identified by path UUID |
-| `deleteComp` | Deletes the `CompItem` from the project panel |
-| `setLayerProperty` | Navigates property hierarchy by match name and sets value |
-| `setCompProperty` | Sets comp-level properties (dimensions, fps, duration, bg color) |
+| `restampLayer` | Re-stamps `layer.comment` with a new UUID (used during wire transplant — never parks the layer) |
+| `renameNode` | Sets `layer.name` to match the node's label param |
+| `setLayerEnabled` | Toggles `layer.enabled` for disable/enable node state |
+| `setLayerShy` / `setCompHideShyLayers` | Drive AE's shy toggle and comp's `hideShyLayers` toggle for the auto-shy feature |
 | `setLayerParent` | `childLayer.parent = parentLayer` |
 | `clearLayerParent` | `childLayer.parent = null` |
-| `setLayerOrder` | Reorders layers in comp using `moveToBeginning()` |
-| `renameNode` | Sets `layer.name` to match the node's label param |
-| `focusComp` | `app.project.activeItem = comp` — brings comp into view |
-| `applyEffect` | `layer.Effects.addProperty(matchName)` then sets initial prop values |
-| `applyDynamicEffect` | Applies an effect and sets all its properties from a props map keyed by match name |
+| `setLayerOrder` | Reorders a layer using `moveToBeginning()` (bottom-up) |
+| `moveLayerBefore` | Moves a target layer immediately before another layer — an alternative to `setLayerOrder` for parent-aware reorders |
+
+**Layer & property inspection (handlers in `actions_property.jsx`, `actions_propertyGet.jsx`, `actions_masks.jsx`, `actionEffect/batchGetEffectProperties.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `setLayerProperty` | Navigates property hierarchy by match name and sets a value |
+| `setBlendingMode` | Sets `layer.blendingMode` on the layer identified by `layerNodeUUID`. Accepts a string mapped to the `BlendingMode` enum. |
+| `batchGetLayerProperties` | Batched read of layer transform/property values — used by `polling/propertyPoller.js` to sync external AE edits |
+| `batchGetEffectProperties` | Batched read of effect property values — used by `propertyPoller.js` for effector nodes |
+| `getMasksForLayer` | Returns mask list for a layer (drives the Fill-mask dropdown) |
+
+**Effect actions (handlers in `applyActionEffect/` subdirectory + `actionEffect/setExpression.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `applyDynamicEffect` | `layer.Effects.addProperty(matchName)` and applies every property from a props map keyed by match name |
 | `removeEffect` | Finds effect by match name and removes it |
 | `setEffectProperty` | Sets a named property on an existing effect by match name |
-| `restampLayer` | Re-stamps `layer.comment` with a new UUID (used during wire transplant) |
-| `pollAliveNodes` | Single multi-UUID check — returns missing and present UUIDs |
-| `setBlendingMode` | Sets `layer.blendingMode` on the layer identified by `layerNodeUUID`. Accepts a blending mode string mapped to AE `BlendingMode` enum. |
-| `setLumaMatte` | Sets `TrackMatteType.LUMA` on the top layer using the matte layer as source. Applies `invert` flag. Reorders layers if needed so matte layer is directly above top layer. |
+| `renameEffect` | Renames an effect on the AE layer |
+| `setEffectEnabled` | Toggles enabled state of an effect (drives disable/enable on the effector node) |
+| `reorderEffect` | Moves a single effect to a new position via `moveTo(index)` |
+| `reorderEffectChain` | Re-orders multiple effects on a layer in one call — dispatched when `engine/nodes/switchNodes.js` swaps two effector nodes |
+| `setExpression` | Writes an expression string on a layer/effect property by match name — drives the Expression data node |
+| `pollAliveEffects` | Single multi-UUID check for effects — used by `polling/externalDeletions.js` |
+
+**Matte, blending, footage, masks:**
+
+| Action | What it does in AE |
+|---|---|
+| `setLumaMatte` | Sets `TrackMatteType.LUMA` on the top layer using the matte layer as source. Applies `invert` flag. Reorders layers so the matte layer is directly above the top layer. |
 | `setAlphaMatte` | Sets `TrackMatteType.ALPHA` on the top layer using the matte layer as source. Applies `invert` flag. Reorders layers if needed. |
 | `clearMatte` | Sets `layer.trackMatteType = TrackMatteType.NO_TRACK_MATTE` on the top layer. |
-| `introspectEffect` | Creates a temp solid in Reserved Comp, applies the effect, walks all properties to build a schema array, removes temp layer. Returns schema. Temp layer cleanup happens on both success and failure paths — non-negotiable. |
-| `readSchemaCache` | Reads `effectSchemaCache.json` from the plugin directory and returns its parsed contents. |
-| `writeSchemaCache` | Writes the provided cache object to `effectSchemaCache.json` in the plugin directory. |
+| `browseAndImportFootage` | Opens AE's import-file dialog and returns the imported `FootageItem`'s UUID — used by Footage node |
+| `createFootageLayer` | Adds an existing footage item as a layer |
+| `deleteFootageItem` | Deletes a `FootageItem` from the project panel |
+
+**Polling & version detection (handlers in `actions_park.jsx`, `actions_comp.jsx`, `actions_schema.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `pollAliveNodes` | Single multi-UUID check — returns missing and present UUIDs |
+| `pollExternalDeletions` | Checks whether given comp UUIDs still exist in the project |
+| `readGraph` | Reads the serialized graph from `__PROCEDIA_NODES__` / `__PROCEDIA_WIRES__` text layers in the Reserved Comp (with chunk reassembly) |
+| `writeGraph` | Writes the serialized graph (now including the keyframe-state snapshot) back to those text layers — called via `evalBridge.fireAndForget` on `beforeunload` |
+
+**Schema cache (handlers in `actions_schema.jsx`, `actionEffect/introspect.jsx`, `actionEffect/buildCatalog.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `readSchemaCache` | Reads `data/effectSchemaCache.json` from disk and returns its parsed contents. |
+| `writeSchemaCache` | Writes the cache object to `data/effectSchemaCache.json`. |
 | `getAEVersion` | Returns the running AE version string (`app.version`). Never parse or truncate — store the full string verbatim. |
-| `beginUndoGroup` | Calls `app.beginUndoGroup(name)` — starts an AE undo group for batching. |
+| `introspectEffect` | Creates a temp solid in Reserved Comp, applies the effect, walks all properties to build a schema array, removes temp layer. Temp layer cleanup happens on both success and failure paths — non-negotiable. |
+| `enumerateAllEffects` / `buildFullEffectCatalog` | Walk AE's `app.effects` enumeration to generate `data/effectsCatalog.json` (developer utility) |
+| `writeTextFile` | Generic text-file writer under the plugin root — used by `buildFullEffectCatalog` |
+
+**Graph IO (handlers in `actions_graphExport.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `writeGraphExport` | Exports the in-session graph JSON to disk (top-bar Save button, AE path) |
+| `saveGraphToFile` | Triggers a browser-save of the graph JSON via CEP `window.cep.fs.saveAsEx`-style flow — used by the top-bar Save button |
+| `openGraphFile` | Triggers a browser-load of a `.procedia.json` file — used by the top-bar Open button |
+
+**Import project feature (handlers in `actionImport/` subdirectory + `actions_import.jsx` barrel):**
+
+| Action | What it does in AE |
+|---|---|
+| `importScanComps` | Iterates `app.project.items`, returns comp UUIDs + comp metadata (skips Reserved Comp) |
+| `importScanFootage` | Returns footage item UUIDs + metadata (skips items inside the Procedia reserved folder) |
+| `importScanCompLayers` | For a single comp, walks every layer and returns per-layer type, transform, parentage, blending mode, track-matte type, enabled flag, effects[], and type-specific fields (text/camera/light/shape/solid) |
+| `stampImportUUIDs` | Stamps `comp.comment`/`footage.comment`/`layer.comment` from a `stampMap` produced by `graph/import/mapper.js`. **Layers receive the wire UUID, not the node UUID** — consistent with SKILL 8's path-driven layer model. |
+
+**Keyframe actions (handlers in `actionKeyframe/` subdirectory — 6 files: shared, add, remove, times, currentTime, data):**
+
+| Action | What it does in AE |
+|---|---|
+| `addKeyframe` / `removeKeyframe` / `removeAllKeyframes` | Add / remove one / remove all keyframes on a property by match name |
+| `getKeyframeTimes` / `batchGetKeyframeTimes` | Read keyframe times for one or many properties |
+| `getKeyframeData` | Read keyframe values + interpolation |
+| `getCurrentTime` / `setCurrentTime` | Read or set the comp's playhead time |
+
+**Undo grouping (internal handlers in `dispatcher.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `beginUndoGroup` | Calls `app.beginUndoGroup(name)` — starts an AE undo group for batching. Used by `aeReconcile.js`. |
 | `endUndoGroup` | Calls `app.endUndoGroup()` — ends the current AE undo group. |
+
+**Large-command chunking (internal handlers in `actions_cmdChunk.jsx`):**
+
+| Action | What it does in AE |
+|---|---|
+| `writeCmdChunk` | Appends one chunk of a serialized JSON command into a temp file in `$` temp dir |
+| `executeCmdFile` | Reads + JSON.parse'es the temp file, calls `dispatch(cmd)` once, returns the result |
+| `cleanupCmdFile` | Removes the temp file (success or failure) |
+
+> **Editorial note:** `applyEffect` (single-effect addition without prop map) is still routed but is no longer the primary effect-add path — `applyDynamicEffect` is used by all effect effector nodes via their `onAlive` hook (see SKILL 10).
 
 **Adding a new action:**
 - Open `jsx/dispatcher/dispatcher.jsx`
-- Add one named function: `function actionMyNewThing(params) { ... }`
+- Add one named function: `function actionMyNewThing(params) { ... }` (or place the handler in the appropriate subdirectory and load it via the existing barrel pattern in `actions_*.jsx`)
 - Register it in `_route()` at the top of the file
-- Add the action name to the whitelist in `bridge/evalBridge.js`
+- Add the action name to the `_ALLOWED_ACTIONS` whitelist in `bridge/evalBridge.js`
 - This is the **only** acceptable reason to edit `dispatcher.jsx` when adding a new node
 
 **Rules:**
 - `evalBridge.js` is the only file that calls `csInterface.evalScript()`
 - `dispatcher.jsx` is the only `.jsx` file that contains AE API calls
 - Node definition hooks return command objects or `null` — they never call `evalBridge` directly
-- `engine.js` contains zero node-type conditionals — it calls hooks by name, passes results to `evalBridge`
+- `graph/engine/` (now `engine/index.js` plus the registry-resolved sub-modules) contains zero node-type conditionals — it calls hooks by name, passes results to `evalBridge`
 
 ---
 
@@ -374,18 +483,22 @@ Every node is a plain JS object registered with `nodeRegistry.register()`. One f
 **`dedicated` reference — memorize this:**
 
 | Node | `dedicated` | AE Project Object |
-|---|---|---|---|
+|---|---|---|
 | `CompNode` | `true` | `CompItem` |
 | `FootageNode` | `true` | `FootageItem` |
 | `NullNode` | `true` | `FootageItem` (solid) |
-| `TextNode` | `false` | — |
-| `ShapeNode` | `false` | — |
+| `ShapeNode` | `true` | `FootageItem` (solid) |
+| `SolidNode` | `true` | `FootageItem` (solid) |
 | `AdjustmentNode` | `true` | `FootageItem` (solid) |
+| `TextNode` | `false` | — |
+| `CameraNode` | `false` | — |
+| `LightNode` | `false` | — |
 | `FillEffectNode` | `false` | — |
 | `GaussianBlurNode` | `false` | — |
 | `DropShadowNode` | `false` | — |
 | `ColorNode` | `false` | — |
 | `NumberNode` | `false` | — |
+| `ExpressionNode` | `false` | — (data node) |
 | `BlendingNode` | `false` | — |
 | `MatteAlphaNode` | `false` | — |
 | `MatteLumaNode` | `false` | — |
@@ -716,179 +829,55 @@ nodeRegistry.register(MatteLumaNode);
 
 ### SKILL 12 — File Structure & Load Order
 
-This project has no bundler and no ES modules. `index.html` is the only source of load order truth. Files are loaded via `<script>` tags in exact top-to-bottom order.
+This project has no bundler and no ES modules. Load order is declared in `data/scripts.json` — a flat JSON array of every panel-side file in execution order. The panel bootstrap loader `ui/scriptLoader.js` synchronously fetches that manifest and `document.write('<script src="...">')`s each entry in order. The HTML shell contains no per-file `<script>` tags.
 
-**Every file must declare its dependencies at the top:**
+**`index.html` only loads these vendored / infra scripts directly:**
+- `lib/CSInterface.js` — the CEP bridge to AE
+- `lib/sentry.bundle.min.js` + `lib/html2canvas.min.js` — vendored error-reporting stack (SRI-pinned)
+- `reporting/envSnapshot.js` + `reporting/reporter.js` — error-capture + bug-report wiring
+- `ui/scriptLoader.js` — the single bootstrap script that pulls in every other file from the manifest
+
+Every additional panel-side file lives in `data/scripts.json`. As of this writing the manifest has 161 entries, ordered top-down into these groups (sketch only — `data/scripts.json` is the authoritative flattened list):
+
+| # | Layer | Representative entries |
+|---|---|---|
+| A | Data & state infra | `data/uuidGenerator.js`, `data/deepClone.js`, `bridge/evalBridge.js`, `graph/graphState/*`, `ui/refreshUI.js`, `graph/undoManager/*`, `graph/keyframeState.js` |
+| B | Registry & presets | `graph/nodeRegistry.js`, `graph/presets/presetManager.js`, `graph/graphExporter.js`, `ui/settings.js` |
+| C | Node loader + schema cache | `graph/nodes/loadNodes.js` (drives non-effect node files + `graph/nodeMetadata/*.js` for 22 effect categories via `document.write`), `graph/schemaCache/*`, `ui/loadingOverlay.js` |
+| D | Wire/cycle/cascade/flush infra | `graph/cycleChecker.js`, `graph/wireValidator/*`, `graph/cascade/*`, `flush/dirtyFlusher.js` |
+| E | Engine (dumb executor) | `graph/engine/effectNodeFactory.js`, `graph/engine/registry.js`, `ui/uiUpdateScheduler.js`, `graph/engine/{helpers,lifecycle,propagate,wires}.js`, `graph/engine/nodes/{drop,delete,duplicate,lock,clone,recreate,switchNodes,index}.js`, `graph/engine/state.js`, `graph/engine/index.js` |
+| F | Standalone dev tooling | `tools/compareEffectNodes.js` *(see note below — verify it exists)* |
+| G | Auto-shy | `graph/autoShy.js` — reacts to selection changes by shying AE layers in the same comp |
+| H | Canvas | `graph/canvas/viewport.js`, `graph/canvas/renderer/*` (incl. `nodeToolbar.js` with the per-toolbar Save Preset button), `graph/canvas/input/state|utils|rubberband.js`, `graph/comment/*` (5-file split of the old commentManager), `graph/canvas/input/handlers/*`, `graph/canvas/minimap/*`, `graph/canvas/drag/*` |
+| I | Wire rendering & tool | `graph/wire/wireRenderer/{helpers,draw,render}.js`, `graph/wire/wire.js` |
+| J | Auto layout | `graph/autoLayout/{constants,estimateHeight,layerAssignment,crossingReduction,positioning,index}.js` + `graph/autoLayout/graphBuilder/{buildGraph,findComponents}.js` |
+| K | Import project feature | `graph/import/{scanner,mapper,graphBuilder/helpers,graphBuilder/build,index}.js` |
+| L | UI panels | `ui/nodeList/*`, `ui/nodePicker/*`, `ui/inspector/*` (incl. `layerStack.js` comp stack view), `ui/settingsModal/*`, `ui/presetModal/*` |
+| M | Polling & notifications | `polling/{missingNodes,notifications,externalDeletions,propertyPoller,poller}.js`, `notifications/notificationBar.js` |
+| N | Top-bar & chrome | `ui/topBar/*`, `ui/statusBar.js`, `ui/sidebarToggle.js`, `ui/compList.js`, `ui/graphSearch.js`, `ui/tipField.js`, `ui/walkthrough/*` (6 files) |
+| O | Entry point | `index.js` |
+
+**Stale manifest entry:** `tools/compareEffectNodes.js` is listed in the manifest but the directory may not exist on disk — verify before relying on it. If the path 404s at load time, the loader logs a console error and continues; causality flows through every later tag unaffected.
+
+**Every new file must:**
+1. Add a path entry to `data/scripts.json` in the correct position
+2. Add its `<script>` tag to `graph/nodes/loadNodes.js` *only if* it is a non-effect node definition loaded by `document.write` (very rare — most node files live under `graph/nodes/categories/` and are emitted from `loadNodes.js` directly)
+3. Declare dependencies at the top:
 ```javascript
 // graph/engine/nodes/index.js
 // DEPENDS ON: graph/engine/nodes/dropNode.js, graph/engine/nodes/deleteNode.js,
 //             graph/engine/nodes/duplicateNode.js, graph/engine/nodes/lockNode.js,
-//             graph/engine/nodes/recreateNode.js
+//             graph/engine/nodes/recreateNode.js, graph/engine/nodes/switchNodes.js
 // MUST LOAD BEFORE: engine/state.js, engine/index.js
 ```
 
 **Rules:**
-- Never create a file without adding its `<script>` tag to `index.html` in the same task
-- Group tags in `index.html` by layer: infrastructure → node definitions → engine → canvas → ui → entry point
-- When splitting a file, create a folder named after the original file and place splits inside it. Delete the original.
+- Never create a file without adding its entry to `data/scripts.json` in the same task
+- Group manifest entries by dependency layer (table above) — keep the existing ordering conventions so a reader can map the manifest to the sketch
+- When splitting a file, create a folder named after the original file and place splits inside it. Delete the original. (Reference: `graph/autoLayout/graphBuilder.js` → `graphBuilder/{buildGraph,findComponents}.js`; `graph/comment/commentManager.js` → `graph/comment/{commentState,commentDOM,commentColorPicker,commentEvents,commentManager}.js`.)
 - Never split mid-task. Declare the split as its own step before writing any code.
 - After any file change, the first verification item is always: panel loads without console errors
-
-**Load order in `index.html`:** (121 script tags, 11 groups)
-```html
-<!-- 1. CEP interface -->
-<script src="lib/CSInterface.js"></script>
-
-<!-- 2. Infrastructure — no dependencies -->
-<script src="data/uuidGenerator.js"></script>
-<script src="bridge/evalBridge.js"></script>
-<script src="graph/graphState/state.js"></script>
-<script src="graph/graphState/tempGraph.js"></script>
-<script src="graph/graphState/nodes.js"></script>
-<script src="graph/graphState/wires.js"></script>
-<script src="graph/graphState/props.js"></script>
-<script src="graph/graphState/selection.js"></script>
-<script src="graph/graphState/graphOps.js"></script>
-<script src="graph/graphState/index.js"></script>
-<script src="graph/nodeRegistry.js"></script>
-<script src="graph/graphExporter.js"></script>
-<script src="ui/settings.js"></script>
-
-<!-- 3. Node definitions — loaded via dynamic script loader -->
-<script src="graph/nodes/loadNodes.js"></script>
-
-<!-- 4. Schema cache — after nodeRegistry, before engine -->
-<script src="graph/schemaCache/state.js"></script>
-<script src="graph/schemaCache/persistence.js"></script>
-<script src="graph/schemaCache/diff.js"></script>
-<script src="graph/schemaCache/index.js"></script>
-
-<!-- 5. Graph engine — depends on graphState, nodeRegistry, all nodes, schemaCache -->
-<script src="graph/cycleChecker.js"></script>
-<script src="graph/wireValidator/portUtils.js"></script>
-<script src="graph/wireValidator/matteValidator.js"></script>
-<script src="graph/wireValidator/canConnect.js"></script>
-<script src="graph/wireValidator/filterPickerList.js"></script>
-<script src="graph/wireValidator/index.js"></script>
-<script src="graph/cascade/utils.js"></script>
-<script src="graph/cascade/cascadeGhost/collect.js"></script>
-<script src="graph/cascade/cascadeGhost/commands.js"></script>
-<script src="graph/cascade/cascadeGhost/update.js"></script>
-<script src="graph/cascade/cascadeGhost/cleanup.js"></script>
-<script src="graph/cascade/cascadeGhost/ghost.js"></script>
-<script src="graph/cascade/index.js"></script>
-<script src="flush/dirtyFlusher.js"></script>
-<script src="graph/engine/helpers.js"></script>
-<script src="graph/engine/propagate.js"></script>
-<script src="graph/engine/wires.js"></script>
-<script src="graph/engine/nodes/dropNode.js"></script>
-<script src="graph/engine/nodes/deleteNode.js"></script>
-<script src="graph/engine/nodes/duplicateNode.js"></script>
-<script src="graph/engine/nodes/lockNode.js"></script>
-<script src="graph/engine/nodes/cloneNode.js"></script>
-<script src="graph/engine/nodes/recreateNode.js"></script>
-<script src="graph/engine/nodes/index.js"></script>
-<script src="graph/engine/state.js"></script>
-<script src="graph/engine/index.js"></script>
-
-<!-- 6. Canvas — depends on engine -->
-<script src="graph/canvas/viewport.js"></script>
-<script src="graph/canvas/renderer/categories.js"></script>
-<script src="graph/canvas/renderer/helpers.js"></script>
-<script src="graph/canvas/renderer/builder.js"></script>
-<script src="graph/canvas/renderer/index.js"></script>
-<script src="graph/canvas/renderer/nodeToolbar.js"></script>
-<script src="graph/canvas/input/state.js"></script>
-<script src="graph/canvas/input/utils.js"></script>
-<script src="graph/canvas/input/rubberband.js"></script>
-<script src="graph/canvas/input/handlers/titleEdit/helpers.js"></script>
-<script src="graph/canvas/input/handlers/titleEdit/exit.js"></script>
-<script src="graph/canvas/input/handlers/titleEdit/commit.js"></script>
-<script src="graph/canvas/input/handlers/titleEdit/cancel.js"></script>
-<script src="graph/canvas/input/handlers/titleEdit/dblclick.js"></script>
-<script src="graph/canvas/input/handlers/mouse/mousedown.js"></script>
-<script src="graph/canvas/input/handlers/mouse/mousemove.js"></script>
-<script src="graph/canvas/input/handlers/mouse/mouseup.js"></script>
-<script src="graph/canvas/input/handlers/mouse/click.js"></script>
-<script src="graph/canvas/input/handlers/keyboard.js"></script>
-<script src="graph/canvas/input/handlers/wheel.js"></script>
-<script src="graph/canvas/input/handlers/index.js"></script>
-<script src="graph/canvas/input/index.js"></script>
-<script src="graph/canvas/minimap/constants.js"></script>
-<script src="graph/canvas/minimap/state.js"></script>
-<script src="graph/canvas/minimap/utils.js"></script>
-<script src="graph/canvas/minimap/renderer.js"></script>
-<script src="graph/canvas/minimap/interaction.js"></script>
-<script src="graph/canvas/minimap/index.js"></script>
-<script src="graph/canvas/drag/helpers.js"></script>
-<script src="graph/canvas/drag/hitTest.js"></script>
-<script src="graph/canvas/drag/insert.js"></script>
-<script src="graph/canvas/drag/preview.js"></script>
-<script src="graph/wire/wireRenderer/helpers.js"></script>
-<script src="graph/wire/wireRenderer/draw.js"></script>
-<script src="graph/wire/wireRenderer/render.js"></script>
-<script src="graph/wire/wire.js"></script>
-
-<!-- 7. Auto layout — depends on graphState, nodeRegistry, engine -->
-<script src="graph/autoLayout/constants.js"></script>
-<script src="graph/autoLayout/estimateHeight.js"></script>
-<script src="graph/autoLayout/graphBuilder.js"></script>
-<script src="graph/autoLayout/layerAssignment.js"></script>
-<script src="graph/autoLayout/crossingReduction.js"></script>
-<script src="graph/autoLayout/positioning.js"></script>
-<script src="graph/autoLayout/index.js"></script>
-
-<!-- 7b. Import module — depends on graphState, nodeRegistry, engine, uuidGenerator, evalBridge -->
-<script src="graph/import/mapNodes/helpers.js"></script>
-<script src="graph/import/mapNodes/buildItems.js"></script>
-<script src="graph/import/mapNodes/buildEffects.js"></script>
-<script src="graph/import/mapWires.js"></script>
-<script src="graph/import/stampUUIDs.js"></script>
-<script src="graph/import/builder.js"></script>
-<script src="graph/import/index.js"></script>
-
-<!-- 8. UI — depends on graphState, nodeRegistry, engine -->
-<script src="ui/nodeList/categories.js"></script>
-<script src="ui/nodeList/render.js"></script>
-<script src="ui/nodeList/search.js"></script>
-<script src="ui/nodeList/dragdrop.js"></script>
-<script src="ui/nodeList/index.js"></script>
-<script src="ui/nodePicker/compatibility.js"></script>
-<script src="ui/nodePicker/render.js"></script>
-<script src="ui/nodePicker/filter.js"></script>
-<script src="ui/nodePicker/events.js"></script>
-<script src="ui/nodePicker/index.js"></script>
-<script src="ui/inspector/viewModel.js"></script>
-<script src="ui/inspector/render.js"></script>
-<script src="ui/inspector/colorPicker.js"></script>
-<script src="ui/inspector/events.js"></script>
-<script src="ui/inspector/index.js"></script>
-<script src="ui/settingsModal/dom.js"></script>
-<script src="ui/settingsModal/events.js"></script>
-<script src="ui/settingsModal/sync.js"></script>
-<script src="ui/settingsModal/apply.js"></script>
-<script src="ui/settingsModal/index.js"></script>
-
-<!-- 9. Infrastructure services -->
-<script src="polling/missingNodes.js"></script>
-<script src="polling/notifications.js"></script>
-<script src="polling/externalDeletions.js"></script>
-<script src="polling/poller.js"></script>
-<script src="notifications/notificationBar.js"></script>
-
-<!-- 10. UI chrome — no graph dependencies -->
-<script src="ui/topBar/collapse.js"></script>
-<script src="ui/topBar/selection.js"></script>
-<script src="ui/topBar/io.js"></script>
-<script src="ui/topBar/init.js"></script>
-<script src="ui/topBar/index.js"></script>
-
-<script src="ui/statusBar.js"></script>
-<script src="ui/sidebarToggle.js"></script>
-
-<!-- 11. Entry point — depends on everything -->
-<script src="index.js"></script>
-```
+- `index.html`'s body must NOT grow new `<script>` tags for first-party panel code — only vendored / infra / `scriptLoader.js` belong there
 
 ---
 
@@ -1032,10 +1021,12 @@ Effect nodes (`nodeKind: 'effector'`) declare `params: 'dynamic'`. On first drop
 
 ## File Directory
 
+> Load order lives in `data/scripts.json` and is loaded by `ui/scriptLoader.js`. `index.html` itself only references CSInterface, the Sentry/html2canvas error stack, `reporting/*`, and `scriptLoader.js` — see SKILL 12.
+
 ```
 procedia/
-├── index.html                              ← Script load order (121 tags). Single source of truth.
-├── index.js                                ← Panel entry point.
+├── index.html                              ← Loads only CSInterface + sentry + html2canvas + reporting/ + ui/scriptLoader.js
+├── index.js                                ← Panel entry point. Wires startup chain, batched keyframe sync, beforeunload fireAndForget.
 │
 ├── graph/
 │   ├── graphState/                         ← In-memory state — ONLY mutator of nodeMap, wireMap
@@ -1048,29 +1039,42 @@ procedia/
 │   │   ├── graphOps.js                     ← loadGraph, clearGraph
 │   │   └── index.js                        ← Assembles graphState from sub-modules
 │   │
-│   ├── nodeRegistry.js                     ← register(), getDefinition(), getAll(), getByCategory()
+│   ├── nodeRegistry.js                     ← register(), unregister(), getDefinition(), getAll(), getByCategory()
 │   ├── graphExporter.js                    ← exportGraph() — JSON graph export
-│   ├── schemaCache/                        ← Dynamic effect schema cache (4 files)
+│   ├── schemaCache/                        ← Dynamic effect schema cache (4 files): state, persistence, diff, index
 │   │   ├── state.js                        ← Internal state & read accessors
 │   │   ├── persistence.js                  ← Disk persistence via evalBridge
 │   │   ├── diff.js                         ← AE version-diff & schema comparison
 │   │   └── index.js                        ← Aggregates into schemaCache global
 │   │
+│   ├── undoManager/                        ← Graph undo/redo (4 files)
+│   │   ├── state.js                        ← capture/commit/commitDebounced/_pushUndo — MAX_DEPTH=50
+│   │   ├── aeReconcile.js                  ← _reconcileAE(oldState, targetState); uses lifecycle.buildLifecycleCommand; wrapped in beginUndoGroup/endUndoGroup
+│   │   ├── restore.js                      ← _restoreState(state) — graphState._replaceState + refreshUI + topBar.refreshSelection
+│   │   └── index.js                        ← Public: capture, commit, undo, redo, canUndo, canRedo, reset, getUndoDesc, getRedoDesc
+│   │
+│   ├── keyframeState.js                    ← Per-node per-param keyframe tracking + playhead time. Public: hasKeyframes, setKeyframes, getKeyframeState, getNextKeyframeTime, setCurrentTime, reset.
+│   ├── presets/presetManager.js            ← listPresets/getPreset/savePreset/deletePreset/dropPreset. Persists to localStorage 'procedia_presets'. Registers presets as dynamic data-category nodes under 'Presets'.
+│   ├── autoShy.js                          ← handleSelectionChange(sel). When settings.autoShy is on, shies other affected layers + toggles comp's Hide Shy Layers via dispatchBatch.
+│   │
 │   ├── engine/                             ← Dumb executor — zero node-type conditionals
-│   │   ├── helpers.js                      ← helpers, cache, resolveDynamicSchema
-│   │   ├── lifecycle.js                    ← Shared kind-dispatch, forEachHostingComp, injectLayerUUID
+│   │   ├── effectNodeFactory.js            ← upgradeStub(stub) — generates full effector definitions from metadata stubs (drives the 460+ effect nodes)
+│   │   ├── registry.js                     ← window.__procedia_internal.registry — register/get/has for engine sub-modules
+│   │   ├── helpers.js                      ← helpers, findPathLayerUUID cache (memoized), resolveDynamicSchema, propagateDataValue
+│   │   ├── lifecycle.js                    ← Shared kind-dispatch — resolveNodeConnections, forEachHostingComp, buildLifecycleCommand, injectLayerUUID. Used by propagate.js AND undoManager/aeReconcile.js.
 │   │   ├── propagate.js                    ← propagateAlive, checkMatteActivation, firePathCreation
 │   │   ├── wires.js                        ← Wire connect/disconnect
 │   │   ├── nodes/
-│   │   │   ├── dropNode.js                 ← dropNode() — node creation
+│   │   │   ├── dropNode.js                 ← dropNode() — node creation + dynamic schema resolution
 │   │   │   ├── deleteNode.js               ← deleteNode(), deleteSelectedNodes()
-│   │   │   ├── duplicateNode.js            ← duplicateSelectedNodes()
+│   │   │   ├── duplicateNode.js            ← duplicateSelectedNodes() — dispatches onDrop for comp nodes
 │   │   │   ├── lockNode.js                 ← toggleLockSelectedNodes()
 │   │   │   ├── cloneNode.js                ← cloneNode() — deep copy
 │   │   │   ├── recreateNode.js             ← recreateNode() — error recovery
+│   │   │   ├── switchNodes.js              ← switchEffectors() — swaps two effector nodes and dispatches reorderEffectChain to re-align AE order
 │   │   │   └── index.js                    ← Aggregates into __e_nodes IIFE
-│   │   ├── state.js                        ← resetAll(), setNodeProperty()
-│   │   └── index.js                        ← Public API — aggregates all engine IIFEs
+│   │   ├── state.js                        ← resetAll(), setNodeProperty(), per-kind disable/enable dispatchers
+│   │   └── index.js                        ← Public API — resolves everything via registry.get(...)
 │   │
 │   ├── cascade/                            ← Ghost cascade algorithm (7 files: utils + cascadeGhost/5 + index)
 │   │   ├── utils.js                        ← hasCompDownstream, collectPathUpstream
@@ -1078,73 +1082,100 @@ procedia/
 │   │   └── index.js                        ← Aggregates into cascadeAlgorithm global
 │   │
 │   ├── cycleChecker.js                     ← hasCycle() — pure graph traversal
-│   ├── wireValidator/                      ← Wire type compatibility
+│   ├── wireValidator/                       ← Wire type compatibility
 │   │   ├── portUtils.js, matteValidator.js, canConnect.js, filterPickerList.js, index.js
 │   │
+│   ├── comment/                            ← Canvas comment system (5 files — split from old commentManager.js)
+│   │   ├── commentState.js                 ← window.__procedia_internal.cm state + COLORS palette
+│   │   ├── commentDOM.js                   ← _buildElement, _render, _remove, create, removeAll, load
+│   │   ├── commentColorPicker.js           ← Color popover UI
+│   │   ├── commentEvents.js                ← Drag/text handlers (uses viewport.getTransform().zoom)
+│   │   └── commentManager.js                ← Public `commentManager` API: init, create, remove, getAll, select, deselect, load, setColor, toggleCollapse, findByElement
+│   │
 │   ├── nodes/
-│   │   ├── loadNodes.js                    ← Dynamic script loader for 474 node definitions
-│   │   └── categories/                     ← 25 AE effect categories + Core/Layers/Data/Shapes/Effects/utility
-│   │       ├── Core/        Comp.js, Footage.js, Merge.js, Multimerge.js
-│   │       ├── Layers/      Text.js, Null.js, Shape.js, Adjustment.js
-│   │       ├── Data/        Color.js, Number.js
-│   │       ├── Shapes/      Rectangle.js
-│   │       ├── Effects/utility/     Blending.js, MatteLuma.js, MatteAlpha.js, Compander.js, GrowBounds.js, ...
-│   │       └── Blur & Sharpen/  3D Channel/  Audio/  Boris FX Mocha/  Channel/
-│   │           Color Correction/  Distort/  Expression Controls/  Generate/
-│   │           Immersive Video/  Keying/  Matte/  Noise & Grain/  obsolete/
-│   │           Perspective/  Simulation/  Stylize/  Text/  Time/  Transition/
-│   │           Uncategorized/  (474 total node files across all categories)
+│   │   ├── loadNodes.js                    ← Dynamic script loader for 25 non-effect node files + 22 effect-metadata category files
+│   │   ├── categories/
+│   │   │   ├── Core/        Comp.js, Footage.js, Merge.js, Multimerge.js
+│   │   │   ├── Data/        Color.js, Number.js, Expression.js
+│   │   │   ├── Layers/      Text.js, Null.js, Shape.js, Solid.js, Adjustment.js, Camera.js, Light.js
+│   │   │   ├── Shapes/      Rectangle.js, Ellipse.js, Star.js, Squircle.js, Gear.js, Wave.js, Flower.js, Polygon.js
+│   │   │   ├── Effects/utility/  Blending.js
+│   │   │   └── TrackMatte/  MatteLuma.js, MatteAlpha.js
+│   │   └── nodeMetadata/                   ← 22 effect-category metadata stubs (3DChannel, Audio, BlurSharpen, BorisFXMocha, Channel, ColorCorrection, Distort, ExpressionControls, Generate, ImmersiveVideo, Keying, Matte, NoiseGrain, obsolete, Perspective, Simulation, Stylize, Text, Time, Transition, Utility, Uncategorized)
 │   │
 │   ├── canvas/                             ← Canvas interaction & rendering (split into subdirs)
 │   │   ├── viewport.js                     ← Pan, zoom, coordinate transforms
-│   │   ├── renderer/                       ← 5 files (categories, helpers, builder, index, nodeToolbar)
-│   │   ├── input/                          ← 6 files (state, utils, rubberband, handlers/*, index)
+│   │   ├── renderer/                       ← 5 files (categories, helpers, builder, index, nodeToolbar) — nodeToolbar hosts the per-selection Save Preset button
+│   │   ├── input/                          ← handlers split into titleEdit/ (5), mouse/ (4), plus state, utils, rubberband, keyboard, wheel, index
 │   │   ├── minimap/                        ← 6 files (constants, state, utils, renderer, interaction, index)
-│   │   ├── drag/                            ← 4 files (helpers, hitTest, insert, preview)
+│   │   ├── drag/                           ← 4 files (helpers, hitTest, insert, preview)
 │   │
 │   ├── wire/                               ← Wire rendering & interaction
 │   │   ├── wireRenderer/                   ← 3 files (helpers, draw, render)
 │   │   └── wire.js                         ← Wire drag, commit, delete
 │   │
-│   ├── autoLayout/                         ← Sugiyama layered graph layout (7 files)
-│   │   ├── constants.js, estimateHeight.js, graphBuilder.js, layerAssignment.js,
+│   ├── autoLayout/                         ← Sugiyama layered graph layout (8 files)
+│   │   ├── constants.js, estimateHeight.js, layerAssignment.js,
 │   │   │   crossingReduction.js, positioning.js, index.js
+│   │   └── graphBuilder/                    ← 2 files (buildGraph, findComponents) — split from old graphBuilder.js
 │   │
-│   └── import/                             ← Project import module (5 files)
-│       ├── mapNodes/ (3 files), mapWires.js, stampUUIDs.js, builder.js, index.js
+│   └── import/                             ← Project Import module (rebuilt, 5 files)
+│       ├── scanner.js                      ← scanAll() — dispatches importScanComps / importScanFootage / importScanCompLayers
+│       ├── mapper.js                       ← map(rawData) — assigns PROC/WIRE UUIDs, builds stampMap (layers receive WIRE UUID), produces importJSON
+│       ├── graphBuilder/                    ← helpers.js + build.js (clearGraph + per-comp per-layer nodes + wires + parent wires + BlendingNode insertion for non-NORMAL blends; matte relationships not reconstructed)
+│       └── index.js                        ← importProject.start() — confirmation flow → scan → map → stamp UUIDs → build → ensureReservedComp → refreshUI + autoLayout
 │
 ├── ui/
-│   ├── nodeList/                           ← 5 files (categories, render, search, dragdrop, index)
+│   ├── scriptLoader.js                     ← Fetches data/scripts.json, document.write()s each entry. Single bootstrap.
+│   ├── refreshUI.js                        ← Unified refresh(opts) — replaces 5-component inline renders. Exposes window.__procedia_internal.refreshUI.
+│   ├── uiUpdateScheduler.js                ← RAF-batched scheduler for the 5 UI components. Exposes window.__procedia_internal._uiScheduler.
+│   ├── loadingOverlay.js                   ← Ref-counted overlay + spinner. show/hide/forceHide. Injects own CSS.
+│   ├── settings.js                         ← localStorage key/value store (procedia_settings).
+│   ├── compList.js                         ← Bottom-left comp dropdown — focusComp + setFilteredNodes view filter.
+│   ├── graphSearch.js                      ← Top-left node search icon/field — highlights matches; Focus button pans+selects.
+│   ├── tipField.js                         ← Rotating tip strip (7 tips, 20s cycle) between compList and minimap.
+│   ├── statusBar.js, sidebarToggle.js
+│   ├── nodeList/                           ← 5 files (categories, render, search, dragdrop, index) — rebuildList for dynamic Presets category
 │   ├── nodePicker/                         ← 5 files (compatibility, render, filter, events, index)
-│   ├── inspector/                          ← 5 files (viewModel, render, colorPicker, events, index)
-│   ├── topBar.js, statusBar.js
-│   ├── settings.js, settingsModal/
-│   ├── sidebarToggle.js
-│   └── refreshUI.js                        ← Unified refresh(opts) — replaces 5-component inline renders
-│
-├── uiUpdateScheduler.js                    ← RAF-batched UI refresh scheduler
+│   ├── inspector/                          ← 6 files: viewModel, render, colorPicker, events, layerStack (comp stack view), index
+│   ├── settingsModal/                      ← 5 files (dom, events, sync, apply, index) — three-tab UI (General/Wires/Auto Layout)
+│   ├── presetModal/                        ← 3 files (dom, events, index) — Save Preset modal opened from node-toolbar Save Preset button
+│   ├── walkthrough/                        ← 6 files (steps, dom, render, nav, events, index) — 8-step onboarding overlay
+│   └── topBar/                             ← 5 files (collapse, selection, io w/ browser fallbacks, init, index)
 │
 ├── flush/          dirtyFlusher.js
-├── polling/        missingNodes.js, notifications.js, externalDeletions.js, poller.js
+├── polling/        missingNodes.js, notifications.js, externalDeletions.js, propertyPoller.js, poller.js
 ├── notifications/  notificationBar.js
+├── reporting/      envSnapshot.js, reporter.js  ← Sentry + html2canvas wiring; bug-report form
 ├── bridge/         evalBridge.js
-├── data/           uuidGenerator.js, deepClone.js, effectSchemaCache.json, effectsCatalog.json, graphExport.json
-├── lib/            CSInterface.js
-├── css/            13 stylesheets
+├── data/           uuidGenerator.js, deepClone.js, effectSchemaCache.json, effectsCatalog.json, graphExport.json, scripts.json
+├── lib/            CSInterface.js, sentry.bundle.min.js, html2canvas.min.js
+├── css/            20 stylesheets (tokens, base, topBar, leftBar, rightBar, canvas, node, settingsModal, nodePicker, notificationBar, compList, graphSearch, tipField, colorPicker, layerStack, keyframe, walkthrough, comment, presetModal, + tabler-icons)
 ├── fonts/          tabler-icons (ttf, woff, woff2)
 │
 └── jsx/                                    ← ExtendScript (ES3 strict)
     ├── json.jsx                            ← JSON polyfill (MUST be first)
-    ├── utils.jsx                           ← Shared AE lookup utilities
-    ├── persistence.jsx                     ← Graph read/write with chunking
+    ├── utils.jsx                           ← Shared AE lookup utilities (findCompByUUID, findLayerByUUID, findReservedComp, …)
+    ├── persistence.jsx                     ← Graph read/write with chunking (round-trips keyframe-state snapshot)
     └── dispatcher/
-        ├── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER — routes to handlers
-        ├── actions_schema.jsx, actions_comp.jsx, actions_layer.jsx,
-        │   actions_keyframe.jsx, actions_property.jsx, actions_park.jsx,
-        │   actions_matte.jsx, actionEffect/ (4 files), actions_footage.jsx,
-        │   actionImport/ (3 files), actionKeyframe/ (6 files),
-        │   actions_graphExport.jsx
-        └── tools/buildEffectsCatalog.jsx   ← Standalone utility
+        ├── dispatcher.jsx                  ← THE ONLY EXTENDSCRIPT WRITER — _route() switchboard for ~89 actions + beginUndoGroup/endUndoGroup
+        │   (15 barrel files at top level + 4 subdirectories of split handlers):
+        ├── actions_schema.jsx              ← readSchemaCache, writeSchemaCache, getAEVersion, readGraph, writeGraph, writeTextFile
+        ├── actions_comp.jsx                ← createComp, deleteComp, setCompProperty, focusComp, getProjectIdentifier, ensureReservedComp, saveAsDialog
+        ├── actions_compList.jsx            ← listComps, focusCompByName
+        ├── actions_layer.jsx               ← barrel for actionLayer/ subdirectory (22 files — 14 create*Layer + addCompAsLayer + deletePathLayer + renameNode + setLayerEnabled + setLayerShy + setCompHideShyLayers + restampLayer)
+        ├── actions_property.jsx            ← setLayerProperty, clearLayerParent, setLayerParent, setLayerOrder, moveLayerBefore, setBlendingMode
+        ├── actions_propertyGet.jsx         ← batchGetLayerProperties — drives propertyPoller
+        ├── actions_masks.jsx               ← getMasksForLayer
+        ├── actions_park.jsx                ← parkLayer, unparkLayer, deleteParkedLayer, pollAliveNodes, pollExternalDeletions
+        ├── actions_matte.jsx               ← setLumaMatte, setAlphaMatte, clearMatte
+        ├── actions_footage.jsx             ← browseAndImportFootage, createFootageLayer, deleteFootageItem
+        ├── actions_keyframe.jsx            ← barrel for actionKeyframe/ subdirectory (6 files: shared, add, remove, times, currentTime, data)
+        ├── actions_import.jsx              ← barrel for actionImport/ subdirectory (4 files: scanComps, scanFootage, scanCompLayers, stampUUIDs)
+        ├── actions_graphExport.jsx         ← writeGraphExport, saveGraphToFile, openGraphFile
+        ├── actions_cmdChunk.jsx            ← writeCmdChunk, executeCmdFile, cleanupCmdFile (internal: large-command chunking)
+        └── actionEffect/                   ← 6 files: apply.jsx (barrel→applyActionEffect/), introspect.jsx, pollAlive.jsx, batchGetEffectProperties.jsx, setExpression.jsx, buildCatalog.jsx (enumerateAllEffects + buildFullEffectCatalog)
+            └── applyActionEffect/          ← 8 files: findPropByMatchName, applyDynamicEffect, removeEffect, setEffectProperty, setEffectEnabled, reorderEffect, reorderEffectChain, renameEffect
 ```
 
 ---
@@ -1165,9 +1196,9 @@ These apply to every task, every file, without exception.
 
 6. **`graph/engine/` contains zero node-type conditionals.** No `if (node.type === 'CompNode')`, no `switch(nodeKind)`.
 
-7. **Adding a new node touches one file only** — the node definition file — plus adding its `<script>` tag to `index.html`. If any other file needs editing, stop and reconsider the design.
+7. **Adding a new node touches one file only** — the node definition file — plus adding its `<script>` line to `graph/nodes/loadNodes.js` (for non-effect nodes) and its path to `data/scripts.json` (for every new file.) If any other file needs editing, stop and reconsider the design.
 
-8. **Exception to rule 7:** If the new node needs an AE action that doesn't exist yet, add one handler function to `dispatcher.jsx`. This is the only acceptable second file.
+8. **Exception to rule 7:** If the new node needs an AE action that doesn't exist yet, add one handler function to `dispatcher.jsx` (or its subdirectory under the barrel pattern) and add its name to the `_ALLOWED_ACTIONS` whitelist in `bridge/evalBridge.js`. This is the only acceptable second file.
 
 9. **Ghost cascade never traverses `parent` or `data` wires.** These wire types are explicitly skipped in `cascadeAlgorithm.js`.
 
@@ -1194,6 +1225,10 @@ These apply to every task, every file, without exception.
 20. **AE layer stacking is 1-based. `layerOrder` in panel is 0-based.** Index 0 = AE layer 1 (top). Reorder using `moveToBeginning()` from bottom to top.
 
 21. **One task, one verification, one stop.** Never chain tasks without explicit developer confirmation.
+
+22. **Load-order truth is `data/scripts.json`.** Add every new panel-side file's path there. `index.html` only loads CSInterface + Sentry + html2canvas + `reporting/*` + `ui/scriptLoader.js`. Never add a per-file `<script>` tag for first-party panel code to `index.html`.
+
+23. **Undo capture/commit is per-mutation-site.** The engine does not auto-snapshot. Any code path that mutates `graphState` for a user-visible operation must wrap the change in `undoManager.capture()` → ... → `undoManager.commit(description)` (or `commitDebounced`).
 
 ---
 

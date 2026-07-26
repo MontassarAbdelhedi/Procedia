@@ -50,7 +50,12 @@ var evalBridge = (function() {
     'getProjectIdentifier': true,
     'enumerateAllEffects': true,
     'buildFullEffectCatalog': true,
-    'writeTextFile': true
+    'writeTextFile': true,
+    'importScanComps': true,
+    'importScanFootage': true,
+    'importScanCompLayers': true,
+    'stampImportUUIDs': true,
+    'saveAsDialog': true
   };
   var _MAX_PARAMS_DEPTH = 6;
 
@@ -252,6 +257,7 @@ var evalBridge = (function() {
       '/jsx/dispatcher/actions_cmdChunk.jsx',
       '/jsx/dispatcher/actions_compList.jsx',
       '/jsx/dispatcher/actions_graphExport.jsx',
+      '/jsx/dispatcher/actions_import.jsx',
       '/jsx/dispatcher/dispatcher.jsx'
     ];
     _loadFilesSequentially(extPath, files, 0, attempt);

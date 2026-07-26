@@ -3,7 +3,7 @@
 **Date:** 2026-07-08  
 **Version:** 0.0.4  
 **Extension ID:** `com.uppercut.procedia`  
-**Total Source Files:** ~700+ (JS: ~130 core, ~474 node defs, JSX: ~40, CSS: 18)  
+**Total Source Files:** ~700+ (core JS: ~180 in `data/scripts.json`, effect stubs: 460+ across 22 metadata categories + 25 on-disk non-effect node files, JSX: ~50 in `jsx/dispatcher/` barrels + `action*/` subdirs, CSS: 20 stylesheets)  
 
 ---
 
@@ -310,13 +310,13 @@ Semantic versioning in `manifest.xml`. The extension and bundle versions match (
 ## RESOLVED HIGHLIGHTS
 
 All 6 P0 (100%) and 14 of 16 P1 (88%) resolved. Key wins:
-- 🔒 **Security**: evalBridge whitelist (64 actions), CEF flags, no eval in json.jsx
-- ⚡ **Performance**: tempGraph dirty deferral, RAF scheduler, batchUpdateNodes, deepClone utility
-- 🧱 **Architecture**: lifecycle shared module, refreshUI unified, DI registry, closure scope for keyframeState
-- 🧪 **Testing**: 48 vitest tests, JSX test harness with mock handlers
-- 📦 **Dependencies**: Sentry + html2canvas vendored, package.json added
-- 🏗️ **Script loading**: scripts.json manifest (148 files) replaces fragile index.html list
-- 🧼 **Layering**: undo removed from graphState, UI refresh decoupled from engine, namespace isolation  
+- 🔒 **Security**: evalBridge whitelist (~89 actions; 64 cited at audit time, now ~89 as of this revision), CEF flags, no eval in json.jsx
+- ⚡ **Performance**: tempGraph dirty deferral, RAF scheduler (`ui/uiUpdateScheduler.js`), `batchUpdateNodes`, `deepClone` utility
+- 🧱 **Architecture**: lifecycle shared module, `refreshUI` unified, DI registry (`graph/engine/registry.js`), closure scope for `keyframeState`
+- 🧪 **Testing**: 48 vitest tests, JSX test harness with mock handlers (`tests/jsxSetup.js`)
+- 📦 **Dependencies**: Sentry + html2canvas vendored (SRI-pinned), `package.json` added
+- 🏗️ **Script loading**: `data/scripts.json` manifest (161 entries as of this revision) replaces the fragile in-`index.html` script-tag list. `index.html` itself only loads CSInterface + the error-reporting stack + `ui/scriptLoader.js`.
+- 🧼 **Layering**: undo removed from `graphState`, UI refresh decoupled from engine, `__procedia_internal.*` namespace isolation across engine + undoManager + comment + compList modules  
 
 ---
 

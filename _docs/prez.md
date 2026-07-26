@@ -75,7 +75,7 @@ User Action (drag, connect, edit)
 
 
 
-## Node System — 474+ Definitions
+## Node System — 25 on-disk non-effect nodes + 460+ effect stubs
 
 
 
@@ -84,14 +84,14 @@ User Action (drag, connect, edit)
 
 | Kind         | Role                                                                     |
 | ------------ | ------------------------------------------------------------------------ |
-| **Affected** | Creates/owns an AE layer (Text, Null, Shape, Adjustment, Comp)           |
-| **Effector** | Applies an AE effect to an upstream layer (Blur, Fill, DropShadow, etc.) |
-| **Data**     | Outputs pure values (Color, Number, Slider, Angle)                       |
+| **Affected** | Creates/owns an AE layer (Text, Null, Shape, Solid, Adjustment, Camera, Light, Polygon, …) |
+| **Effector** | Applies an AE effect to an upstream layer (Blur, Fill, DropShadow, …)   |
+| **Data**     | Outputs pure values (Color, Number, Expression)                          |
 | **Blending** | Applies AE blending modes                                                |
 | **Matte**    | Applies luma/alpha matte relationships                                   |
 
 
-Covering **25+ AE effect categories** — Blur & Sharpen, Color Correction, Distort, Generate, Keying, Matte, Perspective, Simulation, Stylize, Text, Time, Transition, Audio, 3D Channel, and more.
+Covering **22 effect metadata categories** — Blur & Sharpen, Color Correction, Distort, Generate, Keying, Matte, Perspective, Simulation, Stylize, Text, Time, Transition, Audio, 3D Channel, Channel, Boris FX Mocha, Expression Controls, Immersive Video, Noise & Grain, obsolete, Uncategorized, Utility. Each effect node is factory-generated at runtime from its metadata stub via **`graph/engine/effectNodeFactory.js`** before first drop.
 
 ---
 
@@ -120,11 +120,17 @@ Cycle detection · Port type matching · Wire insertion (drop a node onto a wire
 - **Inspector Panel** — Edit properties: numbers, booleans, colors, enums, vectors, strings
 - **Auto Layout** — Sugiyama-style layered graph layout
 - **AE Project Import** — One-click import of entire projects
-- **Keyframe Sync** — Bidirectional synchronization with AE
-- **Undo/Redo** — Full history for graph operations
-- **Auto-Save** — Debounced continuous save to AE
+- **Keyframe Sync** — Bidirectional synchronization with AE (per-param keyframe state + playhead time, persisted across reloads)
+- **Undo/Redo** — Full-history graph undo with AE reconciliation + two-phase restore + 50-entry stack
+- **Auto-Save** — Debounced continuous save to AE (`fireAndForget` on unload persists graph + keyframe snapshot)
 - **Graph Search** — Find and highlight nodes instantly
 - **Interactive Tutorial** — 8-step onboarding walkthrough
+- **Canvas Comments** — Sticky-note annotations on the canvas (CMT-UUID, color swatches, collapse/expand)
+- **Presets** — Save a selection as a reusable Preset node via the node-toolbar button; dynamic Presets palette category
+- **Comp List & View Filtering** — Bottom-left comp dropdown; select a comp to filter the canvas to its upstream set
+- **Auto-Shy** — Optionally shy other affected layers in the timeline when you select a node
+- **Property Poller** — Two-way sync: external AE edits (keyframes, transforms, effect params) flow back into the panel automatically
+- **Error Reporting** — Sentry + html2canvas auto-screenshot bug-report stack
 
 ---
 
@@ -163,17 +169,17 @@ Ghost ──► Alive ──► Error
 
 | Layer              | Technology                                  |
 | ------------------ | ------------------------------------------- |
-| **Platform**       | Adobe CEP v11.0 (Chromium)                  |
+| **Platform**       | Adobe CEP (Chromium) — CSXS 9.0 manifest install range, AE 16.0+ supported for install · tested target AE 2025+          |
 | **Panel**          | HTML5 + CSS3 + JavaScript (vanilla)         |
-| **AE Bridge**      | ExtendScript via `CSInterface.evalScript()` |
-| **Target**         | After Effects 2025+                         |
+| **AE Bridge**      | ExtendScript (strict ES3) via `CSInterface.evalScript()` — `evalBridge` whitelist + 10 s hard timeout + transparent large-command chunking + retry |
+| **Target**         | After Effects 2025+ supported; manifest HostList AE 16.0–99.9 |
 | **Testing**        | Vitest + jsdom                              |
-| **Error Tracking** | Sentry + html2canvas (auto screenshots)     |
+| **Error Tracking** | Sentry + html2canvas (auto screenshots, SRI-pinned, vendored) |
 | **Icons**          | Tabler Icons                                |
 | **License**        | MIT                                         |
 
 
-121+ files, zero bundler — plain `<script>` tags loaded in order.
+161+ panel-side files in `data/scripts.json` + ~50 ExtendScript handler files, zero bundler — `ui/scriptLoader.js` reads the manifest and `document.write`s each entry.
 
 ---
 

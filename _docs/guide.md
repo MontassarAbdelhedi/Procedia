@@ -118,6 +118,33 @@ Select node(s) and press **Delete** or **Backspace**, or click the Delete button
 
 Hover over a node to reveal a floating toolbar above it with color swatches. Click a color to change the node's accent color for visual organization.
 
+The toolbar also exposes quick actions — Clone, Duplicate, Color, Collapse, Disable/Enable, Switch, and Delete — plus a **Save Preset** button (visible only when at least one node is selected). See [Presets](#presets) below.
+
+### Canvas Comments
+
+Double-click on **empty canvas** (not on a node or wire) to create a sticky-note comment. Each comment is just panel-side canvas annotation — it has no presence in After Effects and stays with the graph when you save.
+
+- **Edit text** by clicking the textarea body.
+- **Drag** by the comment header to reposition. Drag deltas are scaled by the current zoom level so the comment follows the pointer.
+- **Color** with the swatch button in the comment header — opens a small color picker popover.
+- **Collapse** the body with the chevron when you need more canvas space.
+- **Delete** with the trash icon — comments are removed from the canvas only.
+
+Comments have their own `CMT-` UUID format and are persisted alongside the `nodeMap`/`wireMap` payload. Clearing the graph (Reset) clears comments too.
+
+### Presets
+
+A **preset** packages a selection of nodes (and the wires connecting them) into a reusable, droppable unit, so you can stamp a recurring sub-graph — like a 3-light setup with aLuma Matte — into any project in one motion.
+
+1. **Select** the nodes you want to capture (one or more).
+2. The floating **node toolbar** appears above the selection with a **Save Preset** button (the disk icon). Click it.
+3. In the Save Preset modal, type a name. If a preset with the same name exists, the hint will warn that the existing preset will be overwritten. Press **Enter** or click **Save** to commit, or **Escape** / **Cancel** to abort.
+4. **Delete All** in the modal clears every saved preset after a confirm.
+
+Saved presets appear in the **Node Palette** under a new **Presets** category. Drag a preset to the canvas like any other node — Procedia clones its nodes with fresh UUIDs, wires them together, and propagates `alive` state automatically. The drop wraps itself in one undo entry, so `Ctrl+Z` undoes the whole preset-placement in one stroke.
+
+Presets persist in `localStorage['procedia_presets']` — they are per-browser, not per-AE project.
+
 ---
 
 

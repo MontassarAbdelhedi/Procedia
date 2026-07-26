@@ -3,7 +3,7 @@
  * REQUIRES: json.jsx, utils.jsx
  * Load BEFORE: dispatcher.jsx (functions become globals for _handlers map)
  * Exports: _handleReadSchemaCache, _handleWriteSchemaCache, _handleGetAEVersion,
- *          _handleReadGraph, _handleWriteGraph
+ *          _handleReadGraph, _handleWriteGraph, _handleWriteTextFile
  */
 // actions_schema.jsx — Schema cache, persistence & version action handlers (ES3-safe)
 // REQUIRES: json.jsx, utils.jsx
@@ -104,4 +104,34 @@ function _handleWriteGraph(cmd) {
   var params = _cmdParams(cmd);
   if (!params.nodes) return { ok: false, data: null, error: 'writeGraph: params required' };
   return PERSISTENCE.writeGraph(params);
+}
+
+/**
+ * Writes a text file to the plugin directory.
+ * @param {Object} cmd Command with params: path (relative from plugin root), content.
+ * @return {Object} Result with .ok, .error.
+ */
+function _handleWriteTextFile(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var params = _cmdParams(cmd);
+    if (!params.path || typeof params.path !== 'string') {
+      result.error = 'writeTextFile: path required';
+      return result;
+    }
+    if (params.content === undefined || params.content === null) {
+      result.error = 'writeTextFile: content required';
+      return result;
+    }
+    var filePath = _pluginRootFolder().fsName + '/' + params.path;
+    var f = new File(filePath);
+    f.open('w');
+    f.write(params.content);
+    f.close();
+    result.ok = true;
+    result.data = { written: filePath };
+  } catch (e) {
+    result.error = e.toString();
+  }
+  return result;
 }

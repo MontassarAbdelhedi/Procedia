@@ -121,6 +121,12 @@ var _handlers = {
   'writeTextFile':          _handleWriteTextFile
 };
 
+_handlers['importScanComps'] = _handleImportScanComps;
+_handlers['importScanFootage'] = _handleImportScanFootage;
+_handlers['importScanCompLayers'] = _handleImportScanCompLayers;
+_handlers['stampImportUUIDs'] = _handleStampImportUUIDs;
+_handlers['saveAsDialog'] = _handleSaveAsDialog;
+
 _handlers['getProjectIdentifier'] = _handleGetProjectIdentifier;
 _handlers['beginUndoGroup'] = _handleBeginUndoGroup;
 _handlers['endUndoGroup'] = _handleEndUndoGroup;

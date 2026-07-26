@@ -16,7 +16,8 @@ loadGlobalScript('graph/cycleChecker.js');
 
 loadGlobalScript('graph/autoLayout/constants.js');
 loadGlobalScript('graph/autoLayout/estimateHeight.js');
-loadGlobalScript('graph/autoLayout/graphBuilder.js');
+loadGlobalScript('graph/autoLayout/graphBuilder/buildGraph.js');
+loadGlobalScript('graph/autoLayout/graphBuilder/findComponents.js');
 loadGlobalScript('graph/autoLayout/layerAssignment.js');
 loadGlobalScript('graph/autoLayout/crossingReduction.js');
 loadGlobalScript('graph/autoLayout/positioning.js');

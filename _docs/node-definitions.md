@@ -285,6 +285,8 @@ All data nodes are **always alive** from drop until delete. All lifecycle hooks 
 
 All effector nodes declare `params: 'dynamic'`. Individual effect properties are resolved from the schema cache at runtime. No hardcoded parameter lists.
 
+> **Factory pattern (since v4):** Effect node definitions are **not** authored as files on disk. They are generated on-the-fly by `graph/engine/effectNodeFactory.js` from metadata stubs in `graph/nodeMetadata/` (22 metadata category files). Each stub is a JSON-describing map keyed by `type`. The factory's `upgradeStub(stub)` returns a fully-formed node definition with the canonical ports (`main_input`, `output`), `params: 'dynamic'`, a `getParams(nodeData)` reader over `nodeData.dynamicSchema.properties`, and the canonical lifecycle hooks that only differ in the `matchName` they reference. Drop-time introspection fills in `dynamicSchema`. Everything downstream (inspector rendering, dirty-flush, schema cache) reads from the runtime-resolved schema, not from the stub.
+
 **Canonical effector port contract (non-negotiable):**
 ```
 ports: [
@@ -311,7 +313,7 @@ All effector hooks receive `upstreamNodeUUID` as the 3rd argument (the terminal 
 |---|---|
 | `type` | `blur-sharpen/fill` |
 | `matchName` | `ADBE Fill` |
-| File | `graph/nodes/effects/Blur & Sharpen/FillEffect.js` |
+| File | _(none — generated from `graph/nodeMetadata/BlurSharpen.js`)_ |
 
 ### GaussianBlurNode (`blur-sharpen/gaussian-blur`)
 
@@ -319,7 +321,7 @@ All effector hooks receive `upstreamNodeUUID` as the 3rd argument (the terminal 
 |---|---|
 | `type` | `blur-sharpen/gaussian-blur` |
 | `matchName` | `ADBE Gaussian Blur` |
-| File | `graph/nodes/effects/Blur & Sharpen/GaussianBlur.js` |
+| File | _(none — generated from `graph/nodeMetadata/BlurSharpen.js`)_ |
 
 ### DropShadowNode (`blur-sharpen/drop-shadow`)
 
@@ -327,9 +329,9 @@ All effector hooks receive `upstreamNodeUUID` as the 3rd argument (the terminal 
 |---|---|
 | `type` | `blur-sharpen/drop-shadow` |
 | `matchName` | `ADBE Drop Shadow` |
-| File | `graph/nodes/effects/Blur & Sharpen/DropShadow.js` |
+| File | _(none — generated from `graph/nodeMetadata/Blur & Sharpen`)_ |
 
-There are ~450+ additional effector node files across 23 effect categories (3D Channel, Audio, Channel, Color Correction, Distort, Expression Controls, Generate, Immersive Video, Keying, Matte, Noise & Grain, obsolete, Perspective, Simulation, Stylize, Text, Time, Transition, Uncategorized, etc.) — all following the same effector pattern with `nodeKind: 'effector'`, `params: 'dynamic'`, and a unique `matchName`.
+There are 460+ additional effector stubs across 22 effect metadata categories (3D Channel, Audio, Blur & Sharpen, Boris FX Mocha, Channel, Color Correction, Distort, Expression Controls, Generate, Immersive Video, Keying, Matte, Noise & Grain, obsolete, Perspective, Simulation, Stylize, Text, Time, Transition, Uncategorized, Utility) — all following the same effector pattern with `nodeKind: 'effector'`, `params: 'dynamic'`, and a unique `matchName`. Several obsolete/Uncategorized stubs may not introspect cleanly in newer AE versions; behavior degrades to "no inspector params" if introspection fails.
 
 ---
 
@@ -366,22 +368,23 @@ Always alive from drop. No ghost/park cycle. Applies an AE blending mode to the 
 
 ## Matte / Effector Nodes
 
-Two matte variants exist. On disk they are declared as `nodeKind: 'effector'` (not `nodeKind: 'matte'`).
+Two matte variants exist. On disk they are declared as `nodeKind: 'matte'` (the contract type-level constant). Both share the same ports and parameters; they differ only in the AE `TrackMatteType` enum their dispatcher action sets.
 
 ### MatteLumaNode (`utility/matte-luma`)
 
 | Property | Value |
 |---|---|
 | `type` | `utility/matte-luma` |
-| `nodeKind` | `effector` |
+| `nodeKind` | `matte` |
 | `dedicated` | `false` |
-| File | `graph/nodes/effects/utility/MatteLuma.js` |
+| File | `graph/nodes/categories/TrackMatte/MatteLuma.js` |
 
 **Ports:**
-| id | category | type | required |
-|---|---|---|---|
-| `main_input` | `mainInput` | `layer` | `true` |
-| `output` | `output` | `layer` | — |
+| id | category | type | required | label |
+|---|---|---|---|---|
+| `top_layer` | `mainInput` | `layer` | `true` | Foreground |
+| `matte_layer` | `secondaryInput` | `layer` | `true` | Matte |
+| `output` | `output` | `layer` | — | — |
 
 **Params:**
 | key | type | default | label |
@@ -393,10 +396,10 @@ Two matte variants exist. On disk they are declared as `nodeKind: 'effector'` (n
 | Hook | Returns | Action |
 |---|---|---|
 | `onDrop` | `null` | — |
-| `onAlive` | Command | `setLumaMatte` — applies luma matte from upstream layer |
+| `onAlive` | Command | `setLumaMatte` — applies luma matte; reorders layers so the matte is directly above the top layer |
 | `onGhost` | Command | `clearMatte` — clears the matte |
 | `onDelete` | `null` | — |
-| `onPropertyChange` | Command | `setLayerProperty` |
+| `onPropertyChange` | Command | `setLumaMatte` (only on `invert`) — otherwise `null` |
 
 ---
 
@@ -405,11 +408,11 @@ Two matte variants exist. On disk they are declared as `nodeKind: 'effector'` (n
 | Property | Value |
 |---|---|
 | `type` | `utility/matte-alpha` |
-| `nodeKind` | `effector` |
+| `nodeKind` | `matte` |
 | `dedicated` | `false` |
-| File | `graph/nodes/effects/utility/MatteAlpha.js` |
+| File | `graph/nodes/categories/TrackMatte/MatteAlpha.js` |
 
-**Ports:** Same as MatteLumaNode (main_input + output)
+**Ports:** Same as MatteLumaNode (top_layer + matte_layer + output)
 
 **Params:**
 | key | type | default | label |
@@ -437,6 +440,44 @@ Two matte variants exist. On disk they are declared as `nodeKind: 'effector'` (n
 | `BlendingNode` | `false` | — |
 
 Creation order for `dedicated: true` nodes: create the AE project object FIRST, then add as a layer to the hosting comp SECOND.
+
+---
+
+## Node Inventory (25 Non-Effect Files)
+
+Non-effect node files live on disk under `graph/nodes/categories/` and are loaded by `graph/nodes/loadNodes.js` via `document.write()`. Effect nodes are NOT in this list — they are factory-generated from `graph/nodeMetadata/` (22 stubs, see the Effector section above).
+
+| Node | `type` | File | `nodeKind` | `dedicated` | AE Project Object |
+|---|---|---|---|---|---|
+| CompNode | `core/comp` | `graph/nodes/categories/Core/Comp.js` | `affected` | `true` | `CompItem` |
+| FootageNode | `core/footage` | `graph/nodes/categories/Core/Footage.js` | `affected` | `true` | `FootageItem` |
+| MergeNode | `core/merge` | `graph/nodes/categories/Core/Merge.js` | `affected` | — | — |
+| MultimergeNode | `core/multimerge` | `graph/nodes/categories/Core/Multimerge.js` | `affected` | — | — |
+| ColorNode | `data/color` | `graph/nodes/categories/Data/Color.js` | `data` | `false` | — |
+| NumberNode | `data/number` | `graph/nodes/categories/Data/Number.js` | `data` | `false` | — |
+| ExpressionNode | `data/expression` | `graph/nodes/categories/Data/Expression.js` | `data` | `false` | — |
+| TextNode | `layers/text` | `graph/nodes/categories/Layers/Text.js` | `affected` | `false` | — |
+| NullNode | `layers/null` | `graph/nodes/categories/Layers/Null.js` | `affected` | `true` | `FootageItem` (solid) |
+| ShapeNode | `layers/shape` | `graph/nodes/categories/Layers/Shape.js` | `affected` | `true` | `FootageItem` (solid) |
+| SolidNode | `layers/solid` | `graph/nodes/categories/Layers/Solid.js` | `affected` | `true` | `FootageItem` (solid) |
+| AdjustmentNode | `layers/adjustment` | `graph/nodes/categories/Layers/Adjustment.js` | `affected` | `true` | `FootageItem` (solid) |
+| CameraNode | `layers/camera` | `graph/nodes/categories/Layers/Camera.js` | `affected` | `false` | — |
+| LightNode | `layers/light` | `graph/nodes/categories/Layers/Light.js` | `affected` | `false` | — |
+| RectangleNode | `shapes/rectangle` | `graph/nodes/categories/Shapes/Rectangle.js` | `affected` | — | — |
+| EllipseNode | `shapes/ellipse` | `graph/nodes/categories/Shapes/Ellipse.js` | `affected` | — | — |
+| StarNode | `shapes/star` | `graph/nodes/categories/Shapes/Star.js` | `affected` | — | — |
+| SquircleNode | `shapes/squircle` | `graph/nodes/categories/Shapes/Squircle.js` | `affected` | — | — |
+| GearNode | `shapes/gear` | `graph/nodes/categories/Shapes/Gear.js` | `affected` | — | — |
+| WaveNode | `shapes/wave` | `graph/nodes/categories/Shapes/Wave.js` | `affected` | — | — |
+| FlowerNode | `shapes/flower` | `graph/nodes/categories/Shapes/Flower.js` | `affected` | — | — |
+| PolygonNode | `shapes/polygon` | `graph/nodes/categories/Shapes/Polygon.js` | `affected` | — | — |
+| BlendingNode | `utility/blending` | `graph/nodes/categories/Effects/utility/Blending.js` | `blending` | `false` | — |
+| MatteAlphaNode | `utility/matte-alpha` | `graph/nodes/categories/TrackMatte/MatteAlpha.js` | `matte` | `false` | — |
+| MatteLumaNode | `utility/matte-luma` | `graph/nodes/categories/TrackMatte/MatteLuma.js` | `matte` | `false` | — |
+
+> **Shape nodes** dispatch `create{Rectangle|Ellipse|Star|Squircle|Gear|Wave|Flower|Polygon}Layer` actions and **recreate the shape on every property change** that touches geometry (`points`, `radii`, `roundness`, `fill`, etc.) rather than mutating a single shape path entry — this sidesteps AE's `PathGroup` quirks. Translation-only property changes go through `setLayerProperty`.
+
+> **Camera/Light nodes** have `dedicated: false` because AE creates the corresponding `CameraLayer` / `LightLayer` object at the layer-add call (`comp.layers.addCamera()` / `addLight()`) — no separate `FootageItem` project item is created.
 
 ---
 

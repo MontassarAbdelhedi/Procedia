@@ -8,7 +8,8 @@
  * Sub-modules (load in order):
  *   graph/autoLayout/constants.js
  *   graph/autoLayout/estimateHeight.js
- *   graph/autoLayout/graphBuilder.js
+ *   graph/autoLayout/graphBuilder/buildGraph.js
+ *   graph/autoLayout/graphBuilder/findComponents.js
  *   graph/autoLayout/layerAssignment.js
  *   graph/autoLayout/crossingReduction.js
  *   graph/autoLayout/positioning.js

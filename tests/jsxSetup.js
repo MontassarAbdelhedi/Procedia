@@ -29,7 +29,8 @@ var _handlerNames = [
   'batchGetKeyframeTimes', 'getKeyframeData', 'writeCmdChunk',
   'executeCmdFile', 'cleanupCmdFile', 'enumerateAllEffects',
   'buildFullEffectCatalog', 'writeTextFile', 'getProjectIdentifier',
-  'beginUndoGroup', 'endUndoGroup'
+  'beginUndoGroup', 'endUndoGroup', 'importScanComps', 'importScanFootage',
+  'importScanCompLayers', 'stampImportUUIDs', 'saveAsDialog'
 ];
 
 _handlerNames.forEach(function(name) {

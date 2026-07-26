@@ -78,17 +78,15 @@
 
 ## AE Communication Bridge
 
-**Bridge**: Eval Bridge: Single gateway rule for all AE ExtendScript communication with dispatch (promise with 10s timeout), batch dispatch, fire-and-forget, action validation whitelist (100+ allowed actions), JSX preamble system, on-ready callbacks, and command chunking for reliable AE communication.
+**Bridge**: Eval Bridge: Single gateway rule for all AE ExtendScript communication with dispatch (promise with 10s timeout), batch dispatch, fire-and-forget, action validation whitelist (~89 allowed actions across 15 barrel files + 4 subdirectories), JSX preamble system, on-ready callbacks, and command chunking for reliable AE communication.
 
-**Bridge**: ExtendScript Dispatcher: 30+ specialized action handlers across comp, layer, effect, mask, keyframe, footage, matte, schema cache, graph export, and undo group operations.
+**Bridge**: ExtendScript Dispatcher: 50+ specialized action handlers across comp, compList, layer, property, propertyGet, masks, park, matte, footage, keyframe, effect (applyDynamicEffect/removeEffect/setEffectProperty/renameEffect/setEffectEnabled/reorderEffect/reorderEffectChain/setExpression), schema cache, graph export, import-scan, cmd-chunk, and undo group operations.
 
-**Bridge**: Comp Actions: Create, delete, list, focus, and set properties of After Effects compositions.
+**Bridge**: Comp Actions: Create, delete, list, focus, focus-by-name, save-with-dialog, and set properties of After Effects compositions; project-identifier reader.
 
-**Bridge**: Layer Actions: Create text, null, adjustment, shape, rectangle, ellipse, star, squircle, gear, wave, and flower layers; set layer properties, parenting, and stacking order; rename, enable/disable, delete, and restamp layers.
+**Bridge**: Layer Actions: Create text, null, adjustment, shape, solid, camera, light, rectangle, ellipse, star, squircle, gear, wave, flower, and polygon layers; set layer properties, parenting, and stacking order; rename, enable/disable, shy, delete, and restamp layers.
 
-**Bridge**: Effect Actions: Apply, remove, rename, reorder, enable/disable effects, and set effect properties dynamically.
-
-**Bridge**: Mask Actions: Create masks, set feather, expansion, opacity, inverted state, mode, and delete masks.
+**Bridge**: Effect Actions: Apply, remove, rename, reorder, reorder-chain, enable/disable effects, set effect properties dynamically, and set expression strings.
 
 **Bridge**: Keyframe Actions: Batch get/set/remove keyframes on any property with full AE integration.
 
@@ -188,7 +186,7 @@
 
 **Nodes**: Utility Nodes: Blending mode node for layer blending control.
 
-**Nodes**: Effect Nodes: 800+ AE effect types registered as stubs across 21 categories including 3D Channel, Audio, Blur & Sharpen, Boris FX Mocha, Channel, Color Correction, Distort, Expression Controls, Generate, Immersive Video, Keying, Matte, Noise & Grain, Perspective, Simulation, Stylize, Text, Time, Transition, Utility, and Uncategorized.
+**Nodes**: Effect Nodes: 460+ AE effect stubs registered across 22 metadata categories (3D Channel, Audio, Blur & Sharpen, Boris FX Mocha, Channel, Color Correction, Distort, Expression Controls, Generate, Immersive Video, Keying, Matte, Noise & Grain, obsolete, Perspective, Simulation, Stylize, Text, Time, Transition, Uncategorized, Utility) — each factory-generated into a full node definition at drop time via `graph/engine/effectNodeFactory.js` with dynamic-schema introspection.
 
 **Nodes**: Node Kind System: Five node kinds — affected, effector, blending, matte, data — determining lifecycle behavior and wire compatibility.
 
@@ -230,7 +228,7 @@
 
 **Theming**: Design Tokens: Systematically defined CSS custom properties for color palette, spacing, and typography with a dark theme optimized for motion design workflows.
 
-**Theming**: 19 Component Stylesheets: Dedicated CSS for every UI component including top bar, left bar, right bar, canvas, nodes, settings modal, node picker, notifications, comp list, tip field, bottom bar, color picker, layer stack, keyframes, and walkthrough.
+**Theming**: 20 Stylesheet Files: Dedicated CSS for every UI component (top bar, left bar, right bar, canvas, node, settings modal, node picker, notifications, comp list, graph search, tip field, color picker, layer stack, keyframe, walkthrough, comment, preset modal) plus the `tokens`/`base` theming foundation and the tabler-icons font.
 
 **Theming**: Tabler Icons: Full icon font for all toolbar and UI element icons.
 

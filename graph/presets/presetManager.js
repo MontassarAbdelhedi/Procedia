@@ -179,6 +179,68 @@ var presetManager = (function() {
     return true;
   }
 
+  function _activatePresetNodes(nodeIds) {
+    var immediateAlive = [];
+    var onDropNodes = [];
+
+    for (var i = 0; i < nodeIds.length; i++) {
+      var nodeData = graphState.getNode(nodeIds[i]);
+      if (!nodeData) continue;
+      var def = nodeRegistry.getDefinition(nodeData.type);
+      if (!def) continue;
+
+      if (nodeData.nodeKind === 'data' ||
+          nodeData.nodeKind === 'blending' ||
+          nodeData.nodeKind === 'matte' ||
+          nodeData.nodeKind === 'merge' ||
+          nodeData.nodeKind === 'multimerge') {
+        immediateAlive.push(nodeData.id);
+      } else {
+        var cmd = def.onDrop(nodeData);
+        if (cmd !== null) {
+          onDropNodes.push({ nodeId: nodeData.id, cmd: cmd });
+        }
+      }
+    }
+
+    for (var ii = 0; ii < immediateAlive.length; ii++) {
+      graphState.updateNode(immediateAlive[ii], { state: 'alive' });
+    }
+
+    for (var di = 0; di < onDropNodes.length; di++) {
+      (function(nId, cmd) {
+        evalBridge.dispatch(cmd).then(function(res) {
+          if (res && res.ok) {
+            graphState.updateNode(nId, { state: 'alive' });
+            _fireTerminalLayerWires(nId);
+            var _registry = window.__procedia_internal.registry;
+            if (_registry && _registry.has('hlp')) {
+              _registry.get('hlp').refreshNodeUI();
+            }
+            if (typeof window.__procedia_internal !== 'undefined' &&
+                typeof window.__procedia_internal.refreshUI === 'function') {
+              window.__procedia_internal.refreshUI({ minimap: false, renderer: false });
+            }
+          }
+        });
+      })(onDropNodes[di].nodeId, onDropNodes[di].cmd);
+    }
+  }
+
+  function _fireTerminalLayerWires(aliveNodeId) {
+    var allWires = graphState.getAllWires();
+    var registry = window.__procedia_internal.registry;
+    if (!registry || !registry.has('prop')) return;
+    var prop = registry.get('prop');
+    for (var wid in allWires) {
+      if (!allWires.hasOwnProperty(wid)) continue;
+      var w = allWires[wid];
+      if (w.toNode === aliveNodeId && w.type === 'layer') {
+        prop.firePathCreation(wid);
+      }
+    }
+  }
+
   function dropPreset(name, x, y) {
     var preset = _presets[name];
     if (!preset || !preset.nodes || preset.nodes.length === 0) return null;
@@ -224,6 +286,8 @@ var presetManager = (function() {
       graphState.addWire(newWire);
       newWireIds.push(newWire.id);
     }
+
+    _activatePresetNodes(newNodeIds);
 
     graphState.replaceSelection(newNodeIds);
 

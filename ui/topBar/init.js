@@ -20,6 +20,7 @@ var _topBarInit = (function() {
       '<div class="topbar-center">' +
         '<button class="topbar-btn" id="topbar-save" title="Save"><i class="ti ti-device-floppy"></i></button>' +
         '<button class="topbar-btn" id="topbar-open" title="Open"><i class="ti ti-folder-open"></i></button>' +
+        '<button class="topbar-btn" id="topbar-import" title="Import Project"><i class="ti ti-file-import"></i></button>' +
         '<button class="topbar-btn" id="topbar-undo" title="Undo" disabled><i class="ti ti-arrow-back-up"></i></button>' +
         '<button class="topbar-btn" id="topbar-redo" title="Redo" disabled><i class="ti ti-arrow-forward-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
@@ -199,6 +200,11 @@ var _topBarInit = (function() {
           }
         }
       });
+    }
+
+    var importBtn = document.getElementById('topbar-import');
+    if (importBtn && typeof importProject !== 'undefined' && importProject.start) {
+      importBtn.addEventListener('click', function() { importProject.start(); });
     }
   }
 

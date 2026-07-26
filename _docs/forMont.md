@@ -34,7 +34,7 @@
 [o] stress test: create 10, 30, 50, 100, 200 affected nodes with 5, 10, 20, 30 comp nodes, with 5, 10, 20 affecters.
 [x] auto calculate math expressions in inspector
 [ ] group nodes: a new node with a list of encapsulated nodes, 
-[ ] save preset: save custom nodes: add a new category Presets
+[x] save preset: save custom nodes: add a new category Presets  (presetManager + ui/presetModal + node-toolbar "Save Preset" button added; presets register as dynamic `nodeKind: 'data'` nodes under the `Presets` palette category)
 [x] duplicate comp is not creating new comp object
 [x] test import: an unessessary blending node
 [o] fix licence

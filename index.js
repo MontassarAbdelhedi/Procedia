@@ -95,19 +95,57 @@ function init() {
     ? csInterface.getSystemPath(SystemPath.EXTENSION)
     : '[browser preview — no CEP context]';
 
-  if (typeof wireValidator === 'undefined') {
-    console.error('[Procedia] wireValidator did not load — check Network tab for graph/wireValidator/index.js');
+  var _startupMissing = [];
+  var _startupCritical = false;
+
+  function _checkModule(name, critical) {
+    if (typeof window[name] === 'undefined') {
+      _startupMissing.push(name);
+      if (critical) _startupCritical = true;
+    }
   }
-  if (typeof dirtyFlusher === 'undefined') {
-    console.error('[Procedia] dirtyFlusher.js did not load — check Network tab for flush/dirtyFlusher.js');
-  }
-  if (typeof canvasView === 'undefined') {
-    console.error('[Procedia] canvasView did not load');
-    return;
-  }
-  if (typeof canvasInput === 'undefined') {
-    console.error('[Procedia] canvasInput did not load');
-    return;
+
+  _checkModule('evalBridge', true);
+  _checkModule('wireValidator', false);
+  _checkModule('dirtyFlusher', false);
+  _checkModule('canvasView', true);
+  _checkModule('canvasInput', true);
+  _checkModule('renderer', false);
+  _checkModule('nodeRegistry', false);
+  _checkModule('graphState', true);
+
+  if (_startupMissing.length > 0) {
+    var _now = new Date().toISOString();
+    var _logLines = [
+      'Procedia startup diagnostic — ' + _now,
+      'Extension path: ' + _extPath,
+      'Missing modules (' + _startupMissing.length + '): ' + _startupMissing.join(', '),
+      'Critical failure: ' + (_startupCritical ? 'YES' : 'NO')
+    ];
+
+    for (var _li = 0; _li < _logLines.length; _li++) {
+      console.error('[Procedia] ' + _logLines[_li]);
+    }
+
+    var _errDiv = document.createElement('div');
+    _errDiv.id = 'procedia-startup-error';
+    _errDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999999;background:#c62828;color:#fff;padding:20px 28px;border-radius:8px;font-family:sans-serif;font-size:14px;max-width:500px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
+    _errDiv.innerHTML = '<b>Procedia failed to start</b><br><br>' +
+      'Missing modules: ' + _startupMissing.join(', ') + '<br><br>' +
+      'Check startup.log in the extension folder' +
+      '<br><br><small>Extension ID: com.uppercut.procedia</small>';
+    document.body.appendChild(_errDiv);
+
+    try {
+      if (typeof csInterface !== 'undefined' && typeof window.cep !== 'undefined' && window.cep.fs) {
+        var _logPath = _extPath.replace(/\\/g, '/') + '/startup.log';
+        window.cep.fs.writeFile(_logPath, _logLines.join('\n'));
+      }
+    } catch (_ce) {
+      console.warn('[Procedia] Could not write startup.log:', _ce);
+    }
+
+    if (_startupCritical) return;
   }
 
   if (typeof reporter !== 'undefined' && reporter.init) reporter.init();

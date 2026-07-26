@@ -178,3 +178,21 @@ function _handleEnsureReservedComp(cmd) {
   } catch (e) { result.error = e.toString(); }
   return result;
 }
+
+/**
+ * Opens AE's native Save As dialog so the user can save a copy
+ * before Procedia modifies the project structure.
+ * @param {Object} cmd Command (params unused).
+ * @return {Object} Result with .ok, .data (projectPath), .error.
+ */
+function _handleSaveAsDialog(cmd) {
+  var result = { ok: false, data: null, error: null };
+  try {
+    var saved = app.project.saveWithDialog();
+    result.ok = true;
+    result.data = { projectPath: app.project.fullPath, saved: saved };
+  } catch (e) {
+    result.error = e.toString();
+  }
+  return result;
+}

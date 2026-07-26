@@ -1,7 +1,7 @@
 /**
- * graph/autoLayout/graphBuilder.js
+ * graph/autoLayout/graphBuilder/buildGraph.js
  *
- * Builds the directed graph from layer wires and finds connected components.
+ * Builds the directed adjacency graph from layer wires in graphState.
  * DEPENDS ON: graphState, autoLayoutInternals
  */
 (function() {
@@ -37,36 +37,5 @@
     return { nodeIds: nodeIds, edges: edges, adjacency: adjacency };
   }
 
-  function _findComponents(nodeIds, adjacency) {
-    var visited = {};
-    var components = [];
-
-    for (var i = 0; i < nodeIds.length; i++) {
-      var nid = nodeIds[i];
-      if (visited[nid]) continue;
-
-      var comp = [];
-      var queue = [nid];
-      visited[nid] = true;
-
-      while (queue.length > 0) {
-        var cur = queue.shift();
-        comp.push(cur);
-        var neighbors = (adjacency[cur].in || []).concat(adjacency[cur].out || []);
-        for (var j = 0; j < neighbors.length; j++) {
-          if (!visited[neighbors[j]]) {
-            visited[neighbors[j]] = true;
-            queue.push(neighbors[j]);
-          }
-        }
-      }
-
-      if (comp.length > 0) components.push(comp);
-    }
-
-    return components;
-  }
-
   C._buildGraph = _buildGraph;
-  C._findComponents = _findComponents;
 })();

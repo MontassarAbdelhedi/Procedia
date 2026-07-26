@@ -5,7 +5,7 @@
  * Metadata stubs are split by category under graph/nodeMetadata/ (22 files).
  */
 
-// Non-effect node files — loaded synchronously at startup (14 files total)
+// Non-effect node files — loaded synchronously at startup (25 files total)
 document.write('<script src="graph/nodes/categories/Core/Comp.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Core/Footage.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Core/Merge.js"><\/script>');

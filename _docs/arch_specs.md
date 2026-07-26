@@ -554,10 +554,9 @@ ExtendScript side (dispatcher.jsx):
 | Action | What it does in AE |
 | ------ | ------------------ |
 | `createComp` | Creates a new `CompItem` in the Procedia project folder |
-| `createTextLayer` | `comp.layers.addText(...)` — creates a text layer |
-| `createNullLayer` | `comp.layers.addNull(...)` — creates a null layer |
-| `createShapeLayer` | `comp.layers.addShape(...)` — creates a shape layer |
-| `createAdjustmentLayer` | Creates a shape layer with adjustment layer flag enabled |
+| `createTextLayer` / `createNullLayer` / `createShapeLayer` / `createAdjustmentLayer` | Generic layer creation (handled in `actionLayer/` subdirectory). |
+| `createCameraLayer` / `createLightLayer` / `createSolidLayer` | Camera / light / solid layer creation. |
+| `create{Rectangle,Ellipse,Star,Squircle,Gear,Wave,Flower,Polygon}Layer` | Parametric shape layer creation. The dispatcher rebuilds the shape path from computed vertices. |
 | `addCompAsLayer` | Adds an existing `CompItem` as a pre-comp layer in the hosting comp |
 | `parkLayer` | Moves the layer from hosting comp to Reserved Comp |
 | `unparkLayer` | Moves the layer from Reserved Comp to hosting comp; re-stamps `layer.comment` |
@@ -568,27 +567,42 @@ ExtendScript side (dispatcher.jsx):
 | `setCompProperty` | Sets comp-level properties (dimensions, fps, duration, bg color) |
 | `setLayerParent` | `childLayer.parent = parentLayer` |
 | `clearLayerParent` | `childLayer.parent = null` |
-| `setLayerOrder` | Reorders layers in comp using `moveToBeginning()` |
+| `setLayerOrder` / `moveLayerBefore` | Reorder layers via `moveToBeginning()` or move-before-another.
 | `renameNode` | Sets `layer.name` to match the node's label param |
-| `focusComp` | `app.project.activeItem = comp` — brings comp into view |
-| `applyEffect` | `layer.Effects.addProperty(matchName)` then sets initial prop values |
+| `restampLayer` | Re-stamps `layer.comment` with a new UUID (used during wire transplant — never parks) |
+| `setLayerEnabled` | Toggles `layer.enabled` for disable/enable node state |
+| `setLayerShy` / `setCompHideShyLayers` | Drive the auto-shy feature — `graph/autoShy.js` batches these via `dispatchBatch`. |
+| `focusComp` / `listComps` / `focusCompByName` | Comp focus + comp listing for `ui/compList.js`. |
+| `getProjectIdentifier` | Returns `proj.fullPath` or `unsaved_<name>` — used by per-project warnings (Merge / Multimerge notice). |
+| `ensureReservedComp` | Find-or-create the Reserved Comp. Called on panel startup and after the import feature rebuilds the graph. |
+| `saveAsDialog` | Triggers `app.project.saveWithDialog()` — used by Import Project before overwriting the working graph. |
 | `applyDynamicEffect` | Applies an effect and sets all its properties from a props map (keyed by match name) |
 | `removeEffect` | Finds effect by match name and removes it from the layer |
 | `setEffectProperty` | Sets a named property on an existing effect by match name |
-| `restampLayer` | Re-stamps `layer.comment` with a new UUID (used during wire transplant) |
-| `pollAliveNodes` | Single multi-UUID check — returns missing and present UUIDs |
-| `setBlendingMode` | Sets `layer.blendingMode` on the layer identified by `layerNodeUUID`. Accepts a blending mode string mapped to AE `BlendingMode` enum. |
-| `setLumaMatte` | Sets `TrackMatteType.LUMA` on the top layer, using the matte layer as source. Applies `invert` flag. Reorders layers if needed so matte layer is directly above top layer. |
+| `renameEffect` / `setEffectEnabled` / `reorderEffect` / `reorderEffectChain` | Effect management — `reorderEffectChain` is dispatched by `engine/nodes/switchNodes.js` when the user swaps two effector nodes. |
+| `setExpression` | Writes an expression string by match name. Drives the Expression data node. |
+| `setBlendingMode` | Sets `layer.blendingMode` on the layer identified by `layerNodeUUID`. Accepts a string mapped to the `BlendingMode` enum. |
+| `setLumaMatte` | Sets `TrackMatteType.LUMA` on the top layer, using the matte layer as source. Applies `invert` flag. Reorders layers so matte layer is directly above top layer. |
 | `setAlphaMatte` | Sets `TrackMatteType.ALPHA` on the top layer, using the matte layer as source. Applies `invert` flag. Reorders layers if needed. |
 | `clearMatte` | Sets `layer.trackMatteType = TrackMatteType.NO_TRACK_MATTE` on the top layer. |
+| `getMasksForLayer` | Returns masks for a layer — drives the Fill effect's mask-selection dropdown. |
+| `browseAndImportFootage` / `createFootageLayer` / `deleteFootageItem` | Footage-node lifecycle (browse → add as layer → delete). |
+| `pollAliveNodes` | Single multi-UUID check — returns missing and present UUIDs |
+| `pollAliveEffects` / `pollExternalDeletions` | External effect/comp deletion detection. |
+| `batchGetLayerProperties` / `batchGetEffectProperties` | Batched reads used by `polling/propertyPoller.js` to sync AE-side edits. |
 | `introspectEffect` | Creates a temp solid in Reserved Comp, applies the effect, walks all properties to build a schema array, removes temp layer. Returns schema. |
-| `readSchemaCache` | Reads `effectSchemaCache.json` from the plugin directory and returns its parsed contents. |
-| `writeSchemaCache` | Writes the provided cache object to `effectSchemaCache.json` in the plugin directory. |
-| `getAEVersion` | Returns the running AE version string (`app.version`). |
-| `beginUndoGroup` | Calls `app.beginUndoGroup(name)` — starts an AE undo group for batching. |
-| `endUndoGroup` | Calls `app.endUndoGroup()` — ends the current AE undo group. |
+| `readSchemaCache` / `writeSchemaCache` / `getAEVersion` | Schema cache disk read/write + AE version reader. |
+| `readGraph` / `writeGraph` | Persistence: read from / write to `__PROCEDIA_NODES__` / `__PROCEDIA_WIRES__` text layers (chunk-assisted). `writeGraph` now round-trips the keyframe-state snapshot. `writeGraph` on `beforeunload` is dispatched via `evalBridge.fireAndForget` — best-effort one-shot, no retry. |
+| `writeGraphExport` / `saveGraphToFile` / `openGraphFile` | Top-bar Save/Open graph-IO actions. `topBar/io.js` falls back to browser-side save/open (Blob+download / hidden file input) when the AE-dispatch path returns an error. |
+| `importScanComps` / `importScanFootage` / `importScanCompLayers` / `stampImportUUIDs` | Project import feature (handlers in `actionImport/`). See §5d. |
+| `addKeyframe` / `removeKeyframe` / `removeAllKeyframes` / `getKeyframeTimes` / `batchGetKeyframeTimes` / `getKeyframeData` / `getCurrentTime` / `setCurrentTime` | Keyframe actions (handlers in `actionKeyframe/`). Backed by `graph/keyframeState.js` on the panel side. |
+| `writeCmdChunk` / `executeCmdFile` / `cleanupCmdFile` | Internal: large-command chunking used by `evalBridge._dispatchChunked()` when a command's serialized JSON exceeds `_CMD_CHUNK_LIMIT` (15 000 chars). |
+| `enumerateAllEffects` / `buildFullEffectCatalog` / `writeTextFile` | Developer-utility actions for building `data/effectsCatalog.json`. |
+| `beginUndoGroup` / `endUndoGroup` | Calls `app.beginUndoGroup(name)` / `app.endUndoGroup()` — used by `dispatchBatch` and `aeReconcile.js`. |
 
-**Adding a new action:** Add one named function to `dispatcher.jsx`. Register it in `_route()`. Also register in the action whitelist in `bridge/evalBridge.js`. No other file changes required unless the new node itself needs a new action.
+> **Full whitelist:** The ~89-entry complete `_ALLOWED_ACTIONS` map lives in `bridge/evalBridge.js`. Unknown actions are rejected in `_validateCommandObj()` before reaching AE. See `_docs/CLAUDE.md` SKILL 9 for the full grouped table.
+
+**Adding a new action:** Add one named handler function (one file under `action*/` subdirectory or one function in `actions_*.jsx`), ensure it's `$.evalFile`d by the relevant barrel, register its name in `dispatcher.jsx::_route()`, and add the action name to the `_ALLOWED_ACTIONS` whitelist in `bridge/evalBridge.js`. No other file changes required unless the new node itself needs a new action.
 
 ---
 
@@ -993,17 +1007,21 @@ In AE, setting a luma or alpha matte requires the matte layer to be directly abo
 
 ## 14. Polling
 
-The poller runs on a tick: 1 second when panel is active, 5 seconds when idle.
+The poller runs on a tick: **500 ms** when the panel is active, **2000 ms** when idle (the `_schedule()` helper picks `ACTIVE_INTERVAL` vs `IDLE_INTERVAL` based on time since `_lastActivity`, where any dispatch or UI interaction bumps `_lastActivity`).
 
-On each tick, `pollAliveNodes(uuidList)` is called — a single ExtendScript execution that checks all alive node UUIDs in one bridge crossing.
+On each tick, `pollAliveNodes(uuidList)` is called — a single ExtendScript execution that checks all alive node UUIDs in one bridge crossing. Immediately after, `propertyPoller.poll()` (alive affected nodes) and `propertyPoller.pollEffects()` (alive effector nodes) are invoked; they dispatch `batchGetLayerProperties` / `batchGetEffectProperties` and write AE-side edits back to `nodeMap` via `graphState.updateProp`, skipping any node currently `dirty` or carrying a pending `_flushCount` to avoid racing the dirty flusher.
 
-For each UUID in the list:
+For each UUID in the alive list:
 
 - Find the AE object by UUID (via `.comment` field)
-- If the object exists: check for property changes the user made directly in AE and sync back to `nodeMap`
+- If the object exists: property-poller reads its transform / effect prop values and syncs them back to `nodeMap`
 - If the object is missing: mark the node `error` in `nodeMap`, show notification
 
-**Polling pauses during any write.** `isWriting = true` is set before any `evalBridge.dispatch()` call. `isWriting = false` is set in the callback. The poller checks this flag before every tick and skips if true.
+External-comp and external-effect deletions are detected on a separate cadence by `polling/externalDeletions.js` (`pollExternalDeletions`, `pollAliveEffects`).
+
+Keyframe states are updated once on panel startup via `index.js:_syncKeyframeState(allNodes)` (which dispatches `batchGetKeyframeTimes`) and continuously kept in sync with AE on every keyframe add/remove and on every playhead-time change observed by `polling/propertyPoller.js`. The full keyframe-state snapshot is now persisted alongside `writeGraph` (see §9).
+
+**Polling pauses during any write.** `isWriting = true` is set before any `evalBridge.dispatch()` call. `isWriting = false` is set in the callback. The poller checks this flag (and `poller.withWriteLock(fn)` for finer-grained holds) before every tick and skips if true.
 
 ---
 
@@ -1541,8 +1559,92 @@ These rules apply to every phase without exception. Do not rationalize exception
 20. **Blending node `main_input` only accepts wires from affected nodes.** `wireValidator` must reject wires from effector outputs into a blending node's `main_input`. This check is type-level — it applies regardless of what is upstream of the effector.
 21. **Matte node activation requires three simultaneous conditions.** Both input wires connected, both upstream layers sharing the same first-level hosting comp, and the output wired to that same comp. If any condition is unmet, the matte node stays ghost and no AE action fires.
 
+22. **Load-order truth is `data/scripts.json`.** Add every new panel-side file's path there. `index.html` only loads CSInterface + Sentry + html2canvas + `reporting/*` + `ui/scriptLoader.js`. Never add a per-file `<script>` tag for first-party panel code to `index.html`.
+
+23. **Undo capture/commit is per-mutation-site.** The engine does not auto-snapshot. Every user-visible graph mutation must wrap the change in `undoManager.capture()` → ... → `undoManager.commit(description)` (or `commitDebounced`). Forgetting to do so leaves the operation invisible to Ctrl+Z.
+
+24. **`evalBridge.fireAndForget` is the only valid call from `beforeunload`.** Promises from `dispatch()` cannot resolve synchronously during unload; `fireAndForget` is best-effort and logged-only on failure. The `onbeforeunload` handler ships the full graph + the keyframe snapshot via `fireAndForget`.
+
 ---
 
-*Procedia v4 — Architecture Specification — May 2026*
+## 23. Auxiliary Subsystems
+
+> The architecture in §1–§22 covers the canonical lifecycle. The following subsystems are panel-side helpers that compose on top of those rules — no new node kind, no new AE-bridge contract. See `_docs/CLAUDE.md` File Directory for the file layout and `_docs/flow.md` for the call-chain scenarios.
+
+### 23a. Undo Manager (`graph/undoManager/`, 4 files)
+
+Two-phase undo: a fast in-memory state restore followed by a slow AE reconciliation.
+
+- `state.js` — `capture()`, `commit(description)`, `commitDebounced(description, delay)`, `_pushUndo(description)` (deep-equals guarded), MAX_DEPTH = 50, `_isReconciling` suppressor.
+- `aeReconcile.js` — `_reconcileAE(oldState, targetState)` diffs the two snapshots and dispatches lifecycle + property + wire commands through `window.__procedia_internal.lifecycle.buildLifecycleCommand`. Reconciliation is wrapped in `beginUndoGroup` / `endUndoGroup` so all AE API calls from a single undo collapse into one AE undo step (prevents the double-undo problem).
+- `restore.js` — `_restoreState(state)` calls `graphState._replaceState(nodes, wires, selection)` then `refreshUI()` + `topBar.refreshSelection()`.
+- `index.js` — public API: `capture`, `commit`, `undo`, `redo`, `canUndo`, `canRedo`, `reset`, `getUndoDesc`, `getRedoDesc`.
+
+The engine does not auto-snapshot — every user-visible mutation must wrap its work in `capture()` → … → `commit(description)`. `presetManager.dropPreset()` is the reference example.
+
+### 23b. Keyframe State (`graph/keyframeState.js`)
+
+Per-node, per-param tracking of which params are keyframed + per-param times[] + the playhead time. Public API: `hasKeyframes`, `setKeyframes`, `getKeyframeState` (`'inactive' | 'active' | 'highlight'`), `getNextKeyframeTime`, `getPrevKeyframeTime`, `getAllKeyframedParams`, `setCurrentTime`, `reset`, etc. Snapshot is shipped with `writeGraph` so keyframe state survives a panel reload. `TIME_TOLERANCE = 0.01`.
+
+### 23c. Property Poller (`polling/propertyPoller.js`)
+
+The poller tick (§14) calls `poll()` for alive affected nodes and `pollEffects()` for alive effector nodes. Both dispatch `batchGetLayerProperties` / `batchGetEffectProperties`, compare returned values to `node.props` via `_valuesEqual` (floating-point-tolerant array compare), and write AE-side edits back to `nodeMap` via `graphState.updateProp`. They skip any node currently `dirty` or carrying a pending `_flushCount` to avoid racing the dirty flusher.
+
+### 23d. Canvas Comments (`graph/comment/`, 5 files)
+
+5-file split of the old `commentManager.js` into `commentState.js` (state + COLORS palette), `commentDOM.js` (CRUD + render), `commentColorPicker.js` (popover UI), `commentEvents.js` (drag/mouse/text handlers — uses `viewport.getTransform().zoom` to scale deltas), `commentManager.js` (public API aggregator). Comment UUID format: `CMT-{timestamp}-{rand4}` from `uuidGenerator.comment()`. Comments have **no AE presence** — they are persisted as part of the graph JSON. Comments are created on **double-click on empty canvas** (when the click target is not a node and not an existing comment — see `graph/canvas/input/handlers/titleEdit/dblclick.js`).
+
+### 23e. Preset System (`graph/presets/presetManager.js` + `ui/presetModal/`)
+
+Public API: `listPresets`, `getPreset`, `savePreset(name, nodeIds)`, `deletePreset(name)`, `dropPreset(name, x, y)`. Storage: `localStorage['procedia_presets']`. Captured preset includes each node's `{id, type, nodeKind, dedicated, props (deep-cloned), x, y, dynamicSchema, secondaryPorts, locked, disabled, collapsed, hasParkedLayer}` plus the subset of wires connecting the captured nodes (normalized so top-left = `(0,0)`). `savePreset` registers a new dynamic data-category node type `'preset/<sanitized_name>'` via `_buildNodeDef` (with `nodeKind: 'data'`) and calls `nodeRegistry.unregister(typeId)` before re-registering to support same-name overwrites. `dropPreset` undoes the `graphState.clearGraph`-free pattern: clones each node with fresh `uuidGenerator.node()` IDs, sets `state:'ghost'`, adds the wires, then `_activatePresetNodes` runs the immediate-alive bucket (data/blending/matte/merge/multimerge) and the `onDrop`-dispatch bucket (affected/effector/comp), then `_fireTerminalLayerWires` walks wires and calls `prop.firePathCreation(wid)` for terminal layer wires. The whole drop is wrapped in `undoManager.capture()` → `…` → `commit('Drop Preset ' + name)`. UI entry: floating node-toolbar **Save Preset** button → `presetModal.open(selectedNodeIds)`. (No top-bar button.)
+
+### 23f. Comp List & View Filtering (`ui/compList.js` + `graphState.set/activeComp/clearFilter`)
+
+The bottom-left comp list dropdown dispatches `listComps` to enumerate comps (excluding the Reserved Comp). Selecting a comp dispatches `focusCompByName`, then sets `graphState.setActiveComp(compId)`, computes the upstream node-set via a BFS layer-wire walk (`_calcUpstreamNodes`), and calls `graphState.setFilteredNodes(nodeIds)` — every node outside the set is visually hidden in the canvas renderer. "All project" clears the filter via `graphState.clearFilter()`. With an active comp set, dropping a new affected node auto-wires it to that comp.
+
+### 23g. Graph Search (`ui/graphSearch.js`)
+
+Top-left search icon/field. `input` events substring-match `props.label`; matches are stored in `window.__graphSearchMatches` and read by the renderer to add the golden border + glow. Enter / Focus button pans to the first match via `viewport.setPan` and selects it via `graphState.setSelection`. Escape or close reverts the icon.
+
+### 23h. Auto-Shy (`graph/autoShy.js`)
+
+`autoShy.handleSelectionChange(sel)` is appended to `graphState.onSelectionChange` (panel-side). When `settings.get('autoShy')` is true, it builds a `setLayerShy` batch + one `setCompHideShyLayers` per hosting comp and dispatches the batch via `evalBridge.dispatchBatch()`. Deselecting all / selecting a non-affected node dispatches a "unshy all" batch.
+
+### 23i. Walkthrough (`ui/walkthrough/`, 6 files)
+
+Eight-step onboarding overlay (Welcome → Node Palette → Canvas → Comp List → Connecting Nodes → Inspector → Report a Bug → Ready). Each step highlights a target element with a spotlight. Persisted via `localStorage['procedia_walkthrough_done']` flag. `walkthrough.init()` runs last on the `index.js` startup chain; `walkthrough.show()` clears the flag and re-arms from Settings → General → Replay Tutorial.
+
+### 23j. Import Project (`graph/import/`, 5 files; `actionImport/` AE handlers)
+
+One-way one-shot feature: walks the entire AE project and rebuilds the panel graph from scratch.
+
+Panel side (file:line in `_docs/flow.md` scenario 68–69 for the latest revisions):
+
+1. `importProject.start()` (`graph/import/index.js`) pushes a warning + a "Save a Copy First" / "Proceed" / "Cancel" card. Save-a-Copy dispatches `saveAsDialog` (`actions_comp.jsx`).
+2. `importScanner.scanAll()` (`graph/import/scanner.js`) dispatches `importScanComps`, `importScanFootage`, `importScanCompLayers` in sequence. Skip rules: comps prefixed `'DO NOT DELETE'` and items inside the Procedia folder.
+3. `importMapper.map(rawData)` (`graph/import/mapper.js`) assigns new `PROC-` node UUIDs and `WIRE-` terminal-wire UUIDs via `uuidGenerator.node()` / `uuidGenerator.wire()`, produces an `importJSON` graph object and a `stampMap` keyed by comp entry listing `{index, uuid}` where **`uuid` is the wire UUID stamped into `layer.comment`** — consistent with §10 of this spec.
+4. `stampImportUUIDs` (`actionImport/stampUUIDs.jsx`) writes those UUIDs into `comp.comment` / `footage.comment` / `layer.comment` in AE.
+5. `importGraphBuilder.build(mapped.importJSON, mapped.compUUIDs)` (`graph/import/graphBuilder/build.js`) clears the graph + `undoManager.reset()`, then per comp/per layer builds the matching node type, wires the layer-→comp terminal wire with the **stamped wire UUID** as the wire's `id`, builds effector nodes for each AE effect (with dynamicSchema resolution), re-wires the effector chain end-to-end into the comp, adds parent wires for `layer.parentIndex`, and inserts extra **BlendingNode** nodes for any layer whose `blendingMode !== 'NORMAL'`. **Matte relationships are intentionally NOT reconstructed.**
+6. `ensureReservedComp` is dispatched, then `refreshUI({ full: true })`, then 200 ms later `autoLayout.run()`, then 300 ms later `renderer.render()` + `wireRenderer.render(null)` + `minimap.fitAll()`.
+
+### 23k. Error Reporting (`reporting/`)
+
+`reporting/envSnapshot.js` + `reporting/reporter.js` wire the vendored Sentry SDK (`lib/sentry.bundle.min.js`, SRI-pinned) and `html2canvas.min.js`. On any unhandled error, Sentry captures the exception with an attachment of a canvas screenshot (`html2canvas`), an env snapshot (AE version, panel version, graph stats), and routes the report to the dev team. The top-bar **Bug Report** button collects the user-supplied category/severity/title/description and reuses the same reporter.
+
+### 23l. Unified UI Refresh (`ui/refreshUI.js` + `ui/uiUpdateScheduler.js`)
+
+`refreshUI(opts)` is the public aggregator for the 5-component refresh (`renderer`, `wireRenderer`, `minimap`, `inspector`, `statusBar`). `opts` accepts skip flags per component. Exposed as `window.__procedia_internal.refreshUI`. `uiUpdateScheduler` is the rAF-batched scheduler backing the refreshes — `markDirty(component)` schedules a single per-frame flush.
+
+### 23m. Auto Layout (`graph/autoLayout/`, 8 files)
+
+Sugiyama-style layered graph layout. Direction + spacing knobs come from `settings` (`layoutDirection`, `layoutHSpacing`, `layoutVSpacing`). Steps: `_buildGraph` (adjacency list from layer wires), `_findComponents` (connected components), `_assignLayers` (longest-path to comps), `_buildOrdering` + `_reduceCrossings` (barycenter heuristic), `_assignCoordinates` (Sugiyama coordinates), `_positionDataNodes` (data nodes gridded), `_positionRemaining` (orphans), `_normalizeCoordinates`. Locked nodes are skipped. `graphState.updateNode` is called per positioned node (N calls → one `rebuildTempGraph`); call order preserved into the `batchUpdateNodes` path.
+
+### 23n. Settings (`ui/settings.js` + `ui/settingsModal/`)
+
+`settings.get(key)` / `set(key, value)` / `getAll()` over `localStorage['procedia_settings']`. Unknown keys are rejected with a console warning. `_state` is never exposed; `getAll()` returns a shallow copy. The settings modal exposes three tabs: General (minimap, port labels, anonymous reporting, auto-shy, tutorial replay), Wires (style, animated dash), Auto Layout (snap-to-grid, direction, horizontal/vertical spacing).
+
+---
+
+*Procedia v4 — Architecture Specification — May 2026 (Jul 2026 revision: subsystems §23 added)*
 *This document is the single source of truth for Claude Code and for the developer.*
 *Any behavior not described here must be clarified before implementation begins.*
