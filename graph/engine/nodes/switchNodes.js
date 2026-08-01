@@ -135,12 +135,8 @@ window.__procedia_internal.nswitch = (function() {
   }
 
   function _reorderEffectsInAE(id1, id2) {
-    console.log('[switchNodes] _reorderEffectsInAE called with id1=' + id1 + ' id2=' + id2);
-
     var chain = _getEffectorChain(id1);
-    console.log('[switchNodes] effector chain:', JSON.stringify(chain));
     if (chain.length < 2) {
-      console.log('[switchNodes] chain too short, skipping reorder');
       return;
     }
 
@@ -149,37 +145,24 @@ window.__procedia_internal.nswitch = (function() {
     var order = [];
     for (var ci = 0; ci < chain.length; ci++) {
       var nd = graphState.getNode(chain[ci]);
-      if (!nd) {
-        console.log('[switchNodes] node not found for id:', chain[ci]);
-        continue;
-      }
+      if (!nd) continue;
       if (!hostingCompUUID && nd.hostingComps && nd.hostingComps.length > 0) {
         hostingCompUUID = nd.hostingComps[0];
       }
       if (!pathLayerUUID) {
         pathLayerUUID = registry.get('hlp').findPathLayerUUID(chain[ci]);
-        console.log('[switchNodes] pathLayerUUID for ' + chain[ci] + ':', pathLayerUUID);
       }
       var def = nodeRegistry.getDefinition(nd.type);
       if (def && def.matchName) {
         order.push({ nodeUUID: chain[ci], matchName: def.matchName });
-        console.log('[switchNodes] added to order:', nd.type, '->', def.matchName, 'UUID:', chain[ci]);
-      } else {
-        console.log('[switchNodes] no matchName for node:', chain[ci], 'type:', nd && nd.type);
       }
       if (hostingCompUUID && pathLayerUUID && order.length === chain.length) break;
     }
 
-    console.log('[switchNodes] hostingCompUUID:', hostingCompUUID);
-    console.log('[switchNodes] pathLayerUUID:', pathLayerUUID);
-    console.log('[switchNodes] order:', JSON.stringify(order));
-
     if (!hostingCompUUID || !pathLayerUUID) {
-      console.log('[switchNodes] missing comp or layer UUID, aborting');
       return;
     }
     if (order.length < 2) {
-      console.log('[switchNodes] order too short, aborting');
       return;
     }
 
@@ -192,14 +175,7 @@ window.__procedia_internal.nswitch = (function() {
       }
     };
 
-    evalBridge.dispatch(reorderCmd).then(function(res) {
-      console.log('[switchNodes] reorderEffectChain result:', JSON.stringify(res));
-      if (res && res._debug && res._debug.length) {
-        for (var di = 0; di < res._debug.length; di++) {
-          console.log('[switchNodes:AE] ' + res._debug[di]);
-        }
-      }
-    }).catch(function(err) {
+    evalBridge.dispatch(reorderCmd).catch(function(err) {
       console.error('[switchNodes] reorderEffectChain failed:', err.message || err);
     });
   }

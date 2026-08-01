@@ -185,7 +185,7 @@ var importProject = (function() {
       });
     }).catch(function(err) {
       _notify('Import failed: ' + (err && err.message ? err.message : String(err)), 'error');
-    }).then(function() {
+    }).finally(function() {
       _running = false;
     });
   }

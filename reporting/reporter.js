@@ -6,9 +6,12 @@
 // Central reporting module. Initializes Sentry, wraps evalBridge for error
 // capture, and provides the bug report form UI.
 
-// CONFIGURATION — set these before beta release
-var SENTRY_DSN = 'https://1c0e5e6323ba52794f9fb0eb559c54f9@o4511667499040768.ingest.de.sentry.io/4511667578011728';
-var REPORTING_API_URL = 'https://procedia-reporter.vercel.app/api/reports';
+// CONFIGURATION — injected at build time by scripts/build.js (npm run build).
+// Source holds no real credentials. Placeholders are replaced from the
+// SENTRY_DSN / REPORTING_API_URL env vars or .debug/build.config.json.
+// Left-over placeholders disable Sentry and fall back to console logging.
+var SENTRY_DSN = '__SENTRY_DSN__';
+var REPORTING_API_URL = '__REPORTING_API_URL__';
 
 var reporter = (function() {
 
@@ -25,7 +28,7 @@ var reporter = (function() {
 
     var prefs = (typeof settings !== 'undefined' && settings.getAll)
       ? settings.getAll() : {};
-    _sentryEnabled = prefs.allowReporting !== false;
+    _sentryEnabled = prefs.allowReporting === true;
 
     if (_sentryEnabled && typeof Sentry !== 'undefined' && SENTRY_DSN && SENTRY_DSN.indexOf('__') !== 0) {
       var pv = (typeof envSnapshot !== 'undefined' && envSnapshot.getPluginVersion)
@@ -92,9 +95,13 @@ var reporter = (function() {
   function _captureBridgeError(command, errorMsg) {
     if (!_sentryEnabled || typeof Sentry === 'undefined') return;
     if (errorMsg && errorMsg.indexOf('not reachable') !== -1) return;
+    var redactedCommand = { action: command.action || 'unknown' };
+    if (typeof redact !== 'undefined' && redact.hash) {
+      redactedCommand.hash = redact.hash(JSON.stringify(command));
+    }
     Sentry.captureException(new Error(errorMsg), {
       tags: { action: command.action || 'unknown' },
-      extra: { command: command }
+      extra: { command: redactedCommand }
     });
   }
 
@@ -176,11 +183,16 @@ var reporter = (function() {
       if (e.target === overlay) _closeForm();
     });
 
-    function _captureScreenshot() {
+    function _captureScreenshot(onDone) {
       var wrap = document.getElementById('canvas-wrap');
-      if (!wrap) { document.getElementById('bugreport-screenshot-status').textContent = 'Screenshot unavailable'; return; }
+      if (!wrap) {
+        document.getElementById('bugreport-screenshot-status').textContent = 'Screenshot unavailable';
+        if (onDone) onDone(null);
+        return;
+      }
       if (typeof html2canvas === 'undefined') {
         document.getElementById('bugreport-screenshot-status').textContent = 'html2canvas not loaded';
+        if (onDone) onDone(null);
         return;
       }
       html2canvas(wrap, { useCORS: true, scale: 0.5 }).then(function(canvas) {
@@ -188,18 +200,26 @@ var reporter = (function() {
         var kb = Math.round(capturedScreenshot.length / 1024);
         document.getElementById('bugreport-screenshot-status').textContent = 'Screenshot captured (' + kb + 'KB)';
         document.getElementById('bugreport-screenshot-status').style.color = '#40c080';
+        if (onDone) onDone(capturedScreenshot);
       }).catch(function() {
         document.getElementById('bugreport-screenshot-status').textContent = 'Screenshot failed';
+        if (onDone) onDone(null);
       });
     }
 
-    // Auto-capture screenshot on form open
-    setTimeout(_captureScreenshot, 300);
-
-    document.getElementById('bugreport-capture').addEventListener('click', _captureScreenshot);
+    document.getElementById('bugreport-capture').addEventListener('click', function() { _captureScreenshot(); });
 
     document.getElementById('bugreport-submit').addEventListener('click', function() {
-      _submitReport(snap, capturedScreenshot);
+      if (capturedScreenshot) {
+        _submitReport(snap, capturedScreenshot);
+        return;
+      }
+      var submitBtn = document.getElementById('bugreport-submit');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Capturing...';
+      _captureScreenshot(function(shot) {
+        _submitReport(snap, shot);
+      });
     });
   }
 

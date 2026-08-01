@@ -1,1 +1,1 @@
-{"reservedComp":{"parkedLayers":[]},"nodes":[{"uuid":"PROC-1784989200160-6h7r","title":"Comp","kind":"affected","compCount":0},{"uuid":"PROC-1784990685286-s312","title":"Comp","kind":"affected","compCount":1},{"uuid":"PROC-1784990703676-dzaj","title":"Text","kind":"affected","compCount":1}],"wires":[{"uuid":"WIRE-1784990690776-7mcc","from":"PROC-1784990685286-s312","to":"PROC-1784989200160-6h7r"},{"uuid":"WIRE-1784990705074-o2bh","from":"PROC-1784990703676-dzaj","to":"PROC-1784990685286-s312"}]}
+{"reservedComp":{"parkedLayers":[]},"nodes":[],"wires":[]}

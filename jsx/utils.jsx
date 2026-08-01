@@ -1,7 +1,8 @@
 /**
  * @fileoverview Shared utility functions for ExtendScript (ES3-safe).
  * REQUIRES: json.jsx (must be loaded before this file in the preamble)
- * Exports: findCompByUUID, findLayerByUUID, findReservedComp, findOrCreateProcediaFolder
+ * Exports: findCompByUUID, findLayerByUUID, findReservedComp,
+ *          findOrCreateProcediaFolder, _validatePluginPath
  */
 // utils.jsx — Shared utility functions for ExtendScript (ES3-safe)
 // REQUIRES: json.jsx (must be loaded before this file in the preamble)
@@ -60,4 +61,19 @@ function findOrCreateProcediaFolder() {
     if (item instanceof FolderItem && item.name === name) return item;
   }
   return proj.items.addFolder(name);
+}
+
+/**
+ * Validates a relative path and joins it with the plugin root.
+ * Rejects absolute paths, drive-letter paths, and traversal sequences.
+ * @param {string} pluginRoot  The plugin root directory (e.g. _pluginRootFolder().fsName)
+ * @param {string} relativePath  Path relative to the plugin root
+ * @return {string} Safe full path, or empty string if invalid
+ */
+function _validatePluginPath(pluginRoot, relativePath) {
+  if (!relativePath || typeof relativePath !== 'string' || relativePath.length === 0) return '';
+  if (relativePath.charAt(0) === '/' || relativePath.charAt(0) === '\\') return '';
+  if (relativePath.indexOf(':') !== -1) return '';
+  if (relativePath.indexOf('..') !== -1) return '';
+  return pluginRoot + '/' + relativePath;
 }

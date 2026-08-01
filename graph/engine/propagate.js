@@ -426,11 +426,19 @@ window.__procedia_internal.prop = (function() {
     if (__reportTx) { __reportTx.finish(); }
   }
 
+  /**
+   * Clears all pending path UUIDs. Called on graph reset/load.
+   */
+  function _clearPendingPathUUIDs() {
+    _pendingPathUUIDs = {};
+  }
+
   return {
-    propagateAlive:     _propagateAlive,
-    checkMatteActivation: _checkMatteActivation,
-    firePathCreation:   _firePathCreation,
-    isPathLayerPending: _isPathLayerPending
+    propagateAlive:        _propagateAlive,
+    checkMatteActivation:  _checkMatteActivation,
+    firePathCreation:      _firePathCreation,
+    isPathLayerPending:    _isPathLayerPending,
+    clearPendingPathUUIDs: _clearPendingPathUUIDs
   };
 
 })();

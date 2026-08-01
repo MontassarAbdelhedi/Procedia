@@ -33,7 +33,7 @@ window.__procedia_internal.wires = (function() {
    * @param {string} fromPort - Source port ID
    * @param {string} toNodeId - Target node ID
    * @param {string} toPort - Target port ID
-   * @param {*} [boundParam] - Optional bound parameter
+   * @param {*} [boundParam] - Optional bound parameter for keyframe baking
    * @returns {boolean} True if the wire was connected successfully
    */
   function connectWire(fromNodeId, fromPort, toNodeId, toPort, boundParam) {
@@ -66,10 +66,8 @@ window.__procedia_internal.wires = (function() {
 
     var validation = wireValidator.canConnect(fromNodeId, fromPort, toNodeId, toPort, wireType);
     if (!validation.valid) {
-      if (!(boundParam && validation.reason === 'Target port not found')) {
-        console.warn('[engine] connectWire rejected:', validation.reason);
-        return false;
-      }
+      console.warn('[engine] connectWire rejected:', validation.reason);
+      return false;
     }
 
     var activeComp = typeof graphState.getActiveComp === 'function' ? graphState.getActiveComp() : null;
@@ -172,12 +170,14 @@ window.__procedia_internal.wires = (function() {
                   if (!res.ok || !res.data) return;
                   if (!targetNodeData._bakedKeyframes) targetNodeData._bakedKeyframes = {};
                   targetNodeData._bakedKeyframes[boundParam] = res.data.keyframes || [];
-                  evalBridge.dispatch({
+                  return evalBridge.dispatch({
                     action: 'removeAllKeyframes',
                     params: { hostingCompUUID: hostUUID, layerUUID: bakeLayerUUID, key: boundParam }
                   }).then(function() {
                     keyframeState.clearKeyframes(toNodeId, boundParam);
                   });
+                }).catch(function(err) {
+                  console.error('[engine] keyframe bake failed:', err && err.message || err);
                 });
               }
             }
@@ -225,7 +225,7 @@ window.__procedia_internal.wires = (function() {
     if (wireType === 'layer' && toNodeData.hostingComps.length === 0 && toNodeData.hasParkedLayer) {
       var downstreamComps = cascadeAlgorithm.hasCompDownstream(toNodeId);
       if (downstreamComps.length > 0) {
-        pathLayerUUID = hlp.findPathLayerUUID(toNodeId);
+        var pathLayerUUID = hlp.findPathLayerUUID(toNodeId);
         if (pathLayerUUID) {
           prop.propagateAlive(fromNodeId, downstreamComps[0], pathLayerUUID);
         }

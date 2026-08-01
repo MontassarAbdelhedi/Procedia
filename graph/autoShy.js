@@ -105,7 +105,10 @@ var autoShy = (function() {
         action: 'setCompHideShyLayers',
         params: { hostingCompUUID: compUUID, hideShyLayers: true }
       });
-      evalBridge.dispatchBatch(commands);
+      if (typeof undoManager !== 'undefined') undoManager.capture();
+      evalBridge.dispatchBatch(commands).then(function() {
+        if (typeof undoManager !== 'undefined') undoManager.commit('Auto Shy Sync');
+      }).catch(function() {});
     }
   }
 
@@ -146,7 +149,10 @@ var autoShy = (function() {
           });
         }
       }
-      evalBridge.dispatchBatch(commands);
+      if (typeof undoManager !== 'undefined') undoManager.capture();
+      evalBridge.dispatchBatch(commands).then(function() {
+        if (typeof undoManager !== 'undefined') undoManager.commit('Auto Shy Sync');
+      }).catch(function() {});
     }
   }
 

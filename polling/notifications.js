@@ -52,9 +52,14 @@ var pollerNotifier = (function() {
     }
   }
 
+  function _clearAllNotified() {
+    _notifiedMissing = {};
+  }
+
   return {
     pushMissingNotification: pushMissingNotification,
-    clearNotified:           clearNotified
+    clearNotified:           clearNotified,
+    clearAllNotified:        _clearAllNotified
   };
 
 })();

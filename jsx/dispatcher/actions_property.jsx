@@ -134,7 +134,8 @@ function _handleSetLayerProperty(cmd) {
         layer.text.sourceText.setValue(td);
       }
     } else {
-      layer.property(key).setValue(value);
+      var prop = layer.property(key);
+      if (prop) prop.setValue(value);
     }
 
     result.ok = true;

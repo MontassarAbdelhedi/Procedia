@@ -207,9 +207,10 @@ var presetManager = (function() {
       graphState.updateNode(immediateAlive[ii], { state: 'alive' });
     }
 
+    var pending = [];
     for (var di = 0; di < onDropNodes.length; di++) {
       (function(nId, cmd) {
-        evalBridge.dispatch(cmd).then(function(res) {
+        pending.push(evalBridge.dispatch(cmd).then(function(res) {
           if (res && res.ok) {
             graphState.updateNode(nId, { state: 'alive' });
             _fireTerminalLayerWires(nId);
@@ -222,9 +223,11 @@ var presetManager = (function() {
               window.__procedia_internal.refreshUI({ minimap: false, renderer: false });
             }
           }
-        });
+        }).catch(function() {}));
       })(onDropNodes[di].nodeId, onDropNodes[di].cmd);
     }
+
+    return Promise.all(pending);
   }
 
   function _fireTerminalLayerWires(aliveNodeId) {
@@ -287,21 +290,25 @@ var presetManager = (function() {
       newWireIds.push(newWire.id);
     }
 
-    _activatePresetNodes(newNodeIds);
-
-    graphState.replaceSelection(newNodeIds);
-
-    if (typeof undoManager !== 'undefined') undoManager.commit('Drop Preset ' + name);
-
-    if (typeof window.__procedia_internal !== 'undefined' &&
-        typeof window.__procedia_internal.refreshUI === 'function') {
-      window.__procedia_internal.refreshUI({ minimap: false });
-    }
-
-    return {
+    var result = {
       nodeIds: newNodeIds,
       wireIds: newWireIds
     };
+
+    var activation = _activatePresetNodes(newNodeIds);
+
+    graphState.replaceSelection(newNodeIds);
+
+    activation.then(function() {
+      if (typeof undoManager !== 'undefined') undoManager.commit('Drop Preset ' + name);
+
+      if (typeof window.__procedia_internal !== 'undefined' &&
+          typeof window.__procedia_internal.refreshUI === 'function') {
+        window.__procedia_internal.refreshUI({ minimap: false });
+      }
+    });
+
+    return result;
   }
 
   init();

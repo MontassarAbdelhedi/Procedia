@@ -2,17 +2,16 @@
  * @fileoverview DOM builder for node cards on the graph canvas.
  * Constructs and updates the HTML structure for node elements (header, params, ports).
  * @dependencies graph/graphState.js, graph/nodeRegistry.js,
- *               renderer/categories.js, renderer/helpers.js
+ *               data/categoryColors.js, renderer/helpers.js
  * @exports __r_bld { buildNodeCard, updateNodeCard }
  */
 
 // graph/canvas/renderer/builder.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
-//             renderer/categories.js, renderer/helpers.js
+//             data/categoryColors.js, renderer/helpers.js
 // MUST LOAD BEFORE: renderer/index.js
 
 var __r_bld = (function() {
-  var cat = __r_cat;
   var hlp = __r_hlp;
 
   function _getPortLabel(def, portId) {
@@ -240,8 +239,7 @@ var __r_bld = (function() {
     var header = document.createElement('div');
     header.className = 'node-header';
 
-    var catToken = cat.tokens[def.category] || 'utility';
-    var catColor = cat.colors[catToken] || '#555';
+    var catColor = __catColors.colors[def.category] || '#555';
     var catBar = document.createElement('div');
     catBar.className = 'node-cat-bar';
     catBar.style.background = catColor;

@@ -1,49 +1,14 @@
 /**
  * @fileoverview Dynamic node categories built from nodeRegistry.
  * Groups all registered node definitions by their `category` field.
- * Depends on: nodeRegistry (global).
+ * Depends on: nodeRegistry (global), data/categoryColors.js.
  * Exports: __nl_cat.LABEL_TO_TYPE, .CATEGORIES, .getCategoryColor, .resolveDefByLabel
  */
 // ui/nodeList/categories.js
-// DEPENDS ON: graph/nodeRegistry.js
+// DEPENDS ON: graph/nodeRegistry.js, data/categoryColors.js
 // MUST LOAD BEFORE: ui/nodeList/index.js
 
 var __nl_cat = (function() {
-
-  var CATEGORY_COLORS = {
-    'Core':            '#534AB7',
-    'Data':            '#D4AC0D',
-    'Layers':          '#185FA5',
-    'Shapes':          '#1ABC9C',
-    'Effects':         '#27AE60',
-    '3D Channel':      '#27AE60',
-    'Audio':           '#27AE60',
-    'Blur & Sharpen':  '#27AE60',
-    'Boris FX Mocha':  '#27AE60',
-    'Channel':         '#27AE60',
-    'Color Correction':'#27AE60',
-    'Distort':         '#27AE60',
-    'Expression Controls': '#27AE60',
-    'Generate':        '#27AE60',
-    'Immersive Video': '#27AE60',
-    'Keying':          '#27AE60',
-    'Matte':           '#27AE60',
-    'Noise & Grain':   '#27AE60',
-    'Perspective':     '#27AE60',
-    'Simulation':      '#27AE60',
-    'Stylize':         '#27AE60',
-    'Text':            '#27AE60',
-    'Time':            '#27AE60',
-    'Transition':      '#27AE60',
-    'obsolete':        '#27AE60',
-    'Utility':         '#5F5E5A',
-    'Track Matte':     '#E74C3C',
-    'Presets':         '#9B59B6'
-  };
-
-  var CATEGORY_NAMES = {
-    'Core': 'Core'
-  };
 
   var CATEGORY_ORDER = [
     'Core', 'Data', 'Layers', 'Shapes', 'Track Matte', 'Presets', 'Effects'
@@ -117,7 +82,7 @@ var __nl_cat = (function() {
         var effectsCat = {
           id: 'effects',
           name: 'Effects',
-          color: CATEGORY_COLORS['Effects'] || '#27AE60',
+          color: __catColors.colors['Effects'] || '#27AE60',
           open: false,
           nodes: [],
           subcategories: subs
@@ -139,8 +104,8 @@ var __nl_cat = (function() {
 
   function buildCategory(catName, defs, openByDefault) {
     var id = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cat';
-    var displayName = CATEGORY_NAMES[catName] || catName;
-    var color = CATEGORY_COLORS[catName] || '#888780';
+    var displayName = catName;
+    var color = __catColors.colors[catName] || '#888780';
     var labels = [];
     var sortable = [];
     for (var i = 0; i < defs.length; i++) {

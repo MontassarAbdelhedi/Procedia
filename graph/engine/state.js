@@ -110,7 +110,7 @@ window.__procedia_internal.eState = (function() {
 
     hlp.refreshNodeUI();
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
-    if (typeof undoManager !== 'undefined') undoManager.commit(nodeData.disabled ? 'Disable node' : 'Enable node');
+    if (typeof undoManager !== 'undefined') undoManager.commit(newDisabled ? 'Disable node' : 'Enable node');
   }
 
   /**

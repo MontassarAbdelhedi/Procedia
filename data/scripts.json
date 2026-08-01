@@ -1,6 +1,7 @@
 [
   "data/uuidGenerator.js",
   "data/deepClone.js",
+  "data/categoryColors.js",
   "bridge/evalBridge.js",
   "graph/graphState/state.js",
   "graph/graphState/tempGraph.js",
@@ -57,10 +58,8 @@
   "graph/engine/nodes/index.js",
   "graph/engine/state.js",
   "graph/engine/index.js",
-  "tools/compareEffectNodes.js",
   "graph/autoShy.js",
   "graph/canvas/viewport.js",
-  "graph/canvas/renderer/categories.js",
   "graph/canvas/renderer/helpers.js",
   "graph/canvas/renderer/builder.js",
   "graph/canvas/renderer/index.js",

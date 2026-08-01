@@ -29,6 +29,7 @@ var _topBarInit = (function() {
         '<button class="topbar-btn" id="topbar-collapseall" title="Collapse All"><i class="ti ti-chevrons-up"></i></button>' +
         '<div class="topbar-divider"></div>' +
         '<div class="topbar-dynamic" id="topbar-dynamic">' +
+          '<button class="topbar-btn" id="topbar-save-preset" title="Save Preset"><i class="ti ti-device-floppy"></i></button>' +
           '<button class="topbar-btn" id="topbar-duplicate" title="Duplicate"><i class="ti ti-copy"></i></button>' +
           '<button class="topbar-btn topbar-btn--delete" id="topbar-delete" title="Delete"><i class="ti ti-trash"></i></button>' +
         '</div>' +
@@ -54,6 +55,14 @@ var _topBarInit = (function() {
     var delBtn = document.getElementById('topbar-delete');
     if (delBtn && typeof engine !== 'undefined') {
       delBtn.addEventListener('click', function() { engine.deleteSelectedNodes(); });
+    }
+
+    var presetBtn = document.getElementById('topbar-save-preset');
+    if (presetBtn && typeof presetModal !== 'undefined' && presetModal.open) {
+      presetBtn.addEventListener('click', function() {
+        var sel = (typeof graphState !== 'undefined' && graphState.getSelection) ? graphState.getSelection() : [];
+        if (sel.length > 0) presetModal.open(sel);
+      });
     }
 
     var autoBtn = document.getElementById('topbar-autolayout');

@@ -44,10 +44,12 @@ var poller = (function() {
 
   function _onNodesMissing(uuids) {
     _lastActivity = Date.now();
+    if (typeof undoManager !== 'undefined' && undoManager.capture) undoManager.capture();
     var hasMissing = false;
     for (var i = 0; i < uuids.length; i++) {
       if (_handleMissingNode(uuids[i])) hasMissing = true;
     }
+    if (typeof undoManager !== 'undefined' && undoManager.commit) undoManager.commit('Sync from AE');
     if (hasMissing) {
       window.__procedia_internal.refreshUI({ minimap: false });
     }

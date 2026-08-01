@@ -29,7 +29,6 @@ var walkthrough = (function() {
     __wt_state.card = els.card;
 
     __wt_state.currentStep = 0;
-    __wt_state.animating = false;
     __wt_state.eventsBound = false;
 
     __wt_render.render();
@@ -42,15 +41,19 @@ var walkthrough = (function() {
       localStorage.removeItem('procedia_walkthrough_done');
     } catch (e) {}
 
-    if (!__wt_state.overlay) {
-      var els = __wt_dom.buildDOM();
-      __wt_state.overlay = els.overlay;
-      __wt_state.spotlight = els.spotlight;
-      __wt_state.card = els.card;
-      __wt_state.eventsBound = false;
+    if (__wt_state.overlay && __wt_state.overlay.parentNode) {
+      __wt_state.overlay.parentNode.removeChild(__wt_state.overlay);
     }
+    __wt_state.overlay = null;
+    __wt_state.spotlight = null;
+    __wt_state.card = null;
+
+    var els = __wt_dom.buildDOM();
+    __wt_state.overlay = els.overlay;
+    __wt_state.spotlight = els.spotlight;
+    __wt_state.card = els.card;
     __wt_state.currentStep = 0;
-    __wt_state.animating = false;
+    __wt_state.eventsBound = false;
 
     __wt_render.render();
     __wt_events.bind();

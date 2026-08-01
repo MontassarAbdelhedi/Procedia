@@ -12,6 +12,12 @@
 
   function loadGraph(graphData) {
     if (typeof undoManager !== 'undefined') undoManager.reset();
+    if (typeof pollerNotifier !== 'undefined' && pollerNotifier.clearAllNotified) {
+      pollerNotifier.clearAllNotified();
+    }
+    if (window.__procedia_internal && window.__procedia_internal.prop && window.__procedia_internal.prop.clearPendingPathUUIDs) {
+      window.__procedia_internal.prop.clearPendingPathUUIDs();
+    }
     gs.nodeMap   = {};
     gs.wireMap   = {};
     gs.selection = [];
@@ -62,6 +68,12 @@
 
   function clearGraph() {
     if (typeof undoManager !== 'undefined') undoManager.reset();
+    if (typeof pollerNotifier !== 'undefined' && pollerNotifier.clearAllNotified) {
+      pollerNotifier.clearAllNotified();
+    }
+    if (window.__procedia_internal && window.__procedia_internal.prop && window.__procedia_internal.prop.clearPendingPathUUIDs) {
+      window.__procedia_internal.prop.clearPendingPathUUIDs();
+    }
     gs.nodeMap   = {};
     gs.wireMap   = {};
     gs.selection = [];

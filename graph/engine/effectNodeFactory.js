@@ -94,13 +94,8 @@ var effectNodeFactory = (function() {
     };
   }
 
-  function isEffectNode(def) {
-    return def && def.params === 'dynamic';
-  }
-
   return {
-    upgradeStub: upgradeStub,
-    isEffectNode: isEffectNode
+    upgradeStub: upgradeStub
   };
 
 })();

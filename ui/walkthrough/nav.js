@@ -11,15 +11,12 @@
 var __wt_nav = (function() {
 
   function nextStep() {
-    if (__wt_state.animating) return;
     if (__wt_state.currentStep >= __wt_steps.length - 1) {
       complete();
       return;
     }
-    __wt_state.animating = true;
     __wt_state.currentStep++;
     __wt_render.render();
-    __wt_state.animating = false;
   }
 
   function dismiss() {

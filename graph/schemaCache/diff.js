@@ -9,16 +9,16 @@
  *               schemaCache/persistence.js
  * Load before: schemaCache/index.js
  *
- * Exports (via __sc_diff): schemasAreDifferent, runVersionDiff
+ * Exports (via window.__procedia_internal.scDiff): schemasAreDifferent, runVersionDiff
  */
 // graph/schemaCache/diff.js
 // DEPENDS ON: bridge/evalBridge.js, graph/schemaCache/state.js,
 //             graph/schemaCache/persistence.js
 // MUST LOAD BEFORE: graph/schemaCache/index.js
 
-var __sc_diff = (function() {
-  var _state   = __sc_state;
-  var _persist = __sc_persist;
+window.__procedia_internal.scDiff = (function() {
+  var _state   = window.__procedia_internal.scState;
+  var _persist = window.__procedia_internal.scPersist;
 
   /**
    * Compares two schemas by their properties (length + matchName + type).

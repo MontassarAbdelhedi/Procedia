@@ -13,6 +13,16 @@ var envSnapshot = (function() {
   var _pluginVersion = '0.0.4';
   var _aeVersion = null;
 
+  function _redactId(value) {
+    if (typeof redact !== 'undefined' && redact.id) return redact.id(value);
+    return (value === null || value === undefined) ? null : 'redacted';
+  }
+
+  function _redactLabel(value) {
+    if (typeof redact !== 'undefined' && redact.label) return redact.label(value);
+    return '';
+  }
+
   /**
    * Reads the plugin version from the CEP manifest if available, otherwise
    * falls back to the compiled-in version constant.
@@ -95,14 +105,18 @@ var envSnapshot = (function() {
         if (!allNodes.hasOwnProperty(gn)) continue;
         var nd = allNodes[gn];
         graphExport.nodes.push({
-          uuid: nd.id, title: nd.props && nd.props.label, kind: nd.nodeKind,
-          type: nd.type, state: nd.state, compCount: (nd.hostingComps || []).length
+          uuid: _redactId(nd.id),
+          title: _redactLabel(nd.props && nd.props.label),
+          kind: nd.nodeKind, type: nd.type, state: nd.state,
+          compCount: (nd.hostingComps || []).length
         });
       }
       for (var gw in allWires) {
         if (!allWires.hasOwnProperty(gw)) continue;
         var wd = allWires[gw];
-        graphExport.wires.push({ uuid: wd.id, from: wd.fromNode, to: wd.toNode, type: wd.type });
+        graphExport.wires.push({
+          uuid: _redactId(wd.id), from: _redactId(wd.fromNode), to: _redactId(wd.toNode), type: wd.type
+        });
       }
 
       cb({

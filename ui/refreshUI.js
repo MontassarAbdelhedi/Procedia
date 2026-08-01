@@ -17,8 +17,6 @@
 
 (function() {
 
-  var _NOOP = {};
-
   function _safe(name, arg) {
     var parts = name.split('.');
     var obj = window;

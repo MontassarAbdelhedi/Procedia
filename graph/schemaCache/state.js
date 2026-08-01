@@ -10,7 +10,7 @@
  * Load before: schemaCache/persistence.js, schemaCache/diff.js,
  *              schemaCache/index.js
  *
- * Exports (via __sc_state): getCache, setCache, deleteKey, storeSchema,
+ * Exports (via window.__procedia_internal.scState): getCache, setCache, deleteKey, storeSchema,
  *          getVersion, setVersion, getReady, setReady,
  *          memoryKeys, hasSchema, getSchema, isReady
  */
@@ -19,7 +19,7 @@
 // MUST LOAD BEFORE: graph/schemaCache/persistence.js, graph/schemaCache/diff.js,
 //                   graph/schemaCache/index.js
 
-var __sc_state = (function() {
+window.__procedia_internal.scState = (function() {
 
   var _memoryCache = {};
   var _aeVersion   = '';
@@ -64,7 +64,7 @@ var __sc_state = (function() {
   }
 
   return {
-    // --- mutable state accessors (for __sc_persist, __sc_diff, __sc_index) ---
+    // --- mutable state accessors (for window.__procedia_internal.scPersist, window.__procedia_internal.scDiff, index) ---
     getCache:     function()      { return _memoryCache; },
     setCache:     function(c)     { _memoryCache = c; },
     deleteKey:    function(k)     { delete _memoryCache[k]; },

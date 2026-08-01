@@ -8,7 +8,15 @@
  */
 
 function _cmdChunkFilePath(id) {
-  return _pluginRootFolder().fsName + '/data/cmd_' + id + '.tmp';
+  if (typeof id !== 'string' || id.length === 0) return '';
+  var ci, ch, bad;
+  for (ci = 0; ci < id.length; ci++) {
+    ch = id.charAt(ci);
+    if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch === '_' || ch === '-')) {
+      return '';
+    }
+  }
+  return _validatePluginPath(_pluginRootFolder().fsName, 'data/cmd_' + id + '.tmp');
 }
 
 function _handleWriteCmdChunk(cmd) {
@@ -19,7 +27,12 @@ function _handleWriteCmdChunk(cmd) {
       result.error = 'writeCmdChunk: id and data required';
       return result;
     }
-    var file = new File(_cmdChunkFilePath(p.id));
+    var filePath = _cmdChunkFilePath(p.id);
+    if (!filePath) {
+      result.error = 'writeCmdChunk: invalid id';
+      return result;
+    }
+    var file = new File(filePath);
     if (p.index === 0) {
       file.open('w');
     } else {

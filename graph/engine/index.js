@@ -15,8 +15,9 @@
  *
  * Exports: dropNode, connectWire, deleteNode, deleteSelectedNodes,
  *          duplicateSelectedNodes, cloneNode, recreateNode, resetAll,
- *          toggleLockSelectedNodes, disconnectWire, setNodeProperty,
- *          _firePathCreation, _applyDynamicSchema
+ *          toggleLockSelectedNodes, toggleNodeDisabled, disconnectWire,
+ *          setNodeProperty, switchEffectors, findAffectedUpstream,
+ *          findSiblingEffectors
  */
 // graph/engine/index.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,

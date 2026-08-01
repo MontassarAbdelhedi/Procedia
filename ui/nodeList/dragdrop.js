@@ -15,6 +15,8 @@ var __nl_dragdrop = (function() {
   var _ghostEl = null;
   var _previewWireId = null;
   var _mergeProjectId = null;
+  var _onDocMouseMove = null;
+  var _onDocMouseUp = null;
 
   function _maybeWarnMerge() {
     if (typeof notificationBar === 'undefined') return;
@@ -40,6 +42,13 @@ var __nl_dragdrop = (function() {
    * @param {HTMLElement} listEl The list container element.
    */
   function wireCanvasDrop(listEl) {
+    if (typeof _onDocMouseMove === 'function') {
+      document.removeEventListener('mousemove', _onDocMouseMove);
+    }
+    if (typeof _onDocMouseUp === 'function') {
+      document.removeEventListener('mouseup', _onDocMouseUp);
+    }
+
     var items = listEl.querySelectorAll('.leftbar-node-item');
     for (var i = 0; i < items.length; i++) {
       (function(item) {
@@ -73,7 +82,7 @@ var __nl_dragdrop = (function() {
       }(items[i]));
     }
 
-    document.addEventListener('mousemove', function(e) {
+    _onDocMouseMove = function(e) {
       if (!_ghostEl) return;
       _ghostEl.style.left = (e.clientX + 12) + 'px';
       _ghostEl.style.top = (e.clientY - 8) + 'px';
@@ -99,9 +108,10 @@ var __nl_dragdrop = (function() {
           }
         }
       }
-    });
+    };
+    document.addEventListener('mousemove', _onDocMouseMove);
 
-    document.addEventListener('mouseup', function(e) {
+    _onDocMouseUp = function(e) {
       if (_ghostEl) {
         _ghostEl.parentNode.removeChild(_ghostEl);
         _ghostEl = null;
@@ -117,7 +127,7 @@ var __nl_dragdrop = (function() {
       }
       if (!_dragLabel) return;
 
-      var dragging = listEl.querySelector('.leftbar-node-item--dragging');
+      var dragging = document.querySelector('.leftbar-node-item--dragging');
       if (dragging) dragging.classList.remove('leftbar-node-item--dragging');
 
       var label = _dragLabel;
@@ -173,7 +183,8 @@ var __nl_dragdrop = (function() {
         graphState.setSelection(node.id);
         window.__procedia_internal.refreshUI({ minimap: false });
       }
-    });
+    };
+    document.addEventListener('mouseup', _onDocMouseUp);
   }
 
   return {

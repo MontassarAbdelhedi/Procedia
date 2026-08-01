@@ -23,3 +23,6 @@ yarn.lock
 .debug
 settings.local.json
 .claude/
+
+# Build output (secrets injected at build time — never commit)
+build/

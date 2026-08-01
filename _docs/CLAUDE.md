@@ -927,7 +927,7 @@ That decision is frozen for the task. Only the user can change it.
 **RULE B — Escalation ladder when stuck:**
 ```
 STEP 1 → Re-read the relevant CLAUDE.md skill section
-STEP 2 → Check Procedia___Architecture_Specification.md for the relevant rule
+STEP 2 → Check arch_specs.md for the relevant rule
 STEP 3 → State what is unknown and ask ONE specific question. STOP.
 
 Format:
@@ -1237,7 +1237,7 @@ These apply to every task, every file, without exception.
 Read these documents in this order before starting any implementation task:
 
 1. **This file (`CLAUDE.md`)** — all 16 skills, all absolute rules
-2. **`Procedia___Architecture_Specification.md`** — the full system design
+2. **`arch_specs.md`** — the full system design
 3. **The specific task brief or feature doc** for the work at hand
 
 If a task brief contradicts this file, stop and ask. Do not resolve the contradiction by choosing one or the other.

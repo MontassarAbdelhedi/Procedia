@@ -111,6 +111,7 @@ var propertyPoller = (function() {
       if (!res.ok || !res.data || !res.data.properties) return;
 
       var changed = false;
+      var captured = false;
       var propsByLayer = res.data.properties;
 
       for (var layerId in propsByLayer) {
@@ -130,6 +131,10 @@ var propertyPoller = (function() {
           if (oldVal === undefined) continue;
 
           if (!_valuesEqual(newVal, oldVal)) {
+            if (!captured) {
+              if (typeof undoManager !== 'undefined' && undoManager.capture) undoManager.capture();
+              captured = true;
+            }
             graphState.updateProp(nodeId, key, newVal);
             changed = true;
           }
@@ -137,6 +142,7 @@ var propertyPoller = (function() {
       }
 
       if (changed) {
+        if (typeof undoManager !== 'undefined' && undoManager.commit) undoManager.commit('Sync from AE');
         if (typeof window.__procedia_internal.hlp !== 'undefined' && window.__procedia_internal.hlp.refreshNodeUI) {
           window.__procedia_internal.hlp.refreshNodeUI();
         }
@@ -218,6 +224,7 @@ var propertyPoller = (function() {
       if (!res.ok || !res.data || !res.data.properties) return;
 
       var changed = false;
+      var captured = false;
       var propsByNode = res.data.properties;
 
       for (var nodeId in propsByNode) {
@@ -235,6 +242,10 @@ var propertyPoller = (function() {
           if (oldVal === undefined) continue;
 
           if (!_valuesEqual(newVal, oldVal)) {
+            if (!captured) {
+              if (typeof undoManager !== 'undefined' && undoManager.capture) undoManager.capture();
+              captured = true;
+            }
             graphState.updateProp(nodeId, key, newVal);
             changed = true;
           }
@@ -242,6 +253,7 @@ var propertyPoller = (function() {
       }
 
       if (changed) {
+        if (typeof undoManager !== 'undefined' && undoManager.commit) undoManager.commit('Sync from AE');
         if (typeof window.__procedia_internal.hlp !== 'undefined' && window.__procedia_internal.hlp.refreshNodeUI) {
           window.__procedia_internal.hlp.refreshNodeUI();
         }

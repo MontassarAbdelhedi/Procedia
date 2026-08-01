@@ -2,7 +2,7 @@
  * @fileoverview Floating tip field at the bottom of the canvas.
  * Shows usage tips between the comp list and minimap.
  * Click to cycle through tips. Add more entries to TIPS to extend.
- * @exports tipField.init
+ * @exports tipField.init, tipField.reposition, tipField.destroy
  */
 // ui/tipField.js
 // DEPENDS ON: nothing
@@ -89,9 +89,24 @@ var tipField = (function() {
     window.addEventListener('resize', _position);
   }
 
+  function destroy() {
+    if (_timer) {
+      clearInterval(_timer);
+      _timer = null;
+    }
+    window.removeEventListener('resize', _position);
+    if (_el && _el.parentNode) {
+      _el.parentNode.removeChild(_el);
+    }
+    _el = null;
+    _index = 0;
+    _timer = null;
+  }
+
   return {
     init: init,
-    reposition: _position
+    reposition: _position,
+    destroy: destroy
   };
 
 })();

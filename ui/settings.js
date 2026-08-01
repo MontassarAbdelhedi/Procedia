@@ -18,7 +18,7 @@ var settings = (function() {
     layoutDirection:  'LR',
     layoutHSpacing:   80,
     layoutVSpacing:   40,
-    allowReporting:   true,
+    allowReporting:   false,
     showPortLabels:   true,
     autoShy:          false
   };

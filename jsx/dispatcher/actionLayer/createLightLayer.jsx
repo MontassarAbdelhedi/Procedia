@@ -9,8 +9,8 @@ function _handleCreateLightLayer(cmd) {
     }
     var lightLayer = comp.layers.addLight(params.label || 'Light', [comp.width / 2, comp.height / 2]);
     if (params.lightType) {
-      var lightTypeMap = { point: 1, spot: 2, parallel: 3, ambient: 4 };
-      try { lightLayer.lightType = lightTypeMap[params.lightType] || 1; } catch (e) {}
+      var lightTypeMap = { point: LightType.POINT, spot: LightType.SPOT, parallel: LightType.PARALLEL, ambient: LightType.AMBIENT };
+      try { lightLayer.lightType = lightTypeMap[params.lightType] || LightType.POINT; } catch (e) {}
     }
     if (params.layerUUID) {
       lightLayer.comment = params.layerUUID;

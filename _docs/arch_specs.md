@@ -1174,10 +1174,10 @@ The original `schemaCache.js` has been split into four files under `graph/schema
 
 | File | Internal Global | Responsibility |
 |---|---|---|
-| `state.js` | `__sc_state` | In-memory cache (`_memoryCache`, `_aeVersion`, `_ready`), getter/setter accessors, public read API (`hasSchema`, `getSchema`, `isReady`, `memoryKeys`) |
-| `persistence.js` | `__sc_persist` | `writeToDisk()` — persists cache to disk via `evalBridge.dispatch({ action: 'writeSchemaCache' })` |
-| `diff.js` | `__sc_diff` | `schemasAreDifferent()` — property-level comparison; `runVersionDiff()` — re-introspects all known schemas when AE version changes |
-| `index.js` | `schemaCache` | Aggregates sub-modules; exposes `init()`, `storeSchema()`, `fetchSchema()`; forwards `hasSchema`, `getSchema`, `isReady` from `__sc_state` |
+| `state.js` | `window.__procedia_internal.scState` | In-memory cache (`_memoryCache`, `_aeVersion`, `_ready`), getter/setter accessors, public read API (`hasSchema`, `getSchema`, `isReady`, `memoryKeys`) |
+| `persistence.js` | `window.__procedia_internal.scPersist` | `writeToDisk()` — persists cache to disk via `evalBridge.dispatch({ action: 'writeSchemaCache' })` |
+| `diff.js` | `window.__procedia_internal.scDiff` | `schemasAreDifferent()` — property-level comparison; `runVersionDiff()` — re-introspects all known schemas when AE version changes |
+| `index.js` | `schemaCache` | Aggregates sub-modules; exposes `init()`, `storeSchema()`, `fetchSchema()`; forwards `hasSchema`, `getSchema`, `isReady` from `scState` |
 
 **Load order:** `state.js` → `persistence.js` → `diff.js` → `index.js`
 

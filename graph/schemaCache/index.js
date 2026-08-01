@@ -20,9 +20,9 @@
 
 var schemaCache = (function() {
 
-  var _state   = __sc_state;
-  var _persist = __sc_persist;
-  var _diff    = __sc_diff;
+  var _state   = window.__procedia_internal.scState;
+  var _persist = window.__procedia_internal.scPersist;
+  var _diff    = window.__procedia_internal.scDiff;
 
   /**
    * Initialises the schema cache: reads persisted cache, checks AE version,

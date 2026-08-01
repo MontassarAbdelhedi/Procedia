@@ -123,7 +123,11 @@ function _handleWriteTextFile(cmd) {
       result.error = 'writeTextFile: content required';
       return result;
     }
-    var filePath = _pluginRootFolder().fsName + '/' + params.path;
+    var filePath = _validatePluginPath(_pluginRootFolder().fsName, params.path);
+    if (!filePath) {
+      result.error = 'writeTextFile: invalid path';
+      return result;
+    }
     var f = new File(filePath);
     f.open('w');
     f.write(params.content);

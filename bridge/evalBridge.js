@@ -2,14 +2,14 @@
  * Bridge between the panel UI and After Effects via CSInterface.evalScript.
  * The ONLY module permitted to call csInterface.evalScript().
  * Depends on: lib/CSInterface.js, data/uuidGenerator.js
- * Exports: evalBridge object with init, onReady, dispatch, dispatchBatch, fireAndForget
+ * Exports: evalBridge object with init, onReady, dispatch, dispatchBatch, fireAndForget, getAllowedActions
  */
 // bridge/evalBridge.js
 // DEPENDS ON: lib/CSInterface.js, data/uuidGenerator.js
 // MUST LOAD BEFORE: graph/graphState.js, graph/engine/index.js, flush/dirtyFlusher.js, polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js, polling/poller.js
 //
 // THE ONLY FILE that calls csInterface.evalScript(). No other file may call it directly.
-// Exposes: evalBridge.init(cs), evalBridge.dispatch(commandObj), evalBridge.dispatchBatch(commandArr)
+// Exposes: evalBridge.init(cs), evalBridge.dispatch(commandObj), evalBridge.dispatchBatch(commandArr), evalBridge.getAllowedActions()
 
 var evalBridge = (function() {
 
@@ -67,6 +67,15 @@ var evalBridge = (function() {
 
   function _generateTempId() {
     return 'tmp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+  }
+
+  /**
+   * Returns a fresh array of every action permitted by the dispatch whitelist.
+   * Exposed so tests can assert dispatch/route parity with the dispatcher handlers.
+   * @return {Array<string>} Allowed action names.
+   */
+  function getAllowedActions() {
+    return Object.keys(_ALLOWED_ACTIONS);
   }
 
   function _validateCommandObj(commandObj) {
@@ -449,7 +458,8 @@ var evalBridge = (function() {
     onReady:       onReady,
     dispatch:      dispatch,
     dispatchBatch: dispatchBatch,
-    fireAndForget: fireAndForget
+    fireAndForget: fireAndForget,
+    getAllowedActions: getAllowedActions
   };
 
 })();

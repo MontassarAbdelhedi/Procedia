@@ -4,242 +4,138 @@
 
 ---
 
-## Core Graph Engine
+## 1. Graph Engine
 
-**Graph Engine**: Graph State Management: Centralized in-memory store for all nodes and wires with full CRUD operations, selection tracking (multi-select, toggle, replace), dirty-flag system, graph change listeners, temp snapshot generation, clone group tracking, and active comp focus.
+**State & Graph Management**: Centralized in-memory store with instant access to all nodes, wires, and connections — multi-select, visibility toggle, change tracking, and version preview.
 
-**Graph Engine**: Node Lifecycle: Drop nodes onto the canvas from the registry, delete nodes with cascading ghost cleanup, duplicate selected nodes with offset, clone nodes with clone-master relationship, recreate errored nodes, lock/unlock nodes, switch effector order, reset entire graph, set individual node properties, and toggle node disabled state — all synced to After Effects.
+**Node Lifecycle**: Drag from palette to create, delete with automatic cleanup, duplicate with perfect placement, clone with master relationships, recreate for error recovery, lock/unlock, reorder effects, enable/disable — all synced with AE.
 
-**Graph Engine**: Wire Operations: Connect wires between ports with type-specific validation (layer, data, parent, matte), path layer UUID assignment, and disconnect with cascading ghost cleanup.
+**Smart Wiring**: Connect any two ports with automatic type validation (layer, data, parent, matte). Color-coded wires (green=layer, gray=data, orange=parent) with animated dashes for active flow. Midpoint click inserts nodes inline. Complete validation: node existence, self-connection prevention, port availability, direction compatibility, type matching, capacity, duplicates, cycle detection, parent matching, special rules for blending and matte connections.
 
-**Graph Engine**: Alive Propagation: Propagates alive state along layer wire chains, detects terminal wires, re-stamps AE path layers, activates/deactivates track mattes, fires create-layer commands, prevents race conditions with pending UUID tracking, and draws visual bypass routes for disabled effectors.
+**State Propagation**: Nodes activate/deactivate through connection chains. Active nodes auto-create AE layers with correct properties. Disabled chains show visual bypass routes.
 
-**Graph Engine**: Dynamic Effect Node Factory: Generates full node definitions on-the-fly from stub metadata combined with live AE effect schema introspection, with automatic port assignment and version tracking per effect type.
+**Cascade & Ghosting**: Removing a connection ghosts downstream nodes that lose all comp paths. Effectors stripped first (outermost to innermost), then affected nodes parked. Only layer wires trigger cascade; parent and data wires are never traversed. Batched into single bridge call.
 
-**Graph Engine**: Node Registry: Register full or stub node types with duplicate protection, lookup by type or category, automatic stub replacement on full registration.
+**Cycle Prevention**: Automatic circular connection detection blocks infinite loops before they occur.
 
-**Graph Engine**: Cycle Detection: DFS-based cycle detection for layer wire connections, preventing infinite loops in the graph.
+**Undo/Redo**: Snapshot history (50 entries deep) with debounced commits. Full AE reconciliation on undo/redo — diffs old and new state, dispatches create/delete, property changes, wire connect/disconnect wrapped in clean AE undo groups.
 
----
-
-## Graph Canvas & Wires
-
-**Canvas**: Pan & Zoom: Drag-to-pan with mouse and scroll-to-zoom (0.1x–4.0x) with screen-to-canvas coordinate transforms.
-
-**Canvas**: Infinite Zoom Grid: Multi-level dot grid background (3 detail levels) with opacity scaled by zoom level for spatial orientation.
-
-**Canvas**: Grid Snap: Snap-to-grid alignment at 24px resolution for precise node positioning.
-
-**Canvas**: Node Card Rendering: Full DOM-based node card system with category color coding (8 categories), dynamic parameter row builder, port label display, state CSS classes (alive/ghost/error/locked/collapsed), collapse/expand, and wire-param caching.
-
-**Canvas**: Node Toolbar: Floating action bar on selected nodes with Clone, Duplicate, Color, Collapse, Disable/Enable, Switch, and Delete buttons.
-
-**Canvas**: Node Color Picker: 8-color palette (white, yellow, green, red, blue, orange, violet, lime) directly on the toolbar for quick node customization.
-
-**Canvas**: Node Context Menu: Right-click context menu with Recreate, Duplicate, Clone, Lock, and Delete actions.
-
-**Wires**: Three Wire Styles: Bezier (curved), Direct (straight line), and Stepped (right-angle) wire rendering.
-
-**Wires**: Wire Type Color Coding: Layer wires (green), data wires (gray), and parent wires (orange) for at-a-glance understanding.
-
-**Wires**: Animated Wire Dashes: Toggleable animated dash flow on wires for visual feedback.
-
-**Wires**: Interactive Wire Insert: Contextual insert button at wire midpoints for adding nodes inline into existing connections.
-
-**Wires**: Split-Wire Preview: Visual preview when inserting a node into an existing wire connection.
-
-**Wires**: Drag Preview Line: Temporary wire rendered while dragging from port to port during connection.
-
-**Wires**: Disabled Node Dimming: Wires connected to disabled nodes render with reduced opacity.
-
-**Wires**: Wire Selection & Bypass: Wire selection highlighting and visual bypass routes for disabled effector chains.
-
-**Wires**: Clone Wire Rendering: Special visual treatment for clone-master wire relationships.
-
-**Interactive Wire Tool**: Port-to-port wire dragging in both forward and reverse directions with automatic port definition resolution.
-
-**Wire Validator**: Comprehensive connection validation including node existence, self-wire prevention, port existence, direction check, type matching, single-capacity enforcement, duplicate wire prevention, cycle detection, parent comp sharing, blending-node rules, matte conditions, and compatibility-filtered pick lists.
-
-**Auto Layout**: Sugiyama-style layered graph layout in Left-to-Right or Top-to-Bottom directions with configurable spacing and data-node grid fallback.
+**Performance**: Property updates batched with 300ms debouncing. RAF-batched UI rendering with per-component dirt-tracking.
 
 ---
 
-## Cascade & Ghosting System
+## 2. Canvas & Interface
 
-**Cascade**: Cascade Ghosting: When a wire is removed, automatically ghosts downstream nodes that lost all comp connections, with partial ghosting support for nodes that lose only some comps.
+**Canvas Navigation**: Pan with mouse drag or Space+Drag, zoom 10%–400% with scroll wheel. 3-level detail grid for spatial awareness. 24-pixel snap grid for precise placement.
 
-**Cascade**: Upstream/Downstream Traversal: Walks layer wires to find all downstream comp nodes and collects all upstream nodes along the path for correct ghost propagation.
+**Node Visuals**: Color-coded category cards with dynamic parameter rows, clear port labels, and visual states (active, ghosted, errored, locked, collapsed). Expand/collapse to focus.
 
-**Cascade**: Parent Wire Cleanup: Automatically removes parent wires connected to ghosted or disaggregated nodes.
+**Selection Toolbar**: Floating toolbar on selected nodes — clone, duplicate, change color (8-color palette), collapse, enable/disable, switch, delete.
 
-**Cascade**: Composition Detection: Dedicated helper for identifying composition nodes in the graph.
+**Context Menu**: Right-click for recreate, duplicate, clone, lock, delete.
 
----
+**Wire Styles**: Smooth curves, straight lines, or right-angle turns. Connection previews show split-wire impact before committing. Live dragging with automatic port detection.
 
-## AE Communication Bridge
+**Auto Layout**: Sugiyama-style algorithms arrange nodes in logical left-to-right or top-to-bottom flow with adjustable spacing. Data nodes positioned in clean grids.
 
-**Bridge**: Eval Bridge: Single gateway rule for all AE ExtendScript communication with dispatch (promise with 10s timeout), batch dispatch, fire-and-forget, action validation whitelist (~89 allowed actions across 15 barrel files + 4 subdirectories), JSX preamble system, on-ready callbacks, and command chunking for reliable AE communication.
+**Top Bar**: Branding, save/open, undo/redo with intelligent states, layout tools, import/export, selection actions, settings, tutorials, bug reporting.
 
-**Bridge**: ExtendScript Dispatcher: 50+ specialized action handlers across comp, compList, layer, property, propertyGet, masks, park, matte, footage, keyframe, effect (applyDynamicEffect/removeEffect/setEffectProperty/renameEffect/setEffectEnabled/reorderEffect/reorderEffectChain/setExpression), schema cache, graph export, import-scan, cmd-chunk, and undo group operations.
+**Node Library Sidebar**: Browse 6 categories (Core, Data, Layers, Shapes, Track Matte, Effects with subcategories). Real-time search, drag preview, category color dots, collapsible sections.
 
-**Bridge**: Comp Actions: Create, delete, list, focus, focus-by-name, save-with-dialog, and set properties of After Effects compositions; project-identifier reader.
+**Inspector**: Edit properties with text inputs, checkboxes, color pickers, math evaluation, layer ordering, comp stack view, keyframe indicators, file browsing for footage, error recovery — adapts to each node type.
 
-**Bridge**: Layer Actions: Create text, null, adjustment, shape, solid, camera, light, rectangle, ellipse, star, squircle, gear, wave, flower, and polygon layers; set layer properties, parenting, and stacking order; rename, enable/disable, shy, delete, and restamp layers.
+**Node Picker**: Search by wire compatibility with category grouping, keyboard navigation, inline connection mode, forward/reverse support.
 
-**Bridge**: Effect Actions: Apply, remove, rename, reorder, reorder-chain, enable/disable effects, set effect properties dynamically, and set expression strings.
+**Settings Modal**: Three tabs — General (minimap, port labels, dashes, snapping, reporting), Wires (style/animation), Auto Layout (direction/spacing).
 
-**Bridge**: Keyframe Actions: Batch get/set/remove keyframes on any property with full AE integration.
+**Composition Navigator**: Current comp display with instant switching. Drop nodes onto comps for automatic wiring.
 
-**Bridge**: Footage Management: Import files, import placeholders, get footage paths, reload footage, and replace footage.
+**Status Bar**: Total/alive/ghost node counts, wire count, zoom %, selection count.
 
-**Bridge**: Track Matte Actions: Set, clear, and get track matte state on layers.
+**Notifications**: Floating alert cards at 4 severity levels (info, warning, error, success) with action buttons, auto-dismiss, dismiss-all, duplicate prevention.
 
-**Bridge**: Schema Cache Actions: Read/write schema cache and fetch effect schemas from AE with version detection.
+**Tutorial & Tips**: 8-step guided tour (Welcome, Node Palette, Canvas, Comp List, Connecting Nodes, Inspector, Report a Bug, Ready). Cycling tips every 20 seconds.
 
-**Bridge**: Graph Export/Import: Full AE project scan and structured export into Procedia graph format.
+**Minimap**: Scaled-down graph overview with blue viewport rectangle. Click-drag to navigate.
 
-**Bridge**: Undo Grouping: Begin/end undo group actions for clean AE undo history batching.
+**Sidebars**: Edge-zone hover handles for collapsing left/right panels with smooth animation. State persists across sessions.
 
----
+**Loading States**: Semi-transparent overlay with CSS spinner, reference counting prevents overlaps, custom progress messages.
 
-## Persistence & State
+**Design System**: 20 CSS files with custom properties for palette, spacing, typography — premium dark theme. Full Tabler icon font.
 
-**Persistence**: Native AE Save: Save the full graph directly into the After Effects project file via the eval bridge.
-
-**Persistence**: File Save/Open: Fallback .procedia.json file save (download via Blob/URL) and open (file input picker).
-
-**Persistence**: Auto-Save: Automatic graph save to AE project on changes for data safety.
-
-**Persistence**: Settings: User preferences stored in localStorage with key set (minimap, wire style, animated dash, snap to grid, layout direction, layout spacing, reporting, port labels) and default fallback for forward compatibility.
-
-**Persistence**: Graph Export: Full graph state export to transferable format with debounced auto-write.
-
-**Persistence**: Graph Import: Import full AE project structure — comps, layers, effects, footage — as Procedia node types with BFS hosting comp propagation, grid-positioned layout, and error-tolerant per-item processing with summary reporting.
-
-**Persistence**: Schema Cache: AE effect schema introspection with disk cache, version tracking across AE sessions, lazy fetch-on-miss, and property-level schema diffing.
-
-**Persistence**: Graph Export Schema: Sample project template (.procedia.json) with reserved comp, footage, rectangle, and alpha matte nodes.
+**Keyboard Shortcuts**: Ctrl+D duplicate, Delete/Backspace remove, Escape close/deselect, arrow keys + Enter picker nav, Space+Drag pan, scroll zoom.
 
 ---
 
-## Polling & Synchronization
+## 3. After Effects Bridge
 
-**Polling**: Adaptive Polling: Switches between active (500ms) and idle (2000ms) polling intervals based on user interaction, with write-lock system to prevent race conditions during graph writes.
+**Unified Bridge**: Single gateway (`evalBridge.js`) handles all AE communication with automatic retries, large-command chunking, and 10s timeout. `evalBridge` is the only caller of `csInterface.evalScript()`; `dispatcher.jsx` is the only file with AE API calls. Nodes return command objects — they never touch AE.
 
-**Polling**: Missing Node Detection: Compares AE layer comments against wire UUIDs to detect layers deleted outside Procedia, with intelligent filtering (pending UUIDs, intentional cascades).
+**Dispatcher**: ~89 actions across 20+ handler files — layer creation (14 types), comp lifecycle, property read/write, effects, keyframes, track mattes, footage, project import/export, graph persistence. All actions whitelisted in `evalBridge.js` and routed through `dispatcher.jsx`.
 
-**Polling**: External Deletion Detection: Detects effects and comps deleted directly in After Effects and marks them as errored in the graph.
+**Composition Control**: Create, delete, list, focus comps. Set dimensions, frame rate, duration, background color. Read project info.
 
-**Polling**: Deletion Notifications: Duplicate-suppressed alert cards with Recreate and Remove action buttons for externally deleted nodes.
+**Layer Tools**: 18 layer types — text, null, adjustment, shape, solid, camera, light, plus parametric shapes (rectangle, ellipse, star, squircle, gear, wave, flower, polygon). Parenting, order, rename, enable/disable, shy mode, delete, restamp.
 
-**Polling**: Property Sync: Polls AE for current property values of alive affected nodes and syncs changes back to the graph, with floating-point tolerant array comparison for change detection.
+**Effects System**: Apply 460+ effects via match name, rename, reorder, enable/disable, set complex properties — all synchronized with AE. Value normalization (0–100 mapped to 0–1) handled in dispatcher, never in node definitions.
 
----
+**Keyframes**: Add/remove single or all keyframes, read times, read values + interpolation. Get/set playhead position. Batch operations across properties.
 
-## Flush System
+**Media Management**: Import footage, create placeholders, get paths, reload, replace, delete footage items.
 
-**Flush**: Dirty Property Flusher: 300ms debounced batch dispatch of property updates to AE, with path layer UUID resolution, dirty node aggregation, batch dispatch, and automatic cleanup of dirty flags.
+**Track Mattes**: Set/clear alpha and luma mattes with invert support. Dispatcher handles layer reordering so matte sits directly above target.
 
----
+**Schema Intelligence**: Introspects AE effect properties on first use — creates temp solid, walks property tree, removes temp. Caches to `effectSchemaCache.json`, diffs on AE version change, updates automatically.
 
-## UI Components
+**Project Import**: Scan all comps, layers, effects, footage — convert to Procedia nodes with auto-layout and progress reporting. UUIDs stamped via path-driven layer model (layer.comment = wire UUID).
 
-**UI**: Top Bar: Logo and wordmark branding, Save/Open buttons, Undo/Redo with disabled states and command descriptions, Auto Layout, Fit View, Collapse All/Expand All, Import AE Project, dynamic selection section (Recreate/Duplicate/Delete), Settings, Walkthrough, and Report Bug buttons.
+**Undo Groups**: All AE operations wrapped in `beginUndoGroup`/`endUndoGroup`. Batch operations collapse into single undo steps — prevents double-undo problem.
 
-**UI**: Node List (Sidebar): Categorized node palette (Core, Data, Layers, Shapes, Track Matte, Effects with subcategories), real-time search/filter with clear button, drag-and-drop to canvas with ghost preview, merge node warning badges, category color dots, collapsible categories, and sidebar toggle on hover.
-
-**UI**: Inspector (Sidebar): Full node property editing with state indicators, text inputs, checkboxes, color pickers, math expression evaluation in param fields, layer order controls (Move Up/Down), layer stack view with state indicators, custom HSV color picker with eyedropper, keyframe indicators (inactive/active/highlight), footage file browse, recreate button for errored nodes, and dynamic parameter groups.
-
-**UI**: Node Picker Popup: Searchable popup filtered by wire compatibility, category grouping, keyboard navigation, wire-insert mode, and forward/reverse connection modes.
-
-**UI**: Settings Modal: Three-tab layout (General, Wires, Auto Layout) with toggle controls (minimap, port labels, animated dash, snap to grid, reporting), select controls (wire style, layout direction), slider controls (horizontal/vertical spacing), tutorial replay button, and live apply with modal overlay.
-
-**UI**: Comp List Dropdown: Floating dropdown showing current comp name with dynamic AE comp listing, comp focus on click, auto-wire on drop, and loading/error states.
-
-**UI**: Status Bar: Live node counts (total/alive/ghost), wire count, zoom level percentage, and selection count.
-
-**UI**: Notifications: Floating notification cards over canvas with four severity levels (info, warning, error, success), action buttons, auto-dismiss, manual dismiss, dismiss all, and duplicate prevention.
-
-**UI**: Onboarding Walkthrough: 8-step guided tour (Welcome → Node Palette → Canvas → Comp List → Connecting Nodes → Inspector → Report a Bug → Ready) with element highlighting, step indicators, smart positioning, and first-launch auto-detect.
-
-**UI**: Tip Field: Cycling contextual usage tips at the bottom of the interface with click-to-cycle and auto-reposition.
-
-**UI**: Loading Overlay: Semi-transparent overlay with CSS spinner animation, reference-counting for stacked operations, and custom messages.
-
-**UI**: Minimap: Scaled-down graph overview in bottom-right with viewport rectangle and click-to-navigate.
-
-**UI**: UI Update Scheduler: rAF-batched updates with per-component dirty flags (minimap, renderer, wire renderer, inspector, status bar).
-
-**UI**: Sidebar Toggle: Edge-zone hover handles for collapsing left and right sidebars with smooth animation and persistent state.
+**Timeline Sync**: Adaptive polling (500ms active / 2000ms idle) detects external changes. Property synchronization polls AE for current values, detects changes via intelligent comparison, updates graph to reflect reality.
 
 ---
 
-## Data & Node Definitions
+## 4. Node Library & Building Blocks
 
-**Nodes**: Core Layer Nodes: Comp, layer, null, text, adjustment, shape (rectangle, ellipse, star, squircle, gear, wave, flower), and footage node types.
+**Layer Nodes**: Comp, layers, null, text, adjustment, shapes (rectangle, ellipse, star, squircle, gear, wave, flower), solid, camera, light, footage.
 
-**Nodes**: Data Nodes: Number, Slider, Checkbox, Color, Point, Angle, Layer, Image, Text, and Gradient data types for parameter control.
+**Data Nodes**: Number, slider, checkbox, color, 2D point, angle, layer reference, image, text, gradient — for parameter control via data wires. Always alive, no AE footprint.
 
-**Nodes**: Merge Nodes: Merge and Multimerge nodes for compositing multiple layers.
+**Utility Nodes**: Merge/Multimerge for compositing, Blending for non-destructive blend modes (18 modes), Matte Alpha/Luma for track mattes with foreground/matte/combined outputs.
 
-**Nodes**: Track Matte Nodes: Alpha and Luma track matte with foreground/matte/combined output ports.
+**Effect Library**: 460+ effects across 22 categories (3D Channel, Audio, Blur & Sharpen, Boris FX Mocha, Channel, Color Correction, Distort, Expression Controls, Generate, Immersive Video, Keying, Matte, Noise & Grain, Obsolete, Perspective, Simulation, Stylize, Text, Time, Transition, Uncategorized, Utility). Auto-created from AE schema on demand via `effectNodeFactory.js`. Obsolete types visually dimmed.
 
-**Nodes**: Utility Nodes: Blending mode node for layer blending control.
+**5 Node Kinds**: Affected (creates AE layers), Effector (modifies existing layers via dynamic schema), Data (pure values — always alive), Blending (blend mode control — always alive), Matte (track mattes — always alive). Each has distinct lifecycle and port contracts.
 
-**Nodes**: Effect Nodes: 460+ AE effect stubs registered across 22 metadata categories (3D Channel, Audio, Blur & Sharpen, Boris FX Mocha, Channel, Color Correction, Distort, Expression Controls, Generate, Immersive Video, Keying, Matte, Noise & Grain, obsolete, Perspective, Simulation, Stylize, Text, Time, Transition, Uncategorized, Utility) — each factory-generated into a full node definition at drop time via `graph/engine/effectNodeFactory.js` with dynamic-schema introspection.
+**Port System**: Output, main input, secondary input, parent ports. Secondary inputs auto-generated for effect parameters with compatibility filtering and capacity controls.
 
-**Nodes**: Node Kind System: Five node kinds — affected, effector, blending, matte, data — determining lifecycle behavior and wire compatibility.
-
-**Nodes**: Obsolete Marking: Registry tracks and visually dims obsolete node types.
-
-**Wires**: Three Wire Types: Layer wires (AE layer state), data wires (parameter values), and parent wires (layer parenting).
-
-**Ports**: Port System: Port categories (output, mainInput, secondaryInput, parent), wire types on ports (layer, data, parent), capacities (single/multi), and runtime-generated secondary ports for effect parameters.
+**Three Wire Types**: Layer wires (AE layer state), data wires (parameter values), parent wires (layer parenting hierarchy).
 
 ---
 
-## Undo/Redo System
+## 5. Persistence & Tooling
 
-**Undo**: Snapshot-Based Undo/Redo: Full graph state snapshots before mutation with configurable 50-entry history depth, commit labeling, debounced commit for rapid edits, and automatic redo stack clearing on new commits.
+**Native AE Save**: Graph persisted directly inside the AE project file via text layers in the Reserved Comp. Written on save, quit, and panel unload.
 
-**Undo**: AE Reconciliation: Full diff between old and new graph states on undo/redo, dispatching AE commands for node lifecycle, property changes, wire connect/disconnect, and parent wire changes, all wrapped in AE undo groups.
+**File-Based Backup**: Save/load `.procedia.json` files via native dialogs. Debounced writing prevents performance issues.
 
-**Undo**: UI Integration: Top-bar undo/redo buttons with disabled states and descriptive tooltips.
+**Auto-Save**: Graph auto-saved to AE on every change with writing-lock protection and conflict prevention.
 
----
+**Personal Settings**: Minimap visibility, wire style, animated dashes, grid snapping, layout direction/spacing, reporting, port labels — persisted across sessions.
 
-## Reporting & Error Handling
+**Schema Caching**: Effect schemas cached in `data/effectSchemaCache.json`. Version-diffed on AE version change — only re-introspects what changed.
 
-**Reporting**: Sentry Error Tracking: Bundled Sentry JS SDK for automated crash reporting with source map support.
+**Project Templates**: Pre-built templates with reserved comps, footage nodes, shapes, and track mattes for quick starts.
 
-**Reporting**: Bug Report: Manual report trigger from top bar with screenshot capture (html2canvas), environment snapshot (AE version, panel version, graph stats), and structured JSON payload.
+**External Change Detection**: Polls AE for layer/effect/composition deletions — marks nodes as errored with smart notifications and action buttons (recreate or remove).
 
----
+**Error Tracking**: Sentry integration with source map support for automatic crash detection and reporting.
 
-## Keyframe Management
+**Bug Reporting**: One-click capture of screenshots, environment info (AE version, panel version, graph stats) — structured JSON payload for developer analysis.
 
-**Keyframes**: Keyframe State: Per-parameter keyframe tracking with playhead time awareness, keyframe existence checks, playhead-on-keyframe detection, next/prev keyframe navigation, and UI state triage (inactive/active/highlight).
-
-**Keyframes**: AE Keyframe Sync: Batch keyframe operations (get times, set, remove) via the AE bridge with automatic sync on graph load.
+**Testing**: Vitest with jsdom. Tests cover JSX dispatcher, UUID generation, cycle detection, keyframe state management with CSInterface mocking.
 
 ---
 
-## CSS & Theming
-
-**Theming**: Design Tokens: Systematically defined CSS custom properties for color palette, spacing, and typography with a dark theme optimized for motion design workflows.
-
-**Theming**: 20 Stylesheet Files: Dedicated CSS for every UI component (top bar, left bar, right bar, canvas, node, settings modal, node picker, notifications, comp list, graph search, tip field, color picker, layer stack, keyframe, walkthrough, comment, preset modal) plus the `tokens`/`base` theming foundation and the tabler-icons font.
-
-**Theming**: Tabler Icons: Full icon font for all toolbar and UI element icons.
-
----
-
-## Keyboard Shortcuts
-
-**Shortcuts**: Ctrl+D to duplicate nodes, Delete/Backspace to delete, Escape to close popups/deselect, Arrow keys + Enter for picker navigation, Space+Drag to pan canvas, and Scroll to zoom.
-
----
-
-## Testing
-
-**Testing**: Unit Tests: Vitest-based test suite covering the JSX action dispatcher, UUID generation, cycle detection, and keyframe state management with jsdom environment and CSInterface mocking.
+Procedia transforms complex After Effects workflows into intuitive visual interactions. From simple layer creation to complex effect chains, every feature is designed to maximize your creativity while minimizing technical barriers.
