@@ -18,7 +18,7 @@ window.__procedia_internal.gs = {
   tempGraph: { version: '4.0', nodes: {}, wires: {} },
   _tempDirty: true,
   selection: [],
-  _onSelectionChangeCb: null,
+  _onSelectionChangeCbs: [],
   _graphChangeListeners: [],
 
   _activeCompId: null,

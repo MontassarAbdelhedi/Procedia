@@ -26,7 +26,9 @@ var __wt_nav = (function() {
   function complete() {
     try {
       localStorage.setItem('procedia_walkthrough_done', '1');
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[walkthrough] localStorage write failed:', e);
+    }
     if (__wt_state.overlay) {
       __wt_state.overlay.style.display = 'none';
     }

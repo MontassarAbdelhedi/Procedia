@@ -40,7 +40,7 @@ window.__procedia_internal.nclone = (function() {
     copy.dirty = false;
     copy.hostingComps = [];
     copy._cloneMasterId = nodeId;
-    if (src.nodeKind !== 'data') {
+    if (src.nodeKind !== 'data' && src.nodeKind !== 'merge' && src.nodeKind !== 'multimerge') {
       copy.state = 'ghost';
     }
 

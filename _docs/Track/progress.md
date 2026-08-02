@@ -1,5 +1,38 @@
 # Progress Log
 
+## Sun 2026-08-02
+
+[x] CHANGELOG.md + RELEASING.md + README.md + THIRD_PARTY_LICENSES.md added (F-39, F-40, F-81)
+[x] data/categoryColors.js unified color map — deletes graph/canvas/renderer/categories.js (F-49)
+[x] _validatePluginPath path-traversal defence (F-73)
+[x] afterSave hook + 5s periodic auto-save for Ctrl+S persistence (F-35)
+[x] 7 silent catch sites now log console.warn / result.error (F-11, F-59): presetManager, autoShy x2, propertyPoller x2, walkthrough, envSnapshot, setExpression.jsx
+[x] tipField.js destroy() — clears setInterval + resize listener (F-13)
+[x] Walkthrough show() removes prior overlay DOM before rebuild (F-76)
+[x] Selection change multi-listener: _onSelectionChangeCbs[] + unsubscribe returns (F-24)
+[x] tests/integration/dispatcher-parity.test.js locks 89/89 parity (F-55)
+[x] tests/unit/lifecycle.test.js — 83 tests for 5×5 hook contract + port/kind/dedicated (Phase 0.10)
+[x] Lifecycle consolidation: deleteNode/recreateNode/state/propagate use buildLifecycleCommand — inline nodeKind dispatch removed (F-06, F-89)
+[x] Schema-cache internals → window.__procedia_internal.scState/scPersist/scDiff (qw #29)
+[x] buildCatalog.jsx stub → real (F-21): enumerateAllEffects/builFullEffectCatalog walk app.effects
+[x] createLightLayer.jsx uses LightType.POINT/SPOT/PARALLEL/AMBIENT enum constants (F-48)
+[x] Manifest HostList tightened [16.0,99.9] → [24.0,99.9] (F-83)
+[x] engine/index.js JSDoc exports corrected — _firePathCreation/_applyDynamicSchema removed, +4 added (F-44)
+[x] Import matte skip surfaces notificationBar.push warning instead of silent data loss (F-08)
+[x] Preset-drop undo race fixed (F-05)
+[x] Dragdrop document listener leak fixed — removeEventListener before re-attach (F-12, F-65)
+[x] Keyframe-bake Promise chain: .catch() + return for inner dispatch (F-17)
+[x] dispatchBatch outer catch closes undo group via app.endUndoGroup() (F-10)
+[x] Import _running reset uses .finally() not .then() (F-36)
+[x] _pendingPathUUIDs + _notifiedMissing cleared on clearGraph/loadGraph (F-37)
+[x] Import hostingComps.push → graphState.updateNode (F-08)
+[x] autoShy dispatchBatch wrapped in undo capture/commit (F-63)
+[x] cloneNode.js merge/multimerge exclusion parity with duplicateNode.js (F-77)
+[x] JSX fix: var lj implicit global (qw #19), setExpression catch → result.error, actions_property else-branch null guard (qw #39)
+[x] JSX fix: _docs/CLAUDE.md arch_specs.md reference corrected (F-72)
+[x] Dead code stripped: reorderEffectChain.jsx debug + __anchor__ block; switchNodes.js console.log; effectNodeFactory isEffectNode; refreshUI _NOOP; categories CATEGORY_NAMES; walkthrough animating guard; renderer/categories.js; engine/wires boundParam dead branch
+[x] Remaining stale docs references to engine._applyDynamicSchema → hlp.applyDynamicSchema (flow.md)
+
 ## Sun 2026-07-26
 
 [x] Rebuild import project feature: new 5-file panel side (`graph/import/scanner.js`, `mapper.js`, `graphBuilder/helpers.js`, `graphBuilder/build.js`, `index.js` — flattened `mapNodes/`+`mapWires`+`stampUUIDs`+`builder` into a 3-stage flow: scan → map → build) and 4-file AE side (`actionImport/scanComps.jsx`, `scanFootage.jsx`, `scanCompLayers.jsx`, `stampUUIDs.jsx`, barrel `actions_import.jsx`). Mapper assigns PROC- node UUIDs and WIRE- terminal-wire UUIDs and stamps layers with the WIRE UUID (consistent with SKILL 8). Builder clears graph + undoManager.reset(); per-comp per-layer node creation; wires layer→comp terminal wire with the stamped wire id; effector dynamicSchema resolution; effector chain re-wiring; parent wires for layer.parentIndex; extra BlendingNode auto-inserted for non-NORMAL blending modes; matte relationships deliberately NOT reconstructed. Confirmation flow with optional saveAsDialog "Save a Copy First" option.

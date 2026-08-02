@@ -22,6 +22,7 @@ var presetManager = (function() {
         _presets = {};
       }
     } catch (e) {
+      console.warn('[presetManager] failed to read presets from localStorage:', e);
       _presets = {};
     }
     return _presets;

@@ -50,7 +50,10 @@ function _handleSetExpression(cmd) {
     }
 
     if (prop && typeof prop.expression !== 'undefined') {
-      try { prop.expression = String(params.expression); } catch (e) {}
+      try { prop.expression = String(params.expression); } catch (e) {
+        result.error = 'setExpression: ' + e.toString();
+        return result;
+      }
     }
     result.ok = true;
   } catch (e) { result.error = e.toString(); }

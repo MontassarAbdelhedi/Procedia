@@ -64,40 +64,24 @@ window.__procedia_internal.prop = (function() {
    * @returns {Object|null} Command object or null
    */
   function _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID) {
-    if (nodeData.nodeKind === 'affected') {
-      if (nodeData.hasParkedLayer) {
-        return {
-          action: 'unparkLayer',
-          params: {
-            nodeUUID:        nodeData.id,
-            hostingCompUUID: hostingCompUUID,
-            layerUUID:       pathLayerUUID
-          }
-        };
-      }
-      var cmd = def.onAlive(nodeData, hostingCompUUID);
-      if (cmd !== null) cmd.params.layerUUID = pathLayerUUID;
-      return cmd;
-    }
-    if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending') {
-      var _wm = graphState.getAllWires() || {};
-      var _upUUID = null;
-      for (var _wId in _wm) {
-        if (!_wm.hasOwnProperty(_wId)) continue;
-        var _w = _wm[_wId];
-        if (_w.toNode === nodeData.id && _w.toPort === 'main_input') {
-          _upUUID = hlp.findPathLayerUUID(_w.fromNode);
-          break;
+    if (nodeData.nodeKind === 'affected' && nodeData.hasParkedLayer) {
+      return {
+        action: 'unparkLayer',
+        params: {
+          nodeUUID:        nodeData.id,
+          hostingCompUUID: hostingCompUUID,
+          layerUUID:       pathLayerUUID
         }
-      }
-      if (!_upUUID) _upUUID = pathLayerUUID;
-      if (!_upUUID) return null;
-      return def.onAlive(nodeData, hostingCompUUID, _upUUID);
+      };
     }
     if (nodeData.nodeKind === 'merge' || nodeData.nodeKind === 'multimerge') {
       return def.onAlive(nodeData, hostingCompUUID, pathLayerUUID);
     }
-    return null;
+    var cmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onAlive', undefined, undefined, hostingCompUUID);
+    if (cmd && nodeData.nodeKind === 'affected') {
+      cmd.params.layerUUID = pathLayerUUID;
+    }
+    return cmd;
   }
 
   /**

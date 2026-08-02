@@ -13,8 +13,9 @@
 (function(gs) {
 
   function _fireSelectionChange() {
-    if (gs._onSelectionChangeCb) {
-      gs._onSelectionChangeCb(gs.selection);
+    var cbs = gs._onSelectionChangeCbs;
+    for (var i = 0; i < cbs.length; i++) {
+      cbs[i](gs.selection);
     }
   }
 
@@ -79,7 +80,14 @@
   }
 
   function onSelectionChange(callback) {
-    gs._onSelectionChangeCb = callback;
+    gs._onSelectionChangeCbs.push(callback);
+    var cb = callback;
+    return function() {
+      var idx = gs._onSelectionChangeCbs.indexOf(cb);
+      if (idx !== -1) {
+        gs._onSelectionChangeCbs.splice(idx, 1);
+      }
+    };
   }
 
   gs.setSelection        = setSelection;

@@ -81,7 +81,7 @@ function _handleUnparkLayer(cmd) {
     layer.remove();
     if (params.layerUUID) {
       var hostLayer = null;
-      for (lj = 1; lj <= hostComp.numLayers; lj++) {
+      for (var lj = 1; lj <= hostComp.numLayers; lj++) {
         var HL = hostComp.layer(lj);
         if (HL.name === params.nodeUUID) { hostLayer = HL; break; }
       }

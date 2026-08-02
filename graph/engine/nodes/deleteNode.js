@@ -19,6 +19,7 @@
 window.__procedia_internal.ndel = (function() {
   var registry = window.__procedia_internal.registry;
   var hlp = registry.get('hlp');
+  var lifecycle = window.__procedia_internal.lifecycle;
 
   /**
    * Resolves the terminal wire UUID for a specific hosting comp.
@@ -88,41 +89,18 @@ window.__procedia_internal.ndel = (function() {
     var delWireMap = graphState.getAllWires();
 
     if (nodeData.nodeKind === 'data') {
-      var dataCmd = def ? def.onDelete(nodeData) : null;
+      var dataCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onDelete');
       if (dataCmd) evalBridge.dispatch(dataCmd);
 
     } else if (nodeData.nodeKind === 'blending' || nodeData.nodeKind === 'matte') {
       var batchCmds = [];
       for (var bi = 0; bi < nodeData.hostingComps.length; bi++) {
         var bmHostUUID = nodeData.hostingComps[bi];
-        var bmGhostCmd = null;
-        if (nodeData.nodeKind === 'blending') {
-          var blendUpstreamUUID = null;
-          for (var bwId in delWireMap) {
-            if (!delWireMap.hasOwnProperty(bwId)) continue;
-            var bw = delWireMap[bwId];
-            if (bw.toNode === nodeId && bw.toPort === 'main_input') {
-              blendUpstreamUUID = hlp.findPathLayerUUID(bw.fromNode);
-              break;
-            }
-          }
-          bmGhostCmd = def ? def.onGhost(nodeData, bmHostUUID, blendUpstreamUUID) : null;
-        } else {
-          var matteTopUUID = null;
-          for (var mwId in delWireMap) {
-            if (!delWireMap.hasOwnProperty(mwId)) continue;
-            var mw = delWireMap[mwId];
-            if (mw.toNode === nodeId && mw.toPort === 'top_layer') {
-              matteTopUUID = hlp.findPathLayerUUID(mw.fromNode);
-              break;
-            }
-          }
-          bmGhostCmd = def ? def.onGhost(nodeData, bmHostUUID, matteTopUUID) : null;
-        }
+        var bmGhostCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onGhost', undefined, undefined, bmHostUUID);
         if (bmGhostCmd) batchCmds.push(bmGhostCmd);
       }
       if (batchCmds.length > 0) evalBridge.dispatchBatch(batchCmds);
-      var bmDeleteCmd = def ? def.onDelete(nodeData) : null;
+      var bmDeleteCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onDelete');
       if (bmDeleteCmd) evalBridge.dispatch(bmDeleteCmd);
 
     } else {
@@ -130,26 +108,9 @@ window.__procedia_internal.ndel = (function() {
         var affBatch = [];
         for (var ai = 0; ai < nodeData.hostingComps.length; ai++) {
           var affHostUUID = nodeData.hostingComps[ai];
-          var affGhostCmd = null;
-          if (nodeData.nodeKind === 'affected') {
-            affGhostCmd = def && typeof def.onGhost === 'function' ? def.onGhost(nodeData, affHostUUID) : null;
-            if (affGhostCmd && affGhostCmd.params) {
-              affGhostCmd.params.layerUUID = _resolveLayerUUIDForComp(nodeData.id, affHostUUID) || hlp.findPathLayerUUID(nodeData.id);
-            }
-          } else {
-            var effPathUUID = null;
-            for (var ewId in delWireMap) {
-              if (!delWireMap.hasOwnProperty(ewId)) continue;
-              var ew = delWireMap[ewId];
-              if (ew.toNode === nodeId && ew.toPort === 'main_input') {
-                effPathUUID = hlp.findPathLayerUUID(ew.fromNode);
-                break;
-              }
-            }
-            if (!effPathUUID) {
-              effPathUUID = hlp.findPathLayerUUID(nodeId);
-            }
-            affGhostCmd = def ? def.onGhost(nodeData, affHostUUID, effPathUUID) : null;
+          var affGhostCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onGhost', undefined, undefined, affHostUUID);
+          if (affGhostCmd && nodeData.nodeKind === 'affected' && affGhostCmd.params) {
+            affGhostCmd.params.layerUUID = _resolveLayerUUIDForComp(nodeData.id, affHostUUID) || hlp.findPathLayerUUID(nodeData.id);
           }
           if (affGhostCmd) affBatch.push(affGhostCmd);
         }
@@ -187,7 +148,7 @@ window.__procedia_internal.ndel = (function() {
         // Only delete the AE comp object if no clones reference this comp
         var cloneIds = graphState.getCloneIds ? graphState.getCloneIds(nodeId) : [];
         if (cloneIds.length === 0) {
-          var compDeleteCmd = def ? def.onDelete(nodeData) : null;
+          var compDeleteCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onDelete');
           if (compDeleteCmd) evalBridge.dispatch(compDeleteCmd);
         }
       } else if (cascadeAlgorithm && cascadeAlgorithm.cascadeGhost) {
@@ -198,7 +159,7 @@ window.__procedia_internal.ndel = (function() {
             cascadeAlgorithm.cascadeGhost(cwId);
           }
         }
-        var affDeleteCmd = def ? def.onDelete(nodeData) : null;
+        var affDeleteCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onDelete');
         if (affDeleteCmd) evalBridge.dispatch(affDeleteCmd);
       }
     }

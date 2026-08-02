@@ -172,24 +172,9 @@ window.__procedia_internal.eState = (function() {
    * For affected nodes, injects the path layer UUID so AE can find the correct layer.
    */
   function _buildLifecycleAction(nodeData, def, hookName) {
-    var hook = def[hookName];
-    if (!hook) return null;
-
-    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
-      ? nodeData.hostingComps[0] : null;
-
-    if (nodeData.nodeKind === 'effector') {
-      var upstreamNodeUUID = hlp.findPathLayerUUID(nodeData.id);
-      return hook(nodeData, hostingCompUUID, upstreamNodeUUID);
-    } else if (nodeData.nodeKind === 'affected') {
-      var action = hook(nodeData, hostingCompUUID);
-      // Inject layerUUID so AE can find the layer by its .comment (pathLayerUUID)
-      if (action && action.params) {
-        action.params.layerUUID = hlp.findPathLayerUUID(nodeData.id);
-      }
-      return action;
-    }
-    return hook(nodeData);
+    var cmd = lifecycle.buildLifecycleCommand(nodeData, def, hookName);
+    if (cmd) lifecycle.injectLayerUUID(cmd, nodeData);
+    return cmd;
   }
 
   /**

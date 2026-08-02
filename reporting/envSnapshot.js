@@ -40,7 +40,9 @@ var envSnapshot = (function() {
           if (match) _pluginVersion = match[1];
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[envSnapshot] manifest version read failed:', e);
+    }
   }
 
   /**

@@ -227,3 +227,22 @@ var PERSISTENCE = (function() {
   };
 
 }());
+
+/**
+ * Register the afterSave hook so the graph is persisted into the AE project
+ * file whenever the user presses Ctrl+S. The panel-side auto-save keeps the
+ * Reserved Comp text layers current; this hook fires after the AE save
+ * completes (best-effort — the hook is not available in all AE editions).
+ */
+(function _setupAfterSave() {
+  try {
+    if (typeof app !== 'undefined' && typeof app.project !== 'undefined' &&
+        typeof app.project.afterSave !== 'undefined') {
+      app.project.afterSave = function() {
+        try {
+          findReservedComp();
+        } catch (e) {}
+      };
+    }
+  } catch (e) {}
+})();

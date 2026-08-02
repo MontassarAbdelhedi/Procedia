@@ -225,6 +225,39 @@ function init() {
     });
   });
 
+  var _autoSaveTimer = null;
+  function _scheduleAutoSave() {
+    if (_autoSaveTimer) return;
+    _autoSaveTimer = setTimeout(function() {
+      _autoSaveTimer = null;
+      if (typeof graphState === 'undefined' || !graphState.isDirty()) return;
+      var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
+      if (typeof keyframeState !== 'undefined') {
+        var kf = {};
+        var allNodes = graphState.getAllNodes();
+        for (var nid in allNodes) {
+          if (!allNodes.hasOwnProperty(nid)) continue;
+          var kfParams = keyframeState.getAllKeyframedParams(nid);
+          if (kfParams.length > 0) {
+            kf[nid] = {};
+            for (var pi = 0; pi < kfParams.length; pi++) {
+              kf[nid][kfParams[pi]] = {
+                keyframed: true,
+                times: keyframeState.getKeyframeTimes(nid, kfParams[pi])
+              };
+            }
+          }
+        }
+        graphData.keyframes = kf;
+      }
+      if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
+        evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });
+      }
+      _scheduleAutoSave();
+    }, 5000);
+  }
+  _scheduleAutoSave();
+
   window.addEventListener('beforeunload', function() {
     if (typeof graphState === 'undefined') return;
     if (!graphState.isDirty()) return;

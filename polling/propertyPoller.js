@@ -148,7 +148,7 @@ var propertyPoller = (function() {
         }
       }
     }).catch(function(err) {
-      // Polling is best-effort; silently ignore transient errors
+      console.warn('[propertyPoller] layer poll error:', err && err.message || err);
     });
   }
 
@@ -259,7 +259,7 @@ var propertyPoller = (function() {
         }
       }
     }).catch(function(err) {
-      // Polling is best-effort; silently ignore transient errors
+      console.warn('[propertyPoller] effects poll error:', err && err.message || err);
     });
   }
 

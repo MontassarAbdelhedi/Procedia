@@ -176,6 +176,7 @@ function dispatchBatch(jsonStr) {
     result.ok = true;
     result.data = results;
   } catch (e) {
+    try { app.endUndoGroup(); } catch (ignore) {}
     result.error = 'dispatchBatch error: ' + e.toString();
   }
   return JSON.stringify(result);

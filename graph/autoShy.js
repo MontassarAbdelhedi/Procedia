@@ -108,7 +108,9 @@ var autoShy = (function() {
       if (typeof undoManager !== 'undefined') undoManager.capture();
       evalBridge.dispatchBatch(commands).then(function() {
         if (typeof undoManager !== 'undefined') undoManager.commit('Auto Shy Sync');
-      }).catch(function() {});
+      }).catch(function(err) {
+        console.warn('[autoShy] dispatchBatch failed:', err && err.message || err);
+      });
     }
   }
 
@@ -152,7 +154,9 @@ var autoShy = (function() {
       if (typeof undoManager !== 'undefined') undoManager.capture();
       evalBridge.dispatchBatch(commands).then(function() {
         if (typeof undoManager !== 'undefined') undoManager.commit('Auto Shy Sync');
-      }).catch(function() {});
+      }).catch(function(err) {
+        console.warn('[autoShy] dispatchBatch failed:', err && err.message || err);
+      });
     }
   }
 

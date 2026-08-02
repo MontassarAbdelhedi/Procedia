@@ -6,7 +6,7 @@ Visual node-based compositing panel for Adobe After Effects. Build procedural mo
 
 ## Requirements
 
-- **After Effects 2025+** (manifest range: `[16.0, 99.9]`)
+- **After Effects 2025+** (manifest range: `[24.0, 99.9]`)
 - **Windows**
 - **Node.js 18+** (dev only — for running tests)
 

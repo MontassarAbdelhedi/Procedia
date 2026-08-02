@@ -92,6 +92,7 @@ var importGraphBuilder = (function() {
     }
 
     // --- Step 3: Create layer nodes and effect nodes inside comps ---
+    var _matteSkipCount = 0;
     for (compUUID in comps) {
       if (!comps.hasOwnProperty(compUUID)) continue;
       var compData = comps[compUUID];
@@ -240,7 +241,9 @@ var importGraphBuilder = (function() {
                 if (srcNode.hostingComps[hi] === compUUID) { alreadyHosting = true; break; }
               }
               if (!alreadyHosting) {
-                srcNode.hostingComps.push(compUUID);
+                graphState.updateNode(layer.sourceUUID, {
+                  hostingComps: srcNode.hostingComps.concat([compUUID])
+                });
               }
             }
           }
@@ -283,18 +286,19 @@ var importGraphBuilder = (function() {
 
         // --- Step 9: Track matte ---
         if (layer.trackMatteType && layer.trackMatteType !== 'NONE') {
-          // Track mattes in AE reference the layer directly above.
-          // For import, we create a note but cannot fully reconstruct the matte
-          // relationship without knowing which layer is the matte source.
-          // The scan already recorded the sourceItemName / parentIndex.
-          // For now, we skip auto-creating matte nodes as the exact relationship
-          // may not be reconstructable without the Procedia layer ordering model.
-          // The blending mode and trackMatteType are already set on the AE layer.
+          _matteSkipCount++;
         }
       }
     }
 
     // --- Step 10: Refresh graph state ---
+    if (_matteSkipCount > 0 && typeof notificationBar !== 'undefined' && notificationBar.push) {
+      notificationBar.push({
+        severity: 'warning',
+        message: 'Import: ' + _matteSkipCount + ' track matte(s) skipped — set up manually in Procedia.',
+        duration: 10000
+      });
+    }
     graphState.rebuildTempGraph();
 
     return { compCount: Object.keys(comps).length, footageCount: Object.keys(footage).length };
