@@ -222,22 +222,22 @@ window.__procedia_internal.hlp = (function() {
       if (typeof value !== 'string' || value.trim() === '') return;
       if (typeof evalBridge === 'undefined') return;
       var wires = graphState.getAllWires();
-      for (var wid in wires) {
-        if (!wires.hasOwnProperty(wid)) continue;
-        var w = wires[wid];
-        if (w.fromNode === fromNodeId && w.type === 'data') {
-          _dispatchExpressionToTarget(w.toNode, w.toPort, value);
+      for (var wireId in wires) {
+        if (!wires.hasOwnProperty(wireId)) continue;
+        var wire = wires[wireId];
+        if (wire.fromNode === fromNodeId && wire.type === 'data') {
+          _dispatchExpressionToTarget(wire.toNode, wire.toPort, value);
         }
       }
       return;
     }
 
     var wires = graphState.getAllWires();
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      var w = wires[wid];
-      if (w.fromNode === fromNodeId && w.type === 'data') {
-        graphState.updateProp(w.toNode, w.toPort, value);
+    for (var wireId in wires) {
+      if (!wires.hasOwnProperty(wireId)) continue;
+      var wire = wires[wireId];
+      if (wire.fromNode === fromNodeId && wire.type === 'data') {
+        graphState.updateProp(wire.toNode, wire.toPort, value);
         if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.schedule) dirtyFlusher.schedule();
       }
     }
@@ -252,11 +252,11 @@ window.__procedia_internal.hlp = (function() {
    */
   function _propagateDataDefaults(fromNodeId) {
     var wires = graphState.getAllWires();
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      var w = wires[wid];
-      if (w.fromNode === fromNodeId && w.type === 'data') {
-        var targetNode = graphState.getNode(w.toNode);
+    for (var wireId in wires) {
+      if (!wires.hasOwnProperty(wireId)) continue;
+      var wire = wires[wireId];
+      if (wire.fromNode === fromNodeId && wire.type === 'data') {
+        var targetNode = graphState.getNode(wire.toNode);
         if (!targetNode) continue;
         var targetDef = nodeRegistry.getDefinition(targetNode.type);
         if (!targetDef) continue;
@@ -264,9 +264,9 @@ window.__procedia_internal.hlp = (function() {
         if (targetDef.params === 'dynamic') {
           if (targetNode.dynamicSchema && targetNode.dynamicSchema.properties) {
             var props = targetNode.dynamicSchema.properties;
-            for (var pi = 0; pi < props.length; pi++) {
-              if (props[pi].matchName === w.toPort) {
-                graphState.updateProp(w.toNode, w.toPort, props[pi].defaultValue);
+            for (var propIndex = 0; propIndex < props.length; propIndex++) {
+              if (props[propIndex].matchName === wire.toPort) {
+                graphState.updateProp(wire.toNode, wire.toPort, props[propIndex].defaultValue);
                 break;
               }
             }
@@ -274,8 +274,8 @@ window.__procedia_internal.hlp = (function() {
         } else {
           var params = targetDef.params || [];
           for (var j = 0; j < params.length; j++) {
-            if (params[j].key === w.toPort) {
-              graphState.updateProp(w.toNode, w.toPort, params[j]['default']);
+            if (params[j].key === wire.toPort) {
+              graphState.updateProp(wire.toNode, wire.toPort, params[j]['default']);
               break;
             }
           }

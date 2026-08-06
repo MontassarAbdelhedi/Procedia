@@ -16,7 +16,7 @@ var poller = (function() {
   var IDLE_INTERVAL   = 2000;
   var _timer = null;
   var _active = false;
-  var _writeCount = 0;
+  var _writeLockCount = 0;
   var _lastActivity = 0;
 
   function _handleMissingNode(uuid) {
@@ -27,10 +27,10 @@ var poller = (function() {
     if (nd.nodeKind === 'effector') {
       var allWires = graphState.getAllWires();
       var hasMainInput = false;
-      for (var wId in allWires) {
-        if (!allWires.hasOwnProperty(wId)) continue;
-        var w = allWires[wId];
-        if (w.toNode === uuid && w.toPort === 'main_input') {
+      for (var wireId in allWires) {
+        if (!allWires.hasOwnProperty(wireId)) continue;
+        var wire = allWires[wireId];
+        if (wire.toNode === uuid && wire.toPort === 'main_input') {
           hasMainInput = true;
           break;
         }
@@ -56,7 +56,7 @@ var poller = (function() {
   }
 
   function _tick() {
-    if (_writeCount > 0) return;
+    if (_writeLockCount > 0) return;
 
     var uuids = pollerHelpers.getAliveWireUUIDs();
 
@@ -73,8 +73,8 @@ var poller = (function() {
             var nodeIds = [];
             for (var i = 0; i < res.data.missing.length; i++) {
               var found = pollerHelpers.findNodesByWireUUID(res.data.missing[i]);
-              for (var f = 0; f < found.length; f++) {
-                if (nodeIds.indexOf(found[f]) === -1) nodeIds.push(found[f]);
+              for (var foundIndex = 0; foundIndex < found.length; foundIndex++) {
+                if (nodeIds.indexOf(found[foundIndex]) === -1) nodeIds.push(found[foundIndex]);
               }
             }
             _onNodesMissing(nodeIds);
@@ -83,8 +83,8 @@ var poller = (function() {
       : Promise.resolve();
 
     wirePromise.then(function() {
-      pollerExternalDeletions.checkExternalDeletions(_writeCount > 0, _onNodesMissing);
-      pollerExternalDeletions.checkEffectDeletions(_writeCount > 0, _onNodesMissing);
+      pollerExternalDeletions.checkExternalDeletions(_writeLockCount > 0, _onNodesMissing);
+      pollerExternalDeletions.checkEffectDeletions(_writeLockCount > 0, _onNodesMissing);
       if (typeof propertyPoller !== 'undefined' && propertyPoller.poll) propertyPoller.poll();
       if (typeof propertyPoller !== 'undefined' && propertyPoller.pollEffects) propertyPoller.pollEffects();
     });
@@ -120,14 +120,14 @@ var poller = (function() {
   }
 
   function withWriteLock(fn) {
-    _writeCount++;
+    _writeLockCount++;
     return Promise.resolve().then(function() {
       return fn();
     }).then(function(result) {
-      _writeCount--;
+      _writeLockCount--;
       return result;
     }, function(err) {
-      _writeCount--;
+      _writeLockCount--;
       throw err;
     });
   }

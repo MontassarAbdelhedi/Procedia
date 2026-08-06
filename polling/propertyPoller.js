@@ -37,16 +37,16 @@ var propertyPoller = (function() {
     function _walk(currentId) {
       if (visited[currentId]) return null;
       visited[currentId] = true;
-      for (var wid in wires) {
-        if (!wires.hasOwnProperty(wid)) continue;
-        var w = wires[wid];
-        if (w.fromNode === currentId && w.type === 'layer') {
+      for (var wireId in wires) {
+        if (!wires.hasOwnProperty(wireId)) continue;
+        var wire = wires[wireId];
+        if (wire.fromNode === currentId && wire.type === 'layer') {
           // Terminal wire: connects to a comp node
-          var toNodeData = graphState.getNode(w.toNode);
+          var toNodeData = graphState.getNode(wire.toNode);
           if (toNodeData && toNodeData.type === 'core/comp') {
-            return w.id;
+            return wire.id;
           }
-          var found = _walk(w.toNode);
+          var found = _walk(wire.toNode);
           if (found != null) return found;
         }
       }
@@ -159,12 +159,12 @@ var propertyPoller = (function() {
    */
   function _resolveEffectorLayerUUID(nodeId) {
     var wires = graphState.getAllWires();
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      var w = wires[wid];
-      if (w.toNode === nodeId && w.toPort === 'main_input') {
-        if (w._pathLayerUUID != null) return w._pathLayerUUID;
-        return _findLayerUUID(w.fromNode);
+    for (var wireId in wires) {
+      if (!wires.hasOwnProperty(wireId)) continue;
+      var wire = wires[wireId];
+      if (wire.toNode === nodeId && wire.toPort === 'main_input') {
+        if (wire._pathLayerUUID != null) return wire._pathLayerUUID;
+        return _findLayerUUID(wire.fromNode);
       }
     }
     return null;

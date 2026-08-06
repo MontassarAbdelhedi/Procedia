@@ -124,43 +124,43 @@
       }
     }
 
-    for (var chId in targetState.nodes) {
-      if (!targetState.nodes.hasOwnProperty(chId)) continue;
-      var oldN = oldState.nodes[chId];
-      var newN = targetState.nodes[chId];
-      if (!oldN || !newN) continue;
+    for (var changedId in targetState.nodes) {
+      if (!targetState.nodes.hasOwnProperty(changedId)) continue;
+      var oldNode = oldState.nodes[changedId];
+      var newNode = targetState.nodes[changedId];
+      if (!oldNode || !newNode) continue;
 
-      if (oldN.state !== newN.state) {
-        if (newN.state === 'alive') {
-          _dispatchNodeAlive(newN);
-        } else if (newN.state === 'ghost' && oldN.state === 'alive') {
-          _dispatchNodeGhost(newN);
+      if (oldNode.state !== newNode.state) {
+        if (newNode.state === 'alive') {
+          _dispatchNodeAlive(newNode);
+        } else if (newNode.state === 'ghost' && oldNode.state === 'alive') {
+          _dispatchNodeGhost(newNode);
         }
       }
 
-      if (newN.state === 'alive' && oldN.state === 'alive' && oldN.props && newN.props) {
-        for (var key in newN.props) {
-          if (!newN.props.hasOwnProperty(key)) continue;
-          var oldVal = oldN.props[key];
-          var newVal = newN.props[key];
+      if (newNode.state === 'alive' && oldNode.state === 'alive' && oldNode.props && newNode.props) {
+        for (var key in newNode.props) {
+          if (!newNode.props.hasOwnProperty(key)) continue;
+          var oldVal = oldNode.props[key];
+          var newVal = newNode.props[key];
           if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-            _dispatchPropChange(newN, key, newVal);
+            _dispatchPropChange(newNode, key, newVal);
           }
         }
       }
     }
 
-    for (var oldWId in oldState.wires) {
-      if (!oldState.wires.hasOwnProperty(oldWId)) continue;
-      if (!targetState.wires[oldWId]) {
-        _dispatchWireDisconnect(oldState.wires[oldWId]);
+    for (var oldWireId in oldState.wires) {
+      if (!oldState.wires.hasOwnProperty(oldWireId)) continue;
+      if (!targetState.wires[oldWireId]) {
+        _dispatchWireDisconnect(oldState.wires[oldWireId]);
       }
     }
 
-    for (var newWId in targetState.wires) {
-      if (!targetState.wires.hasOwnProperty(newWId)) continue;
-      if (!oldState.wires[newWId]) {
-        _dispatchWireConnect(targetState.wires[newWId]);
+    for (var newWireId in targetState.wires) {
+      if (!targetState.wires.hasOwnProperty(newWireId)) continue;
+      if (!oldState.wires[newWireId]) {
+        _dispatchWireConnect(targetState.wires[newWireId]);
       }
     }
     evalBridge.dispatch({ action: 'endUndoGroup' });

@@ -11,5 +11,10 @@
 var _importDir = $.fileName.replace(/[\/\\][^\/\\]+$/, '') + '/actionImport/';
 $.evalFile(_importDir + 'scanComps.jsx');
 $.evalFile(_importDir + 'scanFootage.jsx');
+$.evalFile(_importDir + 'scanCompLayers/layerType.jsx');
+$.evalFile(_importDir + 'scanCompLayers/readProps.jsx');
+$.evalFile(_importDir + 'scanCompLayers/scanEffects.jsx');
+$.evalFile(_importDir + 'scanCompLayers/maps.jsx');
+$.evalFile(_importDir + 'scanCompLayers/buildEntry.jsx');
 $.evalFile(_importDir + 'scanCompLayers.jsx');
 $.evalFile(_importDir + 'stampUUIDs.jsx');

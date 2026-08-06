@@ -30,7 +30,8 @@ var _handlerNames = [
   'executeCmdFile', 'cleanupCmdFile', 'enumerateAllEffects',
   'buildFullEffectCatalog', 'writeTextFile', 'getProjectIdentifier',
   'beginUndoGroup', 'endUndoGroup', 'importScanComps', 'importScanFootage',
-  'importScanCompLayers', 'stampImportUUIDs', 'saveAsDialog'
+  'importScanCompLayers', 'stampImportUUIDs', 'saveAsDialog',
+  'createCloner', 'removeCloner', 'updateCloner'
 ];
 
 _handlerNames.forEach(function(name) {

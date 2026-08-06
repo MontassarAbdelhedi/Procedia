@@ -1,231 +1,23 @@
 /**
  * @fileoverview DOM builder for node cards on the graph canvas.
- * Constructs and updates the HTML structure for node elements (header, params, ports).
+ * Assembles node cards from parameter and port sub-builders.
  * @dependencies graph/graphState.js, graph/nodeRegistry.js,
- *               data/categoryColors.js, renderer/helpers.js
+ *               data/categoryColors.js, renderer/helpers.js,
+ *               renderer/builder/params.js, renderer/builder/ports.js
  * @exports __r_bld { buildNodeCard, updateNodeCard }
  */
 
 // graph/canvas/renderer/builder.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
-//             data/categoryColors.js, renderer/helpers.js
+//             data/categoryColors.js, renderer/helpers.js,
+//             renderer/builder/params.js, renderer/builder/ports.js
 // MUST LOAD BEFORE: renderer/index.js
 
 var __r_bld = (function() {
-  var hlp = __r_hlp;
+  var hlp  = __r_hlp;
+  var prm  = __r_bld_params;
+  var port = __r_bld_ports;
 
-  function _getPortLabel(def, portId) {
-    if (!def || !def.ports) return portId;
-    for (var i = 0; i < def.ports.length; i++) {
-      if (def.ports[i].id === portId) {
-        return def.ports[i].label || def.ports[i].id;
-      }
-    }
-    return portId;
-  }
-
-  /**
-   * Builds a single parameter row DOM element (key label + value + optional port dot).
-   * @param {string} nodeId
-   * @param {object} param - Parameter definition { key, type, label? }.
-   * @param {*} value - Current parameter value.
-   * @param {string} [portId] - Port ID if this param has a connection dot.
-   * @returns {HTMLElement}
-   */
-  function buildParamRow(nodeId, param, value, portId) {
-    var row = document.createElement('div');
-    row.className = 'node-param';
-
-    if (portId) {
-      var dot = document.createElement('div');
-      dot.className = 'port-dot data';
-      dot.setAttribute('data-node-id', nodeId);
-      dot.setAttribute('data-port-id', portId);
-      dot.setAttribute('data-label', param.label || param.key || portId);
-      row.appendChild(dot);
-    }
-
-    var keySpan = document.createElement('span');
-    keySpan.className = 'node-param-key';
-    var isKeyframed = hlp.isParamKeyframed(nodeId, param.key);
-    if (isKeyframed) {
-      keySpan.classList.add('keyframed');
-    }
-    keySpan.textContent = param.label || param.key;
-    row.appendChild(keySpan);
-
-    if (isKeyframed) {
-      var kfInd = document.createElement('span');
-      kfInd.className = 'node-param-kf';
-      row.appendChild(kfInd);
-    }
-
-    var valSpan = document.createElement('span');
-    hlp.fillParamValue(valSpan, nodeId, param, value);
-    row.appendChild(valSpan);
-
-    return row;
-  }
-
-  /**
-   * Builds the parameter body section of a node card.
-   * Handles both static and dynamic parameter schemas.
-   * @param {string} nodeId
-   * @param {object} nodeData
-   * @param {object} def - Node definition.
-   * @returns {HTMLElement}
-   */
-  function buildParamBody(nodeId, nodeData, def) {
-    var body = document.createElement('div');
-    body.className = 'node-body';
-
-    if (def.params === 'dynamic') {
-      if (!nodeData.dynamicSchema) {
-        var loading = document.createElement('span');
-        loading.className = 'node-param-loading';
-        loading.textContent = 'Loading\u2026';
-        body.appendChild(loading);
-      } else if (!nodeData.dynamicSchema.properties || nodeData.dynamicSchema.properties.length === 0) {
-        var empty = document.createElement('span');
-        empty.className = 'node-param-loading';
-        empty.textContent = 'No properties';
-        body.appendChild(empty);
-      } else {
-        var props = nodeData.dynamicSchema.properties;
-        for (var i = 0; i < props.length; i++) {
-          var dynParam = { key: props[i].matchName, type: props[i].type, label: props[i].label };
-          body.appendChild(buildParamRow(nodeId, dynParam, nodeData.props[props[i].matchName], props[i].matchName));
-        }
-      }
-    } else {
-      var secondaryPortMap = {};
-      if (def.ports) {
-        for (var p = 0; p < def.ports.length; p++) {
-          if (def.ports[p].category === 'secondaryInput') secondaryPortMap[def.ports[p].id] = true;
-        }
-      }
-      for (var j = 0; j < def.params.length; j++) {
-        var param = def.params[j];
-        if (param.hidden) continue;
-        var portId = secondaryPortMap[param.key] ? param.key : null;
-        body.appendChild(buildParamRow(nodeId, param, nodeData.props[param.key], portId));
-      }
-    }
-
-    return body;
-  }
-
-  /**
-   * Builds the output port element for a node card if the definition has an output port.
-   * @param {string} nodeId
-   * @param {object} def - Node definition.
-   * @returns {HTMLElement|null}
-   */
-  function buildPortsOutput(nodeId, def) {
-    var outputPort = null;
-    for (var i = 0; i < def.ports.length; i++) {
-      if (def.ports[i].category === 'output') { outputPort = def.ports[i]; break; }
-    }
-    if (!outputPort) return null;
-
-    var container = document.createElement('div');
-    container.className = 'ports-output';
-
-    var dot = document.createElement('div');
-    dot.className = 'port-dot ' + (outputPort.type || 'layer');
-    dot.setAttribute('data-node-id', nodeId);
-    dot.setAttribute('data-port-id', 'output');
-    dot.setAttribute('data-label', outputPort.label || 'output');
-    container.appendChild(dot);
-
-    return container;
-  }
-
-  /**
-   * Builds port dot elements for explicit mainInput ports (e.g. input_a, input_b on Merge).
-   * Only renders ports that are NOT named 'main_input' (that one goes in the header).
-   * @param {string} nodeId
-   * @param {object} def - Node definition.
-   * @returns {HTMLElement|null}
-   */
-  function buildMainInputPorts(nodeId, def) {
-    var ports = hlp.getExplicitInputPorts(def);
-    if (ports.length === 0) return null;
-
-    var container = document.createElement('div');
-    container.className = 'node-input-ports';
-
-    for (var i = 0; i < ports.length; i++) {
-      var port = ports[i];
-      var row = document.createElement('div');
-      row.className = 'node-input-port-row';
-
-      var dot = document.createElement('div');
-      dot.className = 'port-dot ' + (port.type || 'layer');
-      dot.setAttribute('data-node-id', nodeId);
-      dot.setAttribute('data-port-id', port.id);
-      dot.setAttribute('data-label', port.label || port.id);
-      row.appendChild(dot);
-
-      var label = document.createElement('span');
-      label.className = 'node-input-port-label';
-      label.textContent = port.label || port.id;
-      row.appendChild(label);
-
-      container.appendChild(row);
-    }
-
-    return container;
-  }
-
-  /**
-   * Builds parent hierarchy port elements (child_of / parent_of) for a node card.
-   * @param {string} nodeId
-   * @param {object} def - Node definition.
-   * @returns {{ top: HTMLElement|null, bottom: HTMLElement|null }}
-   */
-  function buildParentPorts(nodeId, def) {
-    var topEl = null;
-    var bottomEl = null;
-
-    for (var i = 0; i < def.ports.length; i++) {
-      var port = def.ports[i];
-
-      if (port.id === 'child_of') {
-        var topContainer = document.createElement('div');
-        topContainer.className = 'port-parent-top';
-        var topDot = document.createElement('div');
-        topDot.className = 'port-dot parent';
-        topDot.setAttribute('data-node-id', nodeId);
-        topDot.setAttribute('data-port-id', 'child_of');
-        topDot.setAttribute('data-label', port.label || port.id);
-        topContainer.appendChild(topDot);
-        topEl = topContainer;
-      }
-
-      if (port.id === 'parent_of') {
-        var bottomContainer = document.createElement('div');
-        bottomContainer.className = 'port-parent-bottom';
-        var bottomDot = document.createElement('div');
-        bottomDot.className = 'port-dot parent';
-        bottomDot.setAttribute('data-node-id', nodeId);
-        bottomDot.setAttribute('data-port-id', 'parent_of');
-        bottomDot.setAttribute('data-label', port.label || port.id);
-        bottomContainer.appendChild(bottomDot);
-        bottomEl = bottomContainer;
-      }
-    }
-
-    return { top: topEl, bottom: bottomEl };
-  }
-
-  /**
-   * Builds a complete node card DOM element (header, body, output port, parent ports).
-   * @param {string} nodeId
-   * @param {object} nodeData
-   * @param {object} def - Node definition.
-   * @returns {HTMLElement}
-   */
   function buildNodeCard(nodeId, nodeData, def) {
     var card = document.createElement('div');
     card.setAttribute('data-node-id', nodeId);
@@ -250,7 +42,7 @@ var __r_bld = (function() {
       mainDot.className = 'port-dot layer';
       mainDot.setAttribute('data-node-id', nodeId);
       mainDot.setAttribute('data-port-id', 'main_input');
-      mainDot.setAttribute('data-label', _getPortLabel(def, 'main_input'));
+      mainDot.setAttribute('data-label', prm.getPortLabel(def, 'main_input'));
       mainDot.style.flexShrink = '0';
       header.appendChild(mainDot);
     }
@@ -266,29 +58,21 @@ var __r_bld = (function() {
 
     card.appendChild(header);
 
-    var inputPorts = buildMainInputPorts(nodeId, def);
+    var inputPorts = port.buildMainInputPorts(nodeId, def);
     if (inputPorts) card.appendChild(inputPorts);
 
-    card.appendChild(buildParamBody(nodeId, nodeData, def));
+    card.appendChild(prm.buildParamBody(nodeId, nodeData, def));
 
-    var outputPorts = buildPortsOutput(nodeId, def);
+    var outputPorts = port.buildPortsOutput(nodeId, def);
     if (outputPorts) card.appendChild(outputPorts);
 
-    var parentPorts = buildParentPorts(nodeId, def);
+    var parentPorts = port.buildParentPorts(nodeId, def);
     if (parentPorts.top)    card.appendChild(parentPorts.top);
     if (parentPorts.bottom) card.appendChild(parentPorts.bottom);
 
     return card;
   }
 
-  /**
-   * Updates an existing node card element with new position, state, and parameter values.
-   * Replaces the body contents in-place.
-   * @param {HTMLElement} el - Existing node card element.
-   * @param {string} nodeId
-   * @param {object} nodeData
-   * @param {object} def - Node definition.
-   */
   function updateNodeCard(el, nodeId, nodeData, def) {
     el.style.left = (nodeData.x || 0) + 'px';
     el.style.top  = (nodeData.y || 0) + 'px';
@@ -305,7 +89,7 @@ var __r_bld = (function() {
     }
 
     var oldInputs = el.querySelector('.node-input-ports');
-    var newInputs = buildMainInputPorts(nodeId, def);
+    var newInputs = port.buildMainInputPorts(nodeId, def);
     if (oldInputs) {
       if (newInputs) {
         el.replaceChild(newInputs, oldInputs);
@@ -317,7 +101,7 @@ var __r_bld = (function() {
     }
 
     var oldBody = el.querySelector('.node-body');
-    var newBody = buildParamBody(nodeId, nodeData, def);
+    var newBody = prm.buildParamBody(nodeId, nodeData, def);
     if (oldBody) {
       el.replaceChild(newBody, oldBody);
     } else {
@@ -326,14 +110,14 @@ var __r_bld = (function() {
 
     var oldOutput = el.querySelector('.ports-output');
     if (oldOutput) el.removeChild(oldOutput);
-    var newOutput = buildPortsOutput(nodeId, def);
+    var newOutput = port.buildPortsOutput(nodeId, def);
     if (newOutput) el.appendChild(newOutput);
 
     var oldParentTop = el.querySelector('.port-parent-top');
     if (oldParentTop) el.removeChild(oldParentTop);
     var oldParentBottom = el.querySelector('.port-parent-bottom');
     if (oldParentBottom) el.removeChild(oldParentBottom);
-    var newParentPorts = buildParentPorts(nodeId, def);
+    var newParentPorts = port.buildParentPorts(nodeId, def);
     if (newParentPorts.top) el.appendChild(newParentPorts.top);
     if (newParentPorts.bottom) el.appendChild(newParentPorts.bottom);
   }

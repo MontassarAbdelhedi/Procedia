@@ -37,24 +37,24 @@ function _syncKeyframeState(allNodes) {
   var entries = [];
   var entryToNodeId = {};
   var entrySeen = {};
-  for (var nid in allNodes) {
-    if (!allNodes.hasOwnProperty(nid)) continue;
-    var n = allNodes[nid];
-    if (n.state !== 'alive') continue;
-    var def = nodeRegistry.getDefinition(n.type);
+  for (var nodeId in allNodes) {
+    if (!allNodes.hasOwnProperty(nodeId)) continue;
+    var nodeData = allNodes[nodeId];
+    if (nodeData.state !== 'alive') continue;
+    var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def || !def.params || !Array.isArray(def.params)) continue;
-    var hostUUID = n.hostingComps && n.hostingComps.length > 0 ? n.hostingComps[0] : null;
+    var hostUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0 ? nodeData.hostingComps[0] : null;
     if (!hostUUID) continue;
-    var layerUUID = typeof window.__procedia_internal.hlp !== 'undefined' ? window.__procedia_internal.hlp.findPathLayerUUID(nid) : null;
+    var layerUUID = typeof window.__procedia_internal.hlp !== 'undefined' ? window.__procedia_internal.hlp.findPathLayerUUID(nodeId) : null;
     if (!layerUUID) continue;
-    for (var pi = 0; pi < def.params.length; pi++) {
-      var p = def.params[pi];
-      if (p.animatable !== true) continue;
-      var keyId = nid + '::' + p.key;
+    for (var paramIndex = 0; paramIndex < def.params.length; paramIndex++) {
+      var param = def.params[paramIndex];
+      if (param.animatable !== true) continue;
+      var keyId = nodeId + '::' + param.key;
       if (entrySeen[keyId]) continue;
       entrySeen[keyId] = true;
-      entryToNodeId[entries.length] = { nodeId: nid, key: p.key };
-      entries.push({ hostingCompUUID: hostUUID, layerUUID: layerUUID, key: p.key });
+      entryToNodeId[entries.length] = { nodeId: nodeId, key: param.key };
+      entries.push({ hostingCompUUID: hostUUID, layerUUID: layerUUID, key: param.key });
     }
   }
   if (entries.length === 0) return;
@@ -65,12 +65,12 @@ function _syncKeyframeState(allNodes) {
   }).then(function(res) {
     if (!res.ok || !res.data || !res.data.results) return;
     var changed = false;
-    for (var ri = 0; ri < res.data.results.length; ri++) {
-      var r = res.data.results[ri];
-      if (r.times && r.times.length > 0) {
-        var info = entryToNodeId[ri];
-        if (info) {
-          keyframeState.setKeyframes(info.nodeId, info.key, r.times);
+    for (var resultIndex = 0; resultIndex < res.data.results.length; resultIndex++) {
+      var resultEntry = res.data.results[resultIndex];
+      if (resultEntry.times && resultEntry.times.length > 0) {
+        var entryInfo = entryToNodeId[resultIndex];
+        if (entryInfo) {
+          keyframeState.setKeyframes(entryInfo.nodeId, entryInfo.key, resultEntry.times);
           changed = true;
         }
       }
@@ -91,17 +91,17 @@ function _syncKeyframeState(allNodes) {
  */
 function init() {
   evalBridge.init(csInterface);
-  var _extPath = (typeof window.__adobe_cep__ !== 'undefined')
+  var extensionPath = (typeof window.__adobe_cep__ !== 'undefined')
     ? csInterface.getSystemPath(SystemPath.EXTENSION)
     : '[browser preview — no CEP context]';
 
-  var _startupMissing = [];
-  var _startupCritical = false;
+  var missingModuleNames = [];
+  var isStartupCritical = false;
 
   function _checkModule(name, critical) {
     if (typeof window[name] === 'undefined') {
-      _startupMissing.push(name);
-      if (critical) _startupCritical = true;
+      missingModuleNames.push(name);
+      if (critical) isStartupCritical = true;
     }
   }
 
@@ -114,38 +114,38 @@ function init() {
   _checkModule('nodeRegistry', false);
   _checkModule('graphState', true);
 
-  if (_startupMissing.length > 0) {
-    var _now = new Date().toISOString();
-    var _logLines = [
-      'Procedia startup diagnostic — ' + _now,
-      'Extension path: ' + _extPath,
-      'Missing modules (' + _startupMissing.length + '): ' + _startupMissing.join(', '),
-      'Critical failure: ' + (_startupCritical ? 'YES' : 'NO')
+  if (missingModuleNames.length > 0) {
+    var currentTimeISO = new Date().toISOString();
+    var logMessageLines = [
+      'Procedia startup diagnostic — ' + currentTimeISO,
+      'Extension path: ' + extensionPath,
+      'Missing modules (' + missingModuleNames.length + '): ' + missingModuleNames.join(', '),
+      'Critical failure: ' + (isStartupCritical ? 'YES' : 'NO')
     ];
 
-    for (var _li = 0; _li < _logLines.length; _li++) {
-      console.error('[Procedia] ' + _logLines[_li]);
+    for (var lineIndex = 0; lineIndex < logMessageLines.length; lineIndex++) {
+      console.error('[Procedia] ' + logMessageLines[lineIndex]);
     }
 
-    var _errDiv = document.createElement('div');
-    _errDiv.id = 'procedia-startup-error';
-    _errDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999999;background:#c62828;color:#fff;padding:20px 28px;border-radius:8px;font-family:sans-serif;font-size:14px;max-width:500px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
-    _errDiv.innerHTML = '<b>Procedia failed to start</b><br><br>' +
-      'Missing modules: ' + _startupMissing.join(', ') + '<br><br>' +
+    var errorDivElement = document.createElement('div');
+    errorDivElement.id = 'procedia-startup-error';
+    errorDivElement.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999999;background:#c62828;color:#fff;padding:20px 28px;border-radius:8px;font-family:sans-serif;font-size:14px;max-width:500px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
+    errorDivElement.innerHTML = '<b>Procedia failed to start</b><br><br>' +
+      'Missing modules: ' + missingModuleNames.join(', ') + '<br><br>' +
       'Check startup.log in the extension folder' +
       '<br><br><small>Extension ID: com.uppercut.procedia</small>';
-    document.body.appendChild(_errDiv);
+    document.body.appendChild(errorDivElement);
 
     try {
       if (typeof csInterface !== 'undefined' && typeof window.cep !== 'undefined' && window.cep.fs) {
-        var _logPath = _extPath.replace(/\\/g, '/') + '/startup.log';
-        window.cep.fs.writeFile(_logPath, _logLines.join('\n'));
+        var logFilePath = extensionPath.replace(/\\/g, '/') + '/startup.log';
+        window.cep.fs.writeFile(logFilePath, logMessageLines.join('\n'));
       }
-    } catch (_ce) {
-      console.warn('[Procedia] Could not write startup.log:', _ce);
+    } catch (cepError) {
+      console.warn('[Procedia] Could not write startup.log:', cepError);
     }
 
-    if (_startupCritical) return;
+    if (isStartupCritical) return;
   }
 
   if (typeof reporter !== 'undefined' && reporter.init) reporter.init();
@@ -196,14 +196,14 @@ function init() {
         for (var k in res.data.nodes) { hasNodes = true; break; }
         if (hasNodes) {
           graphState.loadGraph(res.data);
-          var allNodes = graphState.getAllNodes();
-          for (var nid in allNodes) {
-            if (!allNodes.hasOwnProperty(nid)) continue;
-            var n = allNodes[nid];
-            if (!n.dynamicSchema || !n.dynamicSchema.properties) {
-              var def = nodeRegistry.getDefinition(n.type);
+          var loadedNodes = graphState.getAllNodes();
+          for (var nodeId in loadedNodes) {
+            if (!loadedNodes.hasOwnProperty(nodeId)) continue;
+            var nodeData = loadedNodes[nodeId];
+            if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) {
+              var def = nodeRegistry.getDefinition(nodeData.type);
               if (def && def.params === 'dynamic' && def.matchName && typeof window.__procedia_internal.hlp !== 'undefined') {
-                window.__procedia_internal.hlp.resolveDynamicSchema(nid, def.matchName);
+                window.__procedia_internal.hlp.resolveDynamicSchema(nodeId, def.matchName);
               }
             }
           }
@@ -225,30 +225,30 @@ function init() {
     });
   });
 
-  var _autoSaveTimer = null;
+  var autoSaveTimer = null;
   function _scheduleAutoSave() {
-    if (_autoSaveTimer) return;
-    _autoSaveTimer = setTimeout(function() {
-      _autoSaveTimer = null;
+    if (autoSaveTimer) return;
+    autoSaveTimer = setTimeout(function() {
+      autoSaveTimer = null;
       if (typeof graphState === 'undefined' || !graphState.isDirty()) return;
       var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
       if (typeof keyframeState !== 'undefined') {
-        var kf = {};
+        var keyframeData = {};
         var allNodes = graphState.getAllNodes();
-        for (var nid in allNodes) {
-          if (!allNodes.hasOwnProperty(nid)) continue;
-          var kfParams = keyframeState.getAllKeyframedParams(nid);
-          if (kfParams.length > 0) {
-            kf[nid] = {};
-            for (var pi = 0; pi < kfParams.length; pi++) {
-              kf[nid][kfParams[pi]] = {
+        for (var nodeId in allNodes) {
+          if (!allNodes.hasOwnProperty(nodeId)) continue;
+          var keyframeParams = keyframeState.getAllKeyframedParams(nodeId);
+          if (keyframeParams.length > 0) {
+            keyframeData[nodeId] = {};
+            for (var paramIndex = 0; paramIndex < keyframeParams.length; paramIndex++) {
+              keyframeData[nodeId][keyframeParams[paramIndex]] = {
                 keyframed: true,
-                times: keyframeState.getKeyframeTimes(nid, kfParams[pi])
+                times: keyframeState.getKeyframeTimes(nodeId, keyframeParams[paramIndex])
               };
             }
           }
         }
-        graphData.keyframes = kf;
+        graphData.keyframes = keyframeData;
       }
       if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
         evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });
@@ -263,22 +263,22 @@ function init() {
     if (!graphState.isDirty()) return;
     var graphData = { nodes: graphState.getAllNodes(), wires: graphState.getAllWires() };
     if (typeof keyframeState !== 'undefined') {
-      var kf = {};
+      var keyframeData = {};
       var allNodes = graphState.getAllNodes();
-      for (var nid in allNodes) {
-        if (!allNodes.hasOwnProperty(nid)) continue;
-        var kfParams = keyframeState.getAllKeyframedParams(nid);
-        if (kfParams.length > 0) {
-          kf[nid] = {};
-          for (var pi = 0; pi < kfParams.length; pi++) {
-            kf[nid][kfParams[pi]] = {
+      for (var nodeId in allNodes) {
+        if (!allNodes.hasOwnProperty(nodeId)) continue;
+        var keyframeParams = keyframeState.getAllKeyframedParams(nodeId);
+        if (keyframeParams.length > 0) {
+          keyframeData[nodeId] = {};
+          for (var paramIndex = 0; paramIndex < keyframeParams.length; paramIndex++) {
+            keyframeData[nodeId][keyframeParams[paramIndex]] = {
               keyframed: true,
-              times: keyframeState.getKeyframeTimes(nid, kfParams[pi])
+              times: keyframeState.getKeyframeTimes(nodeId, keyframeParams[paramIndex])
             };
           }
         }
       }
-      graphData.keyframes = kf;
+      graphData.keyframes = keyframeData;
     }
     if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
       evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });

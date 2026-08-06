@@ -89,8 +89,8 @@
       }
     },
     onGraphChange:        gs._graphChangeListeners.push.bind(gs._graphChangeListeners),
-    offGraphChange:       function(cb) {
-      var idx = gs._graphChangeListeners.indexOf(cb);
+    offGraphChange:       function(callback) {
+      var idx = gs._graphChangeListeners.indexOf(callback);
       if (idx !== -1) gs._graphChangeListeners.splice(idx, 1);
     },
 

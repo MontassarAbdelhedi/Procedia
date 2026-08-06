@@ -10,6 +10,7 @@ document.write('<script src="graph/nodes/categories/Core/Comp.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Core/Footage.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Core/Merge.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Core/Multimerge.js"><\/script>');
+document.write('<script src="graph/nodes/categories/Instances/Cloner.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Data/Color.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Data/Number.js"><\/script>');
 document.write('<script src="graph/nodes/categories/Data/Expression.js"><\/script>');

@@ -1,33 +1,24 @@
 /**
  * @fileoverview Floating action toolbar for the selected node on the graph canvas.
  * Displays buttons: clone, duplicate, color, collapse, disable/enable, switch, delete.
- * Appears above a single selected node, hidden otherwise.
- * @dependencies graph/graphState.js, graph/canvas/renderer/index.js
+ * Delegates color picker to nodeToolbar/colorPicker.js and switch mode to
+ * nodeToolbar/switchMode.js.
+ * @dependencies graph/graphState.js, graph/canvas/renderer/index.js,
+ *               nodeToolbar/colorPicker.js, nodeToolbar/switchMode.js
  * @exports nodeToolbar { init, refresh }
  */
 
 // graph/canvas/renderer/nodeToolbar.js
-// DEPENDS ON: graph/graphState.js, graph/canvas/renderer/index.js
+// DEPENDS ON: graph/graphState.js, graph/canvas/renderer/index.js,
+//             nodeToolbar/colorPicker.js, nodeToolbar/switchMode.js
 // MUST LOAD AFTER: graph/canvas/renderer/index.js
 
 var nodeToolbar = (function() {
   var _toolbar = null;
   var _currentNodeId = null;
-  var _colorPicker = null;
-  var _colorPickerVisible = false;
-  var _switchState = null;
   var _docListenerAdded = false;
 
-  var COLORS = [
-    { name: 'white',  hex: '#FFFFFF' },
-    { name: 'yellow', hex: '#FFD700' },
-    { name: 'green',  hex: '#4CAF50' },
-    { name: 'red',    hex: '#F44336' },
-    { name: 'blue',   hex: '#2196F3' },
-    { name: 'orange', hex: '#FF9800' },
-    { name: 'violet', hex: '#9C27B0' },
-    { name: 'lime',   hex: '#CDDC39' }
-  ];
+  function _getCurrentNodeId() { return _currentNodeId; }
 
   function _ensureToolbar() {
     if (_toolbar) return;
@@ -44,23 +35,9 @@ var nodeToolbar = (function() {
       '<button class="node-toolbar-btn node-toolbar-btn--delete" data-action="delete" title="Delete"><i class="ti ti-trash"></i></button>';
 
     _toolbar.addEventListener('click', _onToolbarClick);
-  }
 
-  function _ensureColorPicker() {
-    if (_colorPicker) return;
-    _colorPicker = document.createElement('div');
-    _colorPicker.className = 'node-toolbar-colorpicker';
-    _colorPicker.style.display = 'none';
-    for (var i = 0; i < COLORS.length; i++) {
-      var swatch = document.createElement('button');
-      swatch.className = 'node-toolbar-color';
-      swatch.style.background = COLORS[i].hex;
-      swatch.setAttribute('data-color', COLORS[i].hex);
-      swatch.setAttribute('title', COLORS[i].name);
-      swatch.addEventListener('click', _onColorSelect);
-      _colorPicker.appendChild(swatch);
-    }
-    _toolbar.appendChild(_colorPicker);
+    __ntb_colorPicker.init(_toolbar, _getCurrentNodeId);
+    __ntb_colorPicker.ensure();
   }
 
   function _updateToggleIcon() {
@@ -94,7 +71,7 @@ var nodeToolbar = (function() {
         engine.cloneNode(_currentNodeId);
         break;
       case 'color':
-        _toggleColorPicker();
+        __ntb_colorPicker.toggle();
         break;
       case 'collapse':
         _handleCollapse();
@@ -104,55 +81,9 @@ var nodeToolbar = (function() {
         _updateToggleIcon();
         break;
       case 'switch':
-        _enterSwitchMode();
+        __ntb_switchMode.enter(_currentNodeId);
         break;
     }
-  }
-
-  function _enterSwitchMode() {
-    if (_switchState) _clearSwitchMode();
-    if (!_currentNodeId) return;
-    var nodeData = graphState.getNode(_currentNodeId);
-    if (!nodeData || nodeData.nodeKind !== 'effector') return;
-    var siblings = engine.findSiblingEffectors(_currentNodeId);
-    if (siblings.length === 0) return;
-    _switchState = { sourceId: _currentNodeId, siblingIds: siblings };
-    for (var i = 0; i < siblings.length; i++) {
-      var el = renderer.getNodeElement(siblings[i]);
-      if (el) el.classList.add('node--switch-target');
-    }
-  }
-
-  function _clearSwitchMode() {
-    if (_switchState) {
-      for (var i = 0; i < _switchState.siblingIds.length; i++) {
-        var el = renderer.getNodeElement(_switchState.siblingIds[i]);
-        if (el) el.classList.remove('node--switch-target');
-      }
-      _switchState = null;
-    }
-  }
-
-  function _toggleColorPicker() {
-    _ensureColorPicker();
-    _colorPickerVisible = !_colorPickerVisible;
-    _colorPicker.style.display = _colorPickerVisible ? 'flex' : 'none';
-  }
-
-  function _onColorSelect(e) {
-    var btn = e.currentTarget;
-    var color = btn.getAttribute('data-color');
-    if (!_currentNodeId) return;
-    var nodeData = graphState.getNode(_currentNodeId);
-    if (!nodeData) return;
-    if (nodeData.nodeColor === color) {
-      graphState.updateNode(_currentNodeId, { nodeColor: null });
-    } else {
-      graphState.updateNode(_currentNodeId, { nodeColor: color });
-    }
-    renderer.updateNode(_currentNodeId);
-    _colorPickerVisible = false;
-    _colorPicker.style.display = 'none';
   }
 
   function _handleCollapse() {
@@ -184,10 +115,7 @@ var nodeToolbar = (function() {
 
     nodeEl.appendChild(_toolbar);
     _toolbar.style.display = 'flex';
-    if (_colorPicker) {
-      _colorPickerVisible = false;
-      _colorPicker.style.display = 'none';
-    }
+    __ntb_colorPicker.hide();
     if (!_docListenerAdded) {
       document.addEventListener('mousedown', _onDocClick);
       _docListenerAdded = true;
@@ -197,10 +125,7 @@ var nodeToolbar = (function() {
   function hide() {
     _detach();
     _currentNodeId = null;
-    if (_colorPicker) {
-      _colorPickerVisible = false;
-      _colorPicker.style.display = 'none';
-    }
+    __ntb_colorPicker.hide();
     if (_docListenerAdded) {
       document.removeEventListener('mousedown', _onDocClick);
       _docListenerAdded = false;
@@ -208,29 +133,24 @@ var nodeToolbar = (function() {
   }
 
   function _onDocClick(e) {
-    if (_colorPickerVisible && _colorPicker && !_colorPicker.contains(e.target)) {
-      var colorBtn = _toolbar && _toolbar.querySelector('[data-action="color"]');
-      if (colorBtn && !colorBtn.contains(e.target)) {
-        _colorPickerVisible = false;
-        _colorPicker.style.display = 'none';
-      }
-    }
+    __ntb_colorPicker.onDocClick(e);
   }
 
   function refresh() {
     var sel = graphState.getSelection();
-    if (_switchState) {
-      if (sel.length === 1 && sel[0] !== _switchState.sourceId) {
-        if (_switchState.siblingIds.indexOf(sel[0]) !== -1) {
-          var id1 = _switchState.sourceId;
+    if (__ntb_switchMode.isActive()) {
+      var swState = __ntb_switchMode.getState();
+      if (sel.length === 1 && sel[0] !== swState.sourceId) {
+        if (swState.siblingIds.indexOf(sel[0]) !== -1) {
+          var id1 = swState.sourceId;
           var id2 = sel[0];
-          _clearSwitchMode();
+          __ntb_switchMode.clear();
           engine.switchEffectors(id1, id2);
         } else {
-          _clearSwitchMode();
+          __ntb_switchMode.clear();
         }
       } else if (sel.length !== 1) {
-        _clearSwitchMode();
+        __ntb_switchMode.clear();
       }
     }
     if (sel.length === 1) {

@@ -15,6 +15,7 @@ var __catColors = (function() {
       'Data':            '#D4AC0D',
       'Layers':          '#185FA5',
       'Shapes':          '#1ABC9C',
+      'Instances':       '#E67E22',
       'Effects':         '#27AE60',
       '3D Channel':      '#27AE60',
       'Audio':           '#27AE60',

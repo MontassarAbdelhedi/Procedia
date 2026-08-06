@@ -28,12 +28,12 @@ var __c_ghost_util = __c_util;
 
     var upstreamNodes = __c_ghost_util.collectPathUpstream(sourceNodeId);
     var workingSet = [sourceNodeData];
-    for (var ui = 0; ui < upstreamNodes.length; ui++) {
-      workingSet.push(upstreamNodes[ui]);
+    for (var upstreamIndex = 0; upstreamIndex < upstreamNodes.length; upstreamIndex++) {
+      workingSet.push(upstreamNodes[upstreamIndex]);
     }
 
-    for (var wi = 0; wi < workingSet.length; wi++) {
-      var nodeData = workingSet[wi];
+    for (var workingIndex = 0; workingIndex < workingSet.length; workingIndex++) {
+      var nodeData = workingSet[workingIndex];
       if (visitedSet[nodeData.id]) continue;
       visitedSet[nodeData.id] = true;
 
@@ -51,11 +51,11 @@ var __c_ghost_util = __c_util;
         affected.push(nodeData);
 
         var allWires = graphState.getAllWires();
-        for (var ewId in allWires) {
-          if (!allWires.hasOwnProperty(ewId)) continue;
-          var ew = allWires[ewId];
-          if (ew.toNode !== nodeData.id) continue;
-          var fromData = graphState.getNode(ew.fromNode);
+        for (var effectorWireId in allWires) {
+          if (!allWires.hasOwnProperty(effectorWireId)) continue;
+          var effectorWire = allWires[effectorWireId];
+          if (effectorWire.toNode !== nodeData.id) continue;
+          var fromData = graphState.getNode(effectorWire.fromNode);
           if (!fromData) continue;
           if (fromData.nodeKind !== 'effector') continue;
           if (visitedSet[fromData.id]) continue;
@@ -67,8 +67,8 @@ var __c_ghost_util = __c_util;
     }
 
     var cascadeSet = [];
-    for (var ei = 0; ei < effectors.length; ei++) cascadeSet.push(effectors[ei]);
-    for (var ai = 0; ai < affected.length; ai++) cascadeSet.push(affected[ai]);
+    for (var effectorIndex = 0; effectorIndex < effectors.length; effectorIndex++) cascadeSet.push(effectors[effectorIndex]);
+    for (var affectedIndex = 0; affectedIndex < affected.length; affectedIndex++) cascadeSet.push(affected[affectedIndex]);
 
     return {
       effectors: effectors,

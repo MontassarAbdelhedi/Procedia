@@ -3,8 +3,11 @@
  *
  * Switch node positions for effectors sharing the same affected upstream.
  * Swaps x/y positions, rewires connections, and reorders AE effects.
+ * Delegates chain traversal to switchNodes/chain.js and AE reordering to
+ * switchNodes/reorder.js.
  *
- * Dependencies: graphState, nodeRegistry, engine/helpers.js, evalBridge
+ * Dependencies: graphState, nodeRegistry, engine/helpers.js, evalBridge,
+ *               switchNodes/chain.js, switchNodes/reorder.js
  * Load before: engine/nodes/index.js, engine/index.js
  *
  * Exports: findAffectedUpstream, findSiblingEffectors, switchEffectors
@@ -12,61 +15,8 @@
 
 window.__procedia_internal.nswitch = (function() {
   var registry = window.__procedia_internal.registry;
-
-  function findAffectedUpstream(nodeId) {
-    var visited = {};
-    var current = nodeId;
-    while (true) {
-      if (visited[current]) return null;
-      visited[current] = true;
-      var nodeData = graphState.getNode(current);
-      if (!nodeData) return null;
-      if (nodeData.nodeKind !== 'effector' && nodeData.nodeKind !== 'blending') {
-        return current;
-      }
-      var wires = graphState.getAllWires();
-      var found = false;
-      for (var wid in wires) {
-        var w = wires[wid];
-        if (w.toNode === current && w.toPort === 'main_input' && w.type === 'layer') {
-          current = w.fromNode;
-          found = true;
-          break;
-        }
-      }
-      if (!found) return null;
-    }
-  }
-
-  function findSiblingEffectors(nodeId) {
-    var upstream = findAffectedUpstream(nodeId);
-    if (!upstream) return [];
-
-    var siblings = [];
-    var visited = {};
-    var queue = [upstream];
-    visited[upstream] = true;
-
-    while (queue.length > 0) {
-      var current = queue.shift();
-      if (current !== upstream && current !== nodeId) {
-        var nodeData = graphState.getNode(current);
-        if (nodeData && (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending')) {
-          siblings.push(current);
-        }
-      }
-      var wires = graphState.getAllWires();
-      for (var wid in wires) {
-        var w = wires[wid];
-        if (w.fromNode === current && w.type === 'layer' && !visited[w.toNode]) {
-          visited[w.toNode] = true;
-          queue.push(w.toNode);
-        }
-      }
-    }
-
-    return siblings;
-  }
+  var chain = registry.get('nswitch_chain');
+  var reorder = registry.get('nswitch_reorder');
 
   function switchEffectors(id1, id2) {
     var node1 = graphState.getNode(id1);
@@ -75,116 +25,39 @@ window.__procedia_internal.nswitch = (function() {
     if (node1.nodeKind !== 'effector' || node2.nodeKind !== 'effector') return;
 
     var wires = graphState.getAllWires();
-    var w1_in = null, w1_out = null, w2_in = null, w2_out = null;
+    var node1InputWire = null, node1OutputWire = null, node2InputWire = null, node2OutputWire = null;
 
     for (var wid in wires) {
       var w = wires[wid];
       if (w.type !== 'layer') continue;
-      if (w.toNode === id1 && w.toPort === 'main_input') w1_in = w;
-      if (w.fromNode === id1 && w.fromPort === 'output') w1_out = w;
-      if (w.toNode === id2 && w.toPort === 'main_input') w2_in = w;
-      if (w.fromNode === id2 && w.fromPort === 'output') w2_out = w;
+      if (w.toNode === id1 && w.toPort === 'main_input') node1InputWire = w;
+      if (w.fromNode === id1 && w.fromPort === 'output') node1OutputWire = w;
+      if (w.toNode === id2 && w.toPort === 'main_input') node2InputWire = w;
+      if (w.fromNode === id2 && w.fromPort === 'output') node2OutputWire = w;
     }
 
-    if (!w1_in || !w1_out || !w2_in || !w2_out) return;
+    if (!node1InputWire || !node1OutputWire || !node2InputWire || !node2OutputWire) return;
 
-    if (w1_in === w2_out && w1_out === w2_in) return;
+    if (node1InputWire === node2OutputWire && node1OutputWire === node2InputWire) return;
 
     var x1 = node1.x, y1 = node1.y;
     graphState.updateNode(id1, { x: node2.x, y: node2.y });
     graphState.updateNode(id2, { x: x1, y: y1 });
 
-    graphState.updateWire(w1_in.id, { toNode: id2 });
-    graphState.updateWire(w1_out.id, { fromNode: id2 });
-    graphState.updateWire(w2_in.id, { toNode: id1 });
-    graphState.updateWire(w2_out.id, { fromNode: id1 });
+    graphState.updateWire(node1InputWire.id, { toNode: id2 });
+    graphState.updateWire(node1OutputWire.id, { fromNode: id2 });
+    graphState.updateWire(node2InputWire.id, { toNode: id1 });
+    graphState.updateWire(node2OutputWire.id, { fromNode: id1 });
 
-    _reorderEffectsInAE(id1, id2);
+    reorder._reorderEffectsInAE(id1, id2);
 
     registry.get('hlp').refreshNodeUI();
   }
 
-  function _getEffectorChain(nodeId) {
-    var upstream = findAffectedUpstream(nodeId);
-    if (!upstream) return [];
-
-    var chain = [];
-    var visited = {};
-    var queue = [upstream];
-    visited[upstream] = true;
-
-    while (queue.length > 0) {
-      var current = queue.shift();
-      if (current !== upstream) {
-        var nodeData = graphState.getNode(current);
-        if (nodeData && (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending')) {
-          chain.push(current);
-        }
-      }
-      var wires = graphState.getAllWires();
-      for (var wid in wires) {
-        var w = wires[wid];
-        if (w.fromNode === current && w.type === 'layer' && !visited[w.toNode]) {
-          visited[w.toNode] = true;
-          queue.push(w.toNode);
-        }
-      }
-    }
-
-    return chain;
-  }
-
-  function _reorderEffectsInAE(id1, id2) {
-    var chain = _getEffectorChain(id1);
-    if (chain.length < 2) {
-      return;
-    }
-
-    var hostingCompUUID = null;
-    var pathLayerUUID = null;
-    var order = [];
-    for (var ci = 0; ci < chain.length; ci++) {
-      var nd = graphState.getNode(chain[ci]);
-      if (!nd) continue;
-      if (!hostingCompUUID && nd.hostingComps && nd.hostingComps.length > 0) {
-        hostingCompUUID = nd.hostingComps[0];
-      }
-      if (!pathLayerUUID) {
-        pathLayerUUID = registry.get('hlp').findPathLayerUUID(chain[ci]);
-      }
-      var def = nodeRegistry.getDefinition(nd.type);
-      if (def && def.matchName) {
-        order.push({ nodeUUID: chain[ci], matchName: def.matchName });
-      }
-      if (hostingCompUUID && pathLayerUUID && order.length === chain.length) break;
-    }
-
-    if (!hostingCompUUID || !pathLayerUUID) {
-      return;
-    }
-    if (order.length < 2) {
-      return;
-    }
-
-    var reorderCmd = {
-      action: 'reorderEffectChain',
-      params: {
-        hostingCompUUID: hostingCompUUID,
-        layerNodeUUID:   pathLayerUUID,
-        order:           order
-      }
-    };
-
-    evalBridge.dispatch(reorderCmd).catch(function(err) {
-      console.error('[switchNodes] reorderEffectChain failed:', err.message || err);
-    });
-  }
-
-    return {
-      findAffectedUpstream:   findAffectedUpstream,
-      findSiblingEffectors:   findSiblingEffectors,
-      switchEffectors:        switchEffectors
-    };
-
-  })();
+  return {
+    findAffectedUpstream: chain.findAffectedUpstream,
+    findSiblingEffectors: chain.findSiblingEffectors,
+    switchEffectors:      switchEffectors
+  };
+})();
 window.__procedia_internal.registry.register('nswitch', window.__procedia_internal.nswitch);

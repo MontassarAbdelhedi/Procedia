@@ -71,16 +71,16 @@ window.__procedia_internal.wires = (function() {
     }
 
     var activeComp = typeof graphState.getActiveComp === 'function' ? graphState.getActiveComp() : null;
-    var _targetHadHostingComps = toNodeData.hostingComps.length > 0;
-    var _replacedAutoWire = false;
+    var targetHadHostingComps = toNodeData.hostingComps.length > 0;
+    var replacedAutoWire = false;
     if (activeComp && fromNodeId !== activeComp) {
       var existingWires = graphState.getAllWires();
-      for (var _wid in existingWires) {
-        if (existingWires.hasOwnProperty(_wid)) {
-          var _w = existingWires[_wid];
-          if (_w.fromNode === fromNodeId && _w.fromPort === fromPort && _w.toNode === activeComp && _w.toPort === 'main_input') {
-            disconnectWire(_wid);
-            _replacedAutoWire = true;
+      for (var existingWireId in existingWires) {
+        if (existingWires.hasOwnProperty(existingWireId)) {
+          var existingWire = existingWires[existingWireId];
+          if (existingWire.fromNode === fromNodeId && existingWire.fromPort === fromPort && existingWire.toNode === activeComp && existingWire.toPort === 'main_input') {
+            disconnectWire(existingWireId);
+            replacedAutoWire = true;
             break;
           }
         }
@@ -101,12 +101,12 @@ window.__procedia_internal.wires = (function() {
     graphState.addWire(wireData);
     hlp.refreshNodeUI();
 
-    if (_replacedAutoWire && activeComp && toNodeId !== activeComp) {
+    if (replacedAutoWire && activeComp && toNodeId !== activeComp) {
       var allWiresAfter = graphState.getAllWires();
       var alreadyWiredToComp = false;
-      for (var _awid in allWiresAfter) {
-        if (allWiresAfter.hasOwnProperty(_awid)) {
-          if (allWiresAfter[_awid].fromNode === toNodeId && allWiresAfter[_awid].toNode === activeComp && allWiresAfter[_awid].toPort === 'main_input') {
+      for (var afterWireId in allWiresAfter) {
+        if (allWiresAfter.hasOwnProperty(afterWireId)) {
+          if (allWiresAfter[afterWireId].fromNode === toNodeId && allWiresAfter[afterWireId].toNode === activeComp && allWiresAfter[afterWireId].toPort === 'main_input') {
             alreadyWiredToComp = true;
             break;
           }
@@ -120,15 +120,15 @@ window.__procedia_internal.wires = (function() {
     if (wireType === 'parent') {
       // Reparent: disconnect any existing parent wire for this child
       var allWires = graphState.getAllWires();
-      for (var _ewid in allWires) {
-        if (!allWires.hasOwnProperty(_ewid)) continue;
-        var _ew = allWires[_ewid];
-        if (_ew.type !== 'parent') continue;
-        var isChild = (_ew.fromNode === toNodeId && _ew.fromPort === 'child_of') ||
-                      (_ew.toNode === toNodeId && _ew.toPort === 'child_of');
+      for (var existingWireId in allWires) {
+        if (!allWires.hasOwnProperty(existingWireId)) continue;
+        var existingWire = allWires[existingWireId];
+        if (existingWire.type !== 'parent') continue;
+        var isChild = (existingWire.fromNode === toNodeId && existingWire.fromPort === 'child_of') ||
+                      (existingWire.toNode === toNodeId && existingWire.toPort === 'child_of');
         if (!isChild) continue;
-        if (_ew.fromNode === fromNodeId || _ew.toNode === fromNodeId) continue;
-        disconnectWire(_ewid);
+        if (existingWire.fromNode === fromNodeId || existingWire.toNode === fromNodeId) continue;
+        disconnectWire(existingWireId);
         break;
       }
 
@@ -153,9 +153,9 @@ window.__procedia_internal.wires = (function() {
 
     if (wireType === 'data') {
       _addWireAction('connectWire', wireData);
-      for (var pk in fromNodeData.props) {
-        if (!fromNodeData.props.hasOwnProperty(pk)) continue;
-        if (pk === 'label') continue;
+      for (var propKey in fromNodeData.props) {
+        if (!fromNodeData.props.hasOwnProperty(propKey)) continue;
+        if (propKey === 'label') continue;
         if (boundParam) {
           var targetNodeData = graphState.getNode(toNodeId);
           if (targetNodeData && targetNodeData.hostingComps && targetNodeData.hostingComps.length > 0) {
@@ -183,7 +183,7 @@ window.__procedia_internal.wires = (function() {
             }
           }
         }
-        hlp.propagateDataValue(fromNodeId, pk, fromNodeData.props[pk]);
+        hlp.propagateDataValue(fromNodeId, propKey, fromNodeData.props[propKey]);
       }
       if (typeof undoManager !== 'undefined') undoManager.commit('Connect wire');
       return true;
@@ -201,19 +201,21 @@ window.__procedia_internal.wires = (function() {
       return true;
     }
 
-    if (_targetHadHostingComps) {
+    if (targetHadHostingComps) {
       var terminalUUID = hlp.findPathLayerUUID(fromNodeId) || wireData.id;
       graphState.updateWire(wireData.id, { _pathLayerUUID: terminalUUID });
       prop.propagateAlive(fromNodeId, toNodeData.hostingComps[0], terminalUUID);
       if (toNodeData.nodeKind === 'effector') {
-        var _toDef = nodeRegistry.getDefinition(toNodeData.type);
-        if (_toDef && _toDef.onAlive) {
-          var _effUpUUID = hlp.findPathLayerUUID(fromNodeId);
-          if (_effUpUUID) {
-            var _effCmd = _toDef.onAlive(toNodeData, toNodeData.hostingComps[0], _effUpUUID);
-            if (_effCmd) {
-              _effCmd.params._moveToBottom = true;
-              evalBridge.dispatch(_effCmd);
+        var toNodeDef = nodeRegistry.getDefinition(toNodeData.type);
+        if (toNodeDef && toNodeDef.onAlive) {
+          var effectorUpstreamUUID = hlp.findPathLayerUUID(fromNodeId);
+          if (effectorUpstreamUUID) {
+            var effectorAliveCmd = toNodeDef.onAlive(toNodeData, toNodeData.hostingComps[0], effectorUpstreamUUID);
+            if (effectorAliveCmd) {
+              (function(effectorCmd) {
+                effectorCmd.params._moveToBottom = true;
+                setTimeout(function() { evalBridge.dispatch(effectorCmd); }, 0);
+              })(effectorAliveCmd);
             }
           }
         }
@@ -281,34 +283,34 @@ window.__procedia_internal.wires = (function() {
       graphState.removeWire(wireId);
       var targetNode = graphState.getNode(targetId);
       if (targetParam && targetNode && targetNode._bakedKeyframes && targetNode._bakedKeyframes[targetParam]) {
-        var baked = targetNode._bakedKeyframes[targetParam];
+        var bakedKeyframes = targetNode._bakedKeyframes[targetParam];
         delete targetNode._bakedKeyframes[targetParam];
-        if (baked.length > 0 && targetNode.hostingComps && targetNode.hostingComps.length > 0) {
-          var rHostUUID = targetNode.hostingComps[0];
-          var rLayerUUID = hlp.findPathLayerUUID(targetId);
-          if (rLayerUUID) {
-            var rChain = Promise.resolve();
-            for (var ri = 0; ri < baked.length; ri++) {
-              (function(kf) {
-                rChain = rChain.then(function() {
+        if (bakedKeyframes.length > 0 && targetNode.hostingComps && targetNode.hostingComps.length > 0) {
+          var restoreHostUUID = targetNode.hostingComps[0];
+          var restoreLayerUUID = hlp.findPathLayerUUID(targetId);
+          if (restoreLayerUUID) {
+            var restoreChain = Promise.resolve();
+            for (var restoreIndex = 0; restoreIndex < bakedKeyframes.length; restoreIndex++) {
+              (function(keyframeEntry) {
+                restoreChain = restoreChain.then(function() {
                   return evalBridge.dispatch({
                     action: 'addKeyframe',
                     params: {
-                      hostingCompUUID: rHostUUID,
-                      layerUUID: rLayerUUID,
+                      hostingCompUUID: restoreHostUUID,
+                      layerUUID: restoreLayerUUID,
                       key: targetParam,
-                      time: kf.time,
-                      value: kf.value
+                      time: keyframeEntry.time,
+                      value: keyframeEntry.value
                     }
                   });
                 });
-              })(baked[ri]);
+              })(bakedKeyframes[restoreIndex]);
             }
-            rChain.then(function() {
+            restoreChain.then(function() {
               if (typeof keyframeState !== 'undefined') {
-                var times = [];
-                for (var ti = 0; ti < baked.length; ti++) { times.push(baked[ti].time); }
-                keyframeState.setKeyframes(targetId, targetParam, times);
+                var restoredTimes = [];
+                for (var timeIndex = 0; timeIndex < bakedKeyframes.length; timeIndex++) { restoredTimes.push(bakedKeyframes[timeIndex].time); }
+                keyframeState.setKeyframes(targetId, targetParam, restoredTimes);
               }
               window.__procedia_internal.refreshUI({ wireRenderer: false, minimap: false, statusBar: false });
             });

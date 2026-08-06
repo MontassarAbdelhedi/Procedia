@@ -2,18 +2,21 @@
  * @fileoverview Routes evalScript commands to action handlers (ES3-safe).
  * Entry point: dispatch(jsonStr) — called by evalBridge via csInterface.evalScript().
  * dispatchBatch(jsonStr) — calls multiple commands in sequence.
- * To add a new action: add a named handler function in the appropriate actions_*.jsx file
- * and register it in _handlers below.
- * REQUIRES: json.jsx, utils.jsx, actions_*.jsx (all loaded before this file in the preamble)
+ * Handler functions are defined in actions_*.jsx files.
+ * The handler registry is in _handlers.jsx.
+ * To add a new action: add a handler function in the appropriate actions_*.jsx file,
+ * register it in _handlers.jsx, and add the action to the _ALLOWED_ACTIONS whitelist in bridge/evalBridge.js.
+ * REQUIRES: json.jsx, utils.jsx, all actions_*.jsx, _handlers.jsx (all loaded before this file in the preamble)
  * Exports: dispatch, dispatchBatch
  */
 // dispatcher.jsx — Routes evalScript commands to action handlers (ES3-safe)
-// REQUIRES: json.jsx, utils.jsx, actions_*.jsx (all loaded before this file in the preamble)
+// REQUIRES: json.jsx, utils.jsx, all actions_*.jsx, _handlers.jsx (loaded before this file)
 //
 // Entry point: dispatch(jsonStr) — called by evalBridge via csInterface.evalScript()
 // dispatchBatch(jsonStr) — calls multiple commands in sequence
-// To add a new action: add a named handler function in the appropriate actions_*.jsx file
-// and register it in _handlers below.
+// Handler functions are defined in actions_*.jsx files.
+// The handler registry is in _handlers.jsx.
+// To add a new action: see instructions in the file header above.
 
 /**
  * Extracts the params sub-object from a command, defaulting to {}.
@@ -36,100 +39,6 @@ function _handleGeneric(cmd) {
     error: 'No handler for action: ' + (cmd && cmd.action ? cmd.action : 'unknown')
   };
 }
-
-var _handlers = {
-  'createComp':           _handleCreateComp,
-  'deleteComp':           _handleDeleteComp,
-  'createTextLayer':      _handleCreateTextLayer,
-  'createCameraLayer':    _handleCreateCameraLayer,
-  'createLightLayer':     _handleCreateLightLayer,
-  'createNullLayer':      _handleCreateNullLayer,
-  'createAdjustmentLayer': _handleCreateAdjustmentLayer,
-  'createShapeLayer':     _handleCreateShapeLayer,
-  'createSolidLayer':     _handleCreateSolidLayer,
-  'createRectangleLayer': _handleCreateRectangleLayer,
-  'createEllipseLayer':   _handleCreateEllipseLayer,
-  'createStarLayer':      _handleCreateStarLayer,
-  'createSquircleLayer':  _handleCreateSquircleLayer,
-  'createGearLayer':      _handleCreateGearLayer,
-  'createWaveLayer':      _handleCreateWaveLayer,
-  'createFlowerLayer':    _handleCreateFlowerLayer,
-  'createPolygonLayer':   _handleCreatePolygonLayer,
-  'addCompAsLayer':       _handleAddCompAsLayer,
-  'clearLayerParent':     _handleClearLayerParent,
-  'parkLayer':            _handleParkLayer,
-  'unparkLayer':          _handleUnparkLayer,
-  'deleteParkedLayer':    _handleDeleteParkedLayer,
-  'deletePathLayer':      _handleDeletePathLayer,
-  'setLayerProperty':     _handleSetLayerProperty,
-  'setCompProperty':      _handleSetCompProperty,
-  'setLayerParent':       _handleSetLayerParent,
-  'setLayerOrder':        _handleSetLayerOrder,
-  'moveLayerBefore':      _handleMoveLayerBefore,
-  'renameNode':           _handleRenameNode,
-  'focusComp':            _handleFocusComp,
-  'listComps':            _handleListComps,
-  'focusCompByName':      _handleFocusCompByName,
-  'applyDynamicEffect':   _handleApplyDynamicEffect,
-  'pollAliveEffects':     _handlePollAliveEffects,
-  'removeEffect':         _handleRemoveEffect,
-  'setEffectProperty':    _handleSetEffectProperty,
-  'setExpression':        _handleSetExpression,
-  'renameEffect':         _handleRenameEffect,
-  'setEffectEnabled':     _handleSetEffectEnabled,
-  'reorderEffect':        _handleReorderEffect,
-  'reorderEffectChain':   _handleReorderEffectChain,
-  'setLayerEnabled':      _handleSetLayerEnabled,
-  'setLayerShy':          _handleSetLayerShy,
-  'setCompHideShyLayers': _handleSetCompHideShyLayers,
-  'restampLayer':         _handleRestampLayer,
-  'pollAliveNodes':       _handlePollAliveNodes,
-  'pollExternalDeletions': _handlePollExternalDeletions,
-  'setBlendingMode':      _handleSetBlendingMode,
-  'setLumaMatte':         _handleSetLumaMatte,
-  'setAlphaMatte':        _handleSetAlphaMatte,
-  'clearMatte':           _handleClearMatte,
-  'getMasksForLayer':     _handleGetMasksForLayer,
-  'batchGetLayerProperties': _handleBatchGetLayerProperties,
-  'batchGetEffectProperties': _handleBatchGetEffectProperties,
-  'readSchemaCache':      _handleReadSchemaCache,
-  'writeSchemaCache':     _handleWriteSchemaCache,
-  'getAEVersion':         _handleGetAEVersion,
-  'introspectEffect':     _handleIntrospectEffect,
-  'readGraph':            _handleReadGraph,
-  'writeGraph':           _handleWriteGraph,
-  'writeGraphExport':     _handleWriteGraphExport,
-  'saveGraphToFile':      _handleSaveGraphToFile,
-  'openGraphFile':        _handleOpenGraphFile,
-  'ensureReservedComp':    _handleEnsureReservedComp,
-  'browseAndImportFootage': _handleBrowseAndImportFootage,
-  'createFootageLayer':    _handleCreateFootageLayer,
-  'deleteFootageItem':     _handleDeleteFootageItem,
-  'addKeyframe':           _handleAddKeyframe,
-  'removeKeyframe':        _handleRemoveKeyframe,
-  'removeAllKeyframes':    _handleRemoveAllKeyframes,
-  'getKeyframeTimes':      _handleGetKeyframeTimes,
-  'getCurrentTime':        _handleGetCurrentTime,
-  'setCurrentTime':        _handleSetCurrentTime,
-  'batchGetKeyframeTimes': _handleBatchGetKeyframeTimes,
-  'getKeyframeData':       _handleGetKeyframeData,
-  'writeCmdChunk':         _handleWriteCmdChunk,
-  'executeCmdFile':        _handleExecuteCmdFile,
-  'cleanupCmdFile':        _handleCleanupCmdFile,
-  'enumerateAllEffects':   _handleEnumerateAllEffects,
-  'buildFullEffectCatalog': _handleBuildFullEffectCatalog,
-  'writeTextFile':          _handleWriteTextFile
-};
-
-_handlers['importScanComps'] = _handleImportScanComps;
-_handlers['importScanFootage'] = _handleImportScanFootage;
-_handlers['importScanCompLayers'] = _handleImportScanCompLayers;
-_handlers['stampImportUUIDs'] = _handleStampImportUUIDs;
-_handlers['saveAsDialog'] = _handleSaveAsDialog;
-
-_handlers['getProjectIdentifier'] = _handleGetProjectIdentifier;
-_handlers['beginUndoGroup'] = _handleBeginUndoGroup;
-_handlers['endUndoGroup'] = _handleEndUndoGroup;
 
 /**
  * Public entry point called by evalBridge. Parses JSON and routes to the handler.
@@ -180,16 +89,6 @@ function dispatchBatch(jsonStr) {
     result.error = 'dispatchBatch error: ' + e.toString();
   }
   return JSON.stringify(result);
-}
-
-function _handleBeginUndoGroup(cmd) {
-  app.beginUndoGroup((cmd && cmd.params && cmd.params.name) || 'Procedia group');
-  return { ok: true, data: null, error: null };
-}
-
-function _handleEndUndoGroup() {
-  app.endUndoGroup();
-  return { ok: true, data: null, error: null };
 }
 
 /**

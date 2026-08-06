@@ -9,7 +9,7 @@ beforeEach(function() {
 });
 
 describe('dispatcher-whitelist parity', function() {
-  var EXPECTED = 89;
+  var EXPECTED = 92;
 
   it('whitelist has ' + EXPECTED + ' entries', function() {
     expect(evalBridge.getAllowedActions().length).toBe(EXPECTED);

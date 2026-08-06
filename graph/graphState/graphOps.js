@@ -49,16 +49,16 @@
 
     if (graphData && graphData.parkedNodeUUIDs) {
       var parkedSet = {};
-      for (var pi = 0; pi < graphData.parkedNodeUUIDs.length; pi++) {
-        var puid = graphData.parkedNodeUUIDs[pi];
-        parkedSet[puid] = true;
-        if (gs.nodeMap[puid]) {
-          gs.nodeMap[puid].hasParkedLayer = true;
+      for (var parkedIndex = 0; parkedIndex < graphData.parkedNodeUUIDs.length; parkedIndex++) {
+        var parkedUUID = graphData.parkedNodeUUIDs[parkedIndex];
+        parkedSet[parkedUUID] = true;
+        if (gs.nodeMap[parkedUUID]) {
+          gs.nodeMap[parkedUUID].hasParkedLayer = true;
         }
       }
-      for (var nid in gs.nodeMap) {
-        if (gs.nodeMap.hasOwnProperty(nid) && gs.nodeMap[nid].hasParkedLayer && !parkedSet[nid]) {
-          gs.nodeMap[nid].hasParkedLayer = false;
+      for (var nodeId in gs.nodeMap) {
+        if (gs.nodeMap.hasOwnProperty(nodeId) && gs.nodeMap[nodeId].hasParkedLayer && !parkedSet[nodeId]) {
+          gs.nodeMap[nodeId].hasParkedLayer = false;
         }
       }
     }

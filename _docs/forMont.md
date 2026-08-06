@@ -49,3 +49,6 @@
 [x] light
 [x] search node in graph
 [x] expression node
+[ ] save graph
+[ ] open graph and rebuild with import external
+[ ] open graph and merge with existent aep project

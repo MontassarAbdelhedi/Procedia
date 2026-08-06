@@ -11,7 +11,7 @@
 var __nl_cat = (function() {
 
   var CATEGORY_ORDER = [
-    'Core', 'Data', 'Layers', 'Shapes', 'Track Matte', 'Presets', 'Effects'
+    'Core', 'Data', 'Layers', 'Shapes', 'Instances', 'Track Matte', 'Presets', 'Effects'
   ];
 
   var EFFECTS_SUBCATEGORIES = {

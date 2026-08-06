@@ -1,5 +1,20 @@
 # Progress Log
 
+## Thu 2026-08-06
+
+[x] Add Cloner node (instances/cloner) — Linear/Radial/Grid modes; new "Instances" category (orange); createCloner/removeCloner/updateCloner AE action handlers in actionInstances/ subdirectory
+[x] Extract shared blend_map.jsx ExtendScript module — single BLEND_MAP source for blending handler + import scanner
+[x] Extract introspect/constants.jsx — _INTROSPECT_SKIP_BROWSE blacklist for reuse
+[x] Large-file refactoring (panel side): 12 files split into subdirectory modules — builder.js→builder/{params,ports}.js, helpers.js→helpers/{wireState,display,portUtils}.js, nodeToolbar.js→nodeToolbar/{colorPicker,switchMode}.js, viewport.js→viewport/grid.js, cascade/utils.js→cascade/utils/{graph,pathLayer}.js, commentDOM.js→commentElement.js, deleteNode.js→deleteNode/wireUtils.js, switchNodes.js→switchNodes/{chain,reorder}.js
+[x] Large-file refactoring (ExtendScript): 6 files split — dispatcher.jsx→_handlers.jsx+actions_undo.jsx, actions_comp.jsx→actionComp/ (3 files), actions_park.jsx→actionPark/ (5 files), actions_property.jsx→actions_{parent,order,blending}.jsx, introspect.jsx→introspect/{constants,walk}.jsx, scanCompLayers.jsx→scanCompLayers/ (5 files)
+[x] evalBridge.js JSX preamble updated with new handler files + data/scripts.json manifest updated (161→175 entries)
+[x] Fix race condition: effector/blending onAlive deferred with setTimeout(fn, 0) in propagate.js + wires.js to prevent racing with upstream layer creation
+[x] Variable naming cleanup: _writeCount→_writeLockCount, private-underscore removal in index.js, loop variable naming in 10 files
+[x] Schema cache reset for AE 2026: aeVersion→26.3x86, schemas cleared
+[x] Undo group handlers extracted from inline dispatcher.jsx to dedicated actions_undo.jsx
+[x] _docs/CLAUDE.md action table updated, _docs/forMont.md updated with save/open/merge graph TODOs
+[x] Test dispatcher parity count: 89→92 (createCloner/removeCloner/updateCloner actions + jsxSetup stubs)
+
 ## Sun 2026-08-02
 
 [x] CHANGELOG.md + RELEASING.md + README.md + THIRD_PARTY_LICENSES.md added (F-39, F-40, F-81)

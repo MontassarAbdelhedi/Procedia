@@ -19,6 +19,7 @@
 window.__procedia_internal.prop = (function() {
   var registry = window.__procedia_internal.registry;
   var hlp = registry.get('hlp');
+  var lifecycle = window.__procedia_internal.lifecycle;
 
   /**
    * Set of path layer UUIDs that are pending creation in AE.
@@ -91,42 +92,42 @@ window.__procedia_internal.prop = (function() {
    */
   function _dispatchCommand(nodeId, command) {
     if (command === null) return;
-    (function(nId, cmd) {
-      if (cmd.params && cmd.params.layerUUID) {
-        _pendingPathUUIDs[cmd.params.layerUUID] = (_pendingPathUUIDs[cmd.params.layerUUID] || 0) + 1;
+    (function(dispatchNodeId, dispatchCmd) {
+      if (dispatchCmd.params && dispatchCmd.params.layerUUID) {
+        _pendingPathUUIDs[dispatchCmd.params.layerUUID] = (_pendingPathUUIDs[dispatchCmd.params.layerUUID] || 0) + 1;
       }
-      evalBridge.dispatch(cmd).then(function(res) {
+      evalBridge.dispatch(dispatchCmd).then(function(res) {
         if (typeof res === 'undefined' || res === null) return;
         if (!res.ok) {
-          console.error('[engine] onAlive failed for ' + nId + ': ' + (res.error || 'unknown error'));
-          graphState.updateNode(nId, { state: 'error' });
-          var nd = graphState.getNode(nId);
-          if (nd && nd.type === 'core/footage' && cmd.action === 'createFootageLayer') {
+          console.error('[engine] onAlive failed for ' + dispatchNodeId + ': ' + (res.error || 'unknown error'));
+          graphState.updateNode(dispatchNodeId, { state: 'error' });
+          var nodeAtFail = graphState.getNode(dispatchNodeId);
+          if (nodeAtFail && nodeAtFail.type === 'core/footage' && dispatchCmd.action === 'createFootageLayer') {
             if (typeof notificationBar !== 'undefined' && notificationBar.push) {
               notificationBar.push({
-                message: 'Footage node "' + (nd.props.label || 'Footage') + '" has no file imported',
+                message: 'Footage node "' + (nodeAtFail.props.label || 'Footage') + '" has no file imported',
                 severity: 'error',
                 duration: 5000
               });
             }
           }
         } else {
-          var ndOk = graphState.getNode(nId);
-          if (ndOk && ndOk.state === 'error') {
-            console.warn('[engine] onAlive dispatch succeeded for ' + nId + ' but node was in error state — recovering to alive');
-            graphState.updateNode(nId, { state: 'alive' });
+          var nodeAfterOk = graphState.getNode(dispatchNodeId);
+          if (nodeAfterOk && nodeAfterOk.state === 'error') {
+            console.warn('[engine] onAlive dispatch succeeded for ' + dispatchNodeId + ' but node was in error state — recovering to alive');
+            graphState.updateNode(dispatchNodeId, { state: 'alive' });
           }
         }
       }).catch(function(err) {
-        console.error('[engine] onAlive dispatch failed for ' + nId + ': ' + (err || 'unknown error'));
-        graphState.updateNode(nId, { state: 'error' });
+        console.error('[engine] onAlive dispatch failed for ' + dispatchNodeId + ': ' + (err || 'unknown error'));
+        graphState.updateNode(dispatchNodeId, { state: 'error' });
       }).finally(function() {
-        if (cmd.params && cmd.params.layerUUID) {
-          if (_pendingPathUUIDs[cmd.params.layerUUID] > 0) {
-            _pendingPathUUIDs[cmd.params.layerUUID]--;
+        if (dispatchCmd.params && dispatchCmd.params.layerUUID) {
+          if (_pendingPathUUIDs[dispatchCmd.params.layerUUID] > 0) {
+            _pendingPathUUIDs[dispatchCmd.params.layerUUID]--;
           }
-          if (_pendingPathUUIDs[cmd.params.layerUUID] <= 0) {
-            delete _pendingPathUUIDs[cmd.params.layerUUID];
+          if (_pendingPathUUIDs[dispatchCmd.params.layerUUID] <= 0) {
+            delete _pendingPathUUIDs[dispatchCmd.params.layerUUID];
           }
         }
       });
@@ -141,21 +142,21 @@ window.__procedia_internal.prop = (function() {
    */
   function _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID, visited) {
     var wireMap = graphState.getAllWires();
-    for (var puId in wireMap) {
-      if (!wireMap.hasOwnProperty(puId)) continue;
-      var puw = wireMap[puId];
-      if (puw.toNode !== nodeId || puw.type !== 'layer') continue;
-      var puData = graphState.getNode(puw.fromNode);
-      if (!puData) continue;
-      if (puData.nodeKind === 'data') continue;
-      if (puData.nodeKind === 'matte') continue;
+    for (var upstreamWireId in wireMap) {
+      if (!wireMap.hasOwnProperty(upstreamWireId)) continue;
+      var upstreamWire = wireMap[upstreamWireId];
+      if (upstreamWire.toNode !== nodeId || upstreamWire.type !== 'layer') continue;
+      var upstreamNode = graphState.getNode(upstreamWire.fromNode);
+      if (!upstreamNode) continue;
+      if (upstreamNode.nodeKind === 'data') continue;
+      if (upstreamNode.nodeKind === 'matte') continue;
       var alreadyAlive = false;
-      for (var pui = 0; pui < puData.hostingComps.length; pui++) {
-        if (puData.hostingComps[pui] === hostingCompUUID) { alreadyAlive = true; break; }
+      for (var hostIndex = 0; hostIndex < upstreamNode.hostingComps.length; hostIndex++) {
+        if (upstreamNode.hostingComps[hostIndex] === hostingCompUUID) { alreadyAlive = true; break; }
       }
       if (alreadyAlive) continue;
-      graphState.updateWire(puw.id, { _pathLayerUUID: puw.id });
-      _propagateAlive(puw.fromNode, hostingCompUUID, pathLayerUUID, visited);
+      graphState.updateWire(upstreamWire.id, { _pathLayerUUID: upstreamWire.id });
+      _propagateAlive(upstreamWire.fromNode, hostingCompUUID, pathLayerUUID, visited);
     }
   }
 
@@ -176,21 +177,21 @@ window.__procedia_internal.prop = (function() {
     var nodeData = graphState.getNode(nodeId);
     if (!nodeData) return;
 
-    var __reportTx = null;
+    var sentryTransaction = null;
     if (typeof reporter !== 'undefined' && reporter.captureMessage && typeof Sentry !== 'undefined' && Sentry.startTransaction) {
-      __reportTx = Sentry.startTransaction({ name: 'propagateAlive', op: 'engine.propagate', tags: { nodeId: nodeId, nodeType: nodeData.type } });
+      sentryTransaction = Sentry.startTransaction({ name: 'propagateAlive', op: 'engine.propagate', tags: { nodeId: nodeId, nodeType: nodeData.type } });
     }
 
     for (var h = 0; h < nodeData.hostingComps.length; h++) {
       if (nodeData.hostingComps[h] === hostingCompUUID) {
-        if (__reportTx) { __reportTx.finish(); }
+        if (sentryTransaction) { sentryTransaction.finish(); }
         return;
       }
     }
 
     var def = nodeRegistry.getDefinition(nodeData.type);
     if (!def) {
-      if (__reportTx) { __reportTx.finish(); }
+      if (sentryTransaction) { sentryTransaction.finish(); }
       return;
     }
 
@@ -213,7 +214,7 @@ window.__procedia_internal.prop = (function() {
       if (transplantCmd) transplantCmd.params._moveToBottom = true;
       _dispatchCommand(nodeId, transplantCmd);
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
-      if (__reportTx) { __reportTx.finish(); }
+      if (sentryTransaction) { sentryTransaction.finish(); }
       return;
     }
 
@@ -225,7 +226,7 @@ window.__procedia_internal.prop = (function() {
       });
       _dispatchCommand(nodeId, _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID));
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
-      if (__reportTx) { __reportTx.finish(); }
+      if (sentryTransaction) { sentryTransaction.finish(); }
       return;
     }
 
@@ -236,7 +237,7 @@ window.__procedia_internal.prop = (function() {
         nodeData.nodeKind !== 'multimerge' &&
         nodeData.nodeKind !== 'blending' &&
         nodeData.nodeKind !== 'effector') {
-      if (__reportTx) { __reportTx.finish(); }
+      if (sentryTransaction) { sentryTransaction.finish(); }
       return;
     }
 
@@ -247,7 +248,13 @@ window.__procedia_internal.prop = (function() {
     });
 
     _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID, visited);
-    if (command !== null) _dispatchCommand(nodeId, command);
+    if (command !== null) {
+      if (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending') {
+        setTimeout(function() { _dispatchCommand(nodeId, command); }, 0);
+      } else {
+        _dispatchCommand(nodeId, command);
+      }
+    }
 
     if (command !== null &&
         (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending')) {
@@ -256,7 +263,7 @@ window.__procedia_internal.prop = (function() {
 
     if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
 
-    if (__reportTx) { __reportTx.finish(); }
+    if (sentryTransaction) { sentryTransaction.finish(); }
   }
 
   /**
@@ -272,44 +279,44 @@ window.__procedia_internal.prop = (function() {
    * @param {string} pathLayerUUID - Terminal wire layer UUID
    */
   function _ensureDownstreamOrder(nodeId, hostingCompUUID, pathLayerUUID) {
-    var chain = [];
+    var downstreamChain = [];
 
     function _collect(nId) {
-      var wm = graphState.getAllWires();
-      for (var wId in wm) {
-        if (!wm.hasOwnProperty(wId)) continue;
-        var w = wm[wId];
-        if (w.fromNode !== nId || w.type !== 'layer') continue;
-        var dData = graphState.getNode(w.toNode);
-        if (!dData) continue;
-        if (dData.nodeKind !== 'effector' && dData.nodeKind !== 'blending') continue;
+      var wireMap = graphState.getAllWires();
+      for (var wireId in wireMap) {
+        if (!wireMap.hasOwnProperty(wireId)) continue;
+        var wire = wireMap[wireId];
+        if (wire.fromNode !== nId || wire.type !== 'layer') continue;
+        var downstreamData = graphState.getNode(wire.toNode);
+        if (!downstreamData) continue;
+        if (downstreamData.nodeKind !== 'effector' && downstreamData.nodeKind !== 'blending') continue;
 
         var found = false;
-        for (var i = 0; i < dData.hostingComps.length; i++) {
-          if (dData.hostingComps[i] === hostingCompUUID) { found = true; break; }
+        for (var hostIndex = 0; hostIndex < downstreamData.hostingComps.length; hostIndex++) {
+          if (downstreamData.hostingComps[hostIndex] === hostingCompUUID) { found = true; break; }
         }
         if (!found) continue;
 
-        var dDef = nodeRegistry.getDefinition(dData.type);
-        if (!dDef || !dDef.onGhost || !dDef.onAlive) continue;
+        var downDef = nodeRegistry.getDefinition(downstreamData.type);
+        if (!downDef || !downDef.onGhost || !downDef.onAlive) continue;
 
-        var rCmd = dDef.onGhost(dData, hostingCompUUID, pathLayerUUID);
-        if (rCmd) evalBridge.dispatch(rCmd);
+        var removeCmd = downDef.onGhost(downstreamData, hostingCompUUID, pathLayerUUID);
+        if (removeCmd) evalBridge.dispatch(removeCmd);
 
-        chain.push({ node: dData, def: dDef });
+        downstreamChain.push({ node: downstreamData, def: downDef });
 
-        _collect(dData.id);
+        _collect(downstreamData.id);
       }
     }
 
     _collect(nodeId);
 
-    for (var ci = 0; ci < chain.length; ci++) {
-      var cItem = chain[ci];
-      var aCmd = cItem.def.onAlive(cItem.node, hostingCompUUID, pathLayerUUID);
-      if (aCmd) {
-        aCmd.params._moveToBottom = true;
-        evalBridge.dispatch(aCmd);
+    for (var chainIndex = 0; chainIndex < downstreamChain.length; chainIndex++) {
+      var chainItem = downstreamChain[chainIndex];
+      var applyCmd = chainItem.def.onAlive(chainItem.node, hostingCompUUID, pathLayerUUID);
+      if (applyCmd) {
+        applyCmd.params._moveToBottom = true;
+        evalBridge.dispatch(applyCmd);
       }
     }
   }
@@ -349,10 +356,10 @@ window.__procedia_internal.prop = (function() {
     var sharedCompUUID = null;
     var topComps = topUpstreamData.hostingComps || [];
     var matteComps = matteUpstreamData.hostingComps || [];
-    for (var ci = 0; ci < topComps.length; ci++) {
-      for (var cj = 0; cj < matteComps.length; cj++) {
-        if (topComps[ci] === matteComps[cj]) {
-          sharedCompUUID = topComps[ci];
+    for (var topCompIndex = 0; topCompIndex < topComps.length; topCompIndex++) {
+      for (var matteCompIndex = 0; matteCompIndex < matteComps.length; matteCompIndex++) {
+        if (topComps[topCompIndex] === matteComps[matteCompIndex]) {
+          sharedCompUUID = topComps[topCompIndex];
           break;
         }
       }
@@ -384,16 +391,16 @@ window.__procedia_internal.prop = (function() {
    * @param {string} terminalWireId - ID of the terminal wire to fire
    */
   function _firePathCreation(terminalWireId) {
-    var __reportTx = null;
+    var sentryTransaction = null;
     if (typeof reporter !== 'undefined' && reporter.captureMessage && typeof Sentry !== 'undefined' && Sentry.startTransaction) {
-      __reportTx = Sentry.startTransaction({ name: 'firePathCreation', op: 'engine.propagate', tags: { terminalWireId: terminalWireId } });
+      sentryTransaction = Sentry.startTransaction({ name: 'firePathCreation', op: 'engine.propagate', tags: { terminalWireId: terminalWireId } });
     }
 
     var wireMap = graphState.getAllWires();
     var wireData = wireMap[terminalWireId] || null;
     if (!wireData) {
       console.error('[engine] _firePathCreation: wire not found: ' + terminalWireId);
-      if (__reportTx) { __reportTx.finish(); }
+      if (sentryTransaction) { sentryTransaction.finish(); }
       return;
     }
 
@@ -407,7 +414,7 @@ window.__procedia_internal.prop = (function() {
       dirtyFlusher.flush();
     }
 
-    if (__reportTx) { __reportTx.finish(); }
+    if (sentryTransaction) { sentryTransaction.finish(); }
   }
 
   /**

@@ -400,7 +400,7 @@ Every action below is registered in `dispatcher.jsx`'s `_route()` table and whit
 | `readGraph` | Reads the serialized graph from `__PROCEDIA_NODES__` / `__PROCEDIA_WIRES__` text layers in the Reserved Comp (with chunk reassembly) |
 | `writeGraph` | Writes the serialized graph (now including the keyframe-state snapshot) back to those text layers — called via `evalBridge.fireAndForget` on `beforeunload` |
 
-**Schema cache (handlers in `actions_schema.jsx`, `actionEffect/introspect.jsx`, `actionEffect/buildCatalog.jsx`):**
+**Schema cache (handlers in `actions_schema.jsx`, `actionEffect/introspect.jsx` (+ `introspect/` subdir), `actionEffect/buildCatalog.jsx`):**
 
 | Action | What it does in AE |
 |---|---|
@@ -1174,7 +1174,7 @@ procedia/
         ├── actions_import.jsx              ← barrel for actionImport/ subdirectory (4 files: scanComps, scanFootage, scanCompLayers, stampUUIDs)
         ├── actions_graphExport.jsx         ← writeGraphExport, saveGraphToFile, openGraphFile
         ├── actions_cmdChunk.jsx            ← writeCmdChunk, executeCmdFile, cleanupCmdFile (internal: large-command chunking)
-        └── actionEffect/                   ← 6 files: apply.jsx (barrel→applyActionEffect/), introspect.jsx, pollAlive.jsx, batchGetEffectProperties.jsx, setExpression.jsx, buildCatalog.jsx (enumerateAllEffects + buildFullEffectCatalog)
+        └── actionEffect/                   ← 7 files + introspect/ subdir (2 files): apply.jsx (barrel→applyActionEffect/), introspect/ (constants.jsx + walk.jsx), introspect.jsx, pollAlive.jsx, batchGetEffectProperties.jsx, setExpression.jsx, buildCatalog.jsx (enumerateAllEffects + buildFullEffectCatalog)
             └── applyActionEffect/          ← 8 files: findPropByMatchName, applyDynamicEffect, removeEffect, setEffectProperty, setEffectEnabled, reorderEffect, reorderEffectChain, renameEffect
 ```
 

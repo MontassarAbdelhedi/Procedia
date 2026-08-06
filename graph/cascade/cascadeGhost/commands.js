@@ -19,30 +19,30 @@
     var batchCommands = [];
     var remainingCompsPerNode = {};
 
-    for (var ci = 0; ci < cascadeSet.length; ci++) {
-      var cn = cascadeSet[ci];
-      var remainingComps = __c_ghost_util._hasCompDownstreamExcluding(cn.id, deletedWireId, {});
-      remainingCompsPerNode[cn.id] = remainingComps;
+    for (var cascadeIndex = 0; cascadeIndex < cascadeSet.length; cascadeIndex++) {
+      var cascadeNode = cascadeSet[cascadeIndex];
+      var remainingComps = __c_ghost_util._hasCompDownstreamExcluding(cascadeNode.id, deletedWireId, {});
+      remainingCompsPerNode[cascadeNode.id] = remainingComps;
 
       var losingComps = [];
-      for (var hci = 0; hci < cn.hostingComps.length; hci++) {
-        var compUUID = cn.hostingComps[hci];
+      for (var hostCompIndex = 0; hostCompIndex < cascadeNode.hostingComps.length; hostCompIndex++) {
+        var compUUID = cascadeNode.hostingComps[hostCompIndex];
         var stillHas = false;
-        for (var rci = 0; rci < remainingComps.length; rci++) {
-          if (remainingComps[rci] === compUUID) { stillHas = true; break; }
+        for (var remainingCompIndex = 0; remainingCompIndex < remainingComps.length; remainingCompIndex++) {
+          if (remainingComps[remainingCompIndex] === compUUID) { stillHas = true; break; }
         }
         if (!stillHas) losingComps.push(compUUID);
       }
 
-      var def = nodeRegistry.getDefinition(cn.type);
+      var def = nodeRegistry.getDefinition(cascadeNode.type);
       if (!def) continue;
 
       if (losingComps.length === 0) continue;
 
-      if (losingComps.length < cn.hostingComps.length) {
+      if (losingComps.length < cascadeNode.hostingComps.length) {
         var partialUUID = wireData._pathLayerUUID;
-        for (var li = 0; li < losingComps.length; li++) {
-          var lostCompId = losingComps[li];
+        for (var losingIndex = 0; losingIndex < losingComps.length; losingIndex++) {
+          var lostCompId = losingComps[losingIndex];
           batchCommands.push({
             action: 'deletePathLayer',
             params: {
@@ -54,15 +54,15 @@
         continue;
       }
 
-      for (var lci = 0; lci < losingComps.length; lci++) {
-        var losingCompId = losingComps[lci];
+      for (var losingCompIndex = 0; losingCompIndex < losingComps.length; losingCompIndex++) {
+        var losingCompId = losingComps[losingCompIndex];
         var cmd = null;
 
-        if (cn.nodeKind === 'effector') {
+        if (cascadeNode.nodeKind === 'effector') {
           var upstreamNodeUUID = wireData._pathLayerUUID;
-          cmd = def.onGhost(cn, losingCompId, upstreamNodeUUID);
+          cmd = def.onGhost(cascadeNode, losingCompId, upstreamNodeUUID);
         } else {
-          cmd = def.onGhost(cn, losingCompId);
+          cmd = def.onGhost(cascadeNode, losingCompId);
           if (cmd && cmd.params) {
             cmd.params.layerUUID = wireData._pathLayerUUID;
           }

@@ -8,50 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `CHANGELOG.md`, `RELEASING.md`, `README.md`, `THIRD_PARTY_LICENSES.md` (F-39, F-40, F-81)
-- `data/categoryColors.js` — unified category-to-color map (F-49)
-- `_validatePluginPath` path-traversal defence in `utils.jsx` (F-73)
-- `app.project.afterSave` hook + panel periodic auto-save (F-35)
-- Silenced-catch logging: `console.warn` at 7 silent catch sites across 6 files (F-11, F-59)
-- `tipField.destroy()` — teardown clears interval + resize listener (F-13)
-- Walkthrough `show()` — removes prior overlay before rebuild (F-76)
-- Selection change multi-listener: `onSelectionChange` returns unsubscribe fn (F-24)
-- `tests/integration/dispatcher-parity.test.js` — locks in 89/89 parity (F-55)
-- `tests/unit/lifecycle.test.js` — 83 tests for 5×5 hook contract + port/kind/dedicated contracts (Phase 0.10)
+- Cloner node (`instances/cloner`) — Linear/Radial/Grid modes, `createCloner`/`removeCloner`/`updateCloner` AE action handlers in `actionInstances/`
+- "Instances" category (orange `#E67E22`) with Cloner node registered in `loadNodes.js`, `categoryColors.js`, `nodeList/categories.js`
+- Shared `blend_map.jsx` ExtendScript module — single BLEND_MAP source for blending handler and import scanner
+- `introspect/constants.jsx` — extracted `_INTROSPECT_SKIP_BROWSE` blacklist for reuse
 
 ### Changed
-- Lifecycle consolidation: inline nodeKind dispatch replaced with `lifecycle.buildLifecycleCommand` in `deleteNode.js`, `recreateNode.js`, `state.js`, `propagate.js` (F-06, F-89)
-- Schema-cache internals moved to `window.__procedia_internal.scState/scPersist/scDiff` (quick win #29)
-- `enumerateAllEffects`/`buildFullEffectCatalog` handlers implemented from stubs (F-21)
-- `createLightLayer.jsx` uses `LightType` enum constants instead of hardcoded numbers (F-48)
-- Manifest `HostList` AE range tightened from `[16.0,99.9]` → `[24.0,99.9]` (F-83)
-- `engine/index.js` JSDoc corrected to match actual exports (F-44)
-- Input import: matte skip now surfaces `notificationBar.push` warning instead of silent loss (F-08)
+- Large-file refactoring: 12 panel-side files split into subdirectory modules — `builder.js` → `builder/{params,ports}.js`, `helpers.js` → `helpers/{wireState,display,portUtils}.js`, `nodeToolbar.js` → `nodeToolbar/{colorPicker,switchMode}.js`, `viewport.js` → `viewport/grid.js`, `cascade/utils.js` → `cascade/utils/{graph,pathLayer}.js`, `commentDOM.js` → `commentElement.js`, `deleteNode.js` → `deleteNode/wireUtils.js`, `switchNodes.js` → `switchNodes/{chain,reorder}.js`
+- Large-file refactoring: 6 ExtendScript files split — `dispatcher.jsx` → `_handlers.jsx` + `actions_undo.jsx`, `actions_comp.jsx` → `actionComp/{reservedComp,compLifecycle,compProject}.jsx`, `actions_park.jsx` → `actionPark/{parkLayer,unparkLayer,deleteParkedLayer,pollAliveNodes,pollExternalDeletions}.jsx`, `actions_property.jsx` → `actions_{parent,order,blending}.jsx`, `introspect.jsx` → `introspect/{constants,walk}.jsx`, `scanCompLayers.jsx` → `scanCompLayers/{layerType,readProps,scanEffects,maps,buildEntry}.jsx`
+- `evalBridge.js` JSX preamble + `data/scripts.json` load manifest updated with 14 new entries for split files + Cloner handlers
+- Propagation/wire-connect timing: effector and blending `onAlive` writes now deferred with `setTimeout(fn, 0)` to prevent racing with upstream layer creation
+- Variable naming cleanup: `_writeCount`→`_writeLockCount`, private-underscore removal in `index.js` (`_extPath`, `_startupMissing`, `__reportTx`), loop variable naming in 10 files
+- Schema cache reset for AE 2026: `aeVersion` bumped to `26.3x86`, schemas cleared
+- Undo group handlers relocated from inline `dispatcher.jsx` to dedicated `actions_undo.jsx`
+- `_docs/CLAUDE.md` action table + `_docs/forMont.md` updated
+- Test dispatcher parity count: 89 → 92 (3 new Cloner actions added to whitelist + test stubs)
+- `data/scripts.json`: 161 → 175 entries
 
 ### Fixed
-- Preset-drop undo race: alive-transition now inside capture→commit window (F-05)
-- Drag-and-drop listener leak: `mousemove`/`mouseup` handlers removed before re-attach (F-12, F-65)
-- Keyframe-bake Promise chain: `.catch()` added, inner dispatch chained with `return` (F-17)
-- `dispatcher.jsx` `dispatchBatch` outer catch now closes undo group (F-10)
-- `_running` reset in import uses `.finally()` instead of `.then()` (F-36)
-- `_pendingPathUUIDs` + `_notifiedMissing` cleared on `clearGraph`/`loadGraph` (F-37)
-- Import `hostingComps` mutation uses `graphState.updateNode` instead of direct `.push()` (F-08)
-- autoShy `dispatchBatch` calls wrapped with undo capture/commit (F-63)
-- `cloneNode.js` merge/multimerge exclusion added (F-77)
-- Silent catch sites now logged: presetManager, autoShy, propertyPoller, walkthrough, envSnapshot, setExpression.jsx (F-11, F-59)
-- Implicit global `lj` → `var lj` in `actions_park.jsx` (quick win #19)
-- `actions_property.jsx` else-branch null-check on `layer.property(key)` (quick win #39)
-- `setExpression.jsx` catch now returns error result instead of swallowing (F-11)
-
-### Removed
-- Dead debug instrumentation from `reorderEffectChain.jsx`, `switchNodes.js` (F-16, F-22, F-23)
-- Dead `__anchor__` cleanup block from `reorderEffectChain.jsx` (F-20)
-- Dead `isEffectNode` export from `effectNodeFactory.js` (F-19, F-69)
-- Dead `_NOOP` constant in `refreshUI.js` (F-46)
-- Dead `CATEGORY_NAMES` stub in `categories.js` (F-69)
-- Dead `__wt_state.animating` guard from walkthrough nav (F-47)
-- Redundant `graph/canvas/renderer/categories.js` — replaced by `data/categoryColors.js` (F-49)
-- `engine/wires.js` dead `boundParam` silent-swallow branch (F-16)
+- Race condition: effector/blending `onAlive` racing with upstream layer creation during propagation — deferred via `setTimeout(fn, 0)` in `propagate.js` and `wires.js`
+- Variable naming inconsistencies: private-underscore misuse in `index.js`, `poller.js`, `propagate.js`, `wires.js`, `deleteNode.js`, `switchNodes.js`, `cascadeGhost/*.js`, `aeReconcile.js`, `graphOps.js`, `helpers.js`
+- `offGraphChange` callback parameter renamed from `cb` to `callback` in `graphState/index.js`
 
 ## [0.0.4] — 2026-07-26
 

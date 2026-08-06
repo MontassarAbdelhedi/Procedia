@@ -32,9 +32,9 @@ window.__procedia_internal.eState = (function() {
     var ids = Object.keys(allNodes);
 
     for (var i = ids.length - 1; i >= 0; i--) {
-      var nd = allNodes[ids[i]];
-      var def = nodeRegistry.getDefinition(nd.type);
-      if (def && def.onDelete) { var dataCmd = def.onDelete(nd); if (dataCmd) evalBridge.dispatch(dataCmd); }
+      var nodeData = allNodes[ids[i]];
+      var def = nodeRegistry.getDefinition(nodeData.type);
+      if (def && def.onDelete) { var dataCmd = def.onDelete(nodeData); if (dataCmd) evalBridge.dispatch(dataCmd); }
     }
 
     graphState.clearGraph();
