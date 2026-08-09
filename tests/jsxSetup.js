@@ -31,24 +31,34 @@ var _handlerNames = [
   'buildFullEffectCatalog', 'writeTextFile', 'getProjectIdentifier',
   'beginUndoGroup', 'endUndoGroup', 'importScanComps', 'importScanFootage',
   'importScanCompLayers', 'stampImportUUIDs', 'saveAsDialog',
-  'createCloner', 'removeCloner', 'updateCloner'
+  'createCloner', 'removeCloner', 'updateCloner',
+  'writeRepo', 'readRepo'
 ];
 
 _handlerNames.forEach(function(name) {
   window['_handle' + name.charAt(0).toUpperCase() + name.slice(1)] = STUB;
 });
 
+function _buildHandlers() {
+  window._handlers = {};
+  _handlerNames.forEach(function(name) {
+    var handlerName = '_handle' + name.charAt(0).toUpperCase() + name.slice(1);
+    window._handlers[name] = window[handlerName];
+  });
+}
+
+_buildHandlers();
+
 export function loadJSXScript(relativePath) {
   loadGlobalScript(relativePath);
 }
 
 export function mockHandler(action, fn) {
-  if (typeof window._handlers === 'undefined') window._handlers = {};
   window._handlers[action] = fn;
 }
 
 export function resetHandlers() {
-  delete window._handlers;
+  _buildHandlers();
   delete window._cmdParams;
   delete window._handleGeneric;
   delete window._route;

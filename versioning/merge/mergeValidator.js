@@ -2,10 +2,10 @@
  * Merge validator — validates a candidate merged graph against structural
  * and topological rules. Pure JS, no AE or UI dependencies.
  * @module vcMergeValidator
- * @dependencies none
+ * @dependencies vcMergeLayerCycleDetector, vcMergeDuplicateWireDetector
  */
 // versioning/merge/mergeValidator.js
-// DEPENDS ON: (none)
+// DEPENDS ON: vcMergeLayerCycleDetector, vcMergeDuplicateWireDetector
 // MUST LOAD BEFORE: versioning/merge/threeWayMerge.js
 
 var vcMergeValidator = (function() {
@@ -40,13 +40,13 @@ var vcMergeValidator = (function() {
     }
 
     // Check for layer cycle
-    var layerCycles = _findLayerCycles(nodes, wires);
+    var layerCycles = vcMergeLayerCycleDetector.detect(nodes, wires);
     for (var lci = 0; lci < layerCycles.length; lci++) {
       errors.push('Layer cycle detected: ' + layerCycles[lci]);
     }
 
     // Check for duplicate semantic wires
-    var dupWires = _findDuplicateWires(wires);
+    var dupWires = vcMergeDuplicateWireDetector.detect(wires);
     for (var dpi = 0; dpi < dupWires.length; dpi++) {
       errors.push('Duplicate semantic wire: ' + dupWires[dpi]);
     }
@@ -77,83 +77,6 @@ var vcMergeValidator = (function() {
       if (ports[i].id === portId) return true;
     }
     return false;
-  }
-
-  function _findLayerCycles(nodes, wires) {
-    var errors = [];
-    var layerWires = [];
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      if (wires[wid].type === 'layer') layerWires.push(wires[wid]);
-    }
-
-    // Detect cycles in layer graph using simple DFS
-    var nodeIds = [];
-    for (var nid in nodes) {
-      if (nodes.hasOwnProperty(nid)) nodeIds.push(nid);
-    }
-
-    // Build adjacency list only for layer wires
-    var adj = {};
-    for (var ni = 0; ni < nodeIds.length; ni++) {
-      adj[nodeIds[ni]] = [];
-    }
-    for (var lwi = 0; lwi < layerWires.length; lwi++) {
-      var lw = layerWires[lwi];
-      if (adj[lw.fromNode] && adj[lw.toNode]) {
-        adj[lw.fromNode].push(lw.toNode);
-      }
-    }
-
-    var WHITE = 0, GRAY = 1, BLACK = 2;
-    var color = {};
-    for (var nj = 0; nj < nodeIds.length; nj++) {
-      color[nodeIds[nj]] = WHITE;
-    }
-
-    function dfs(u, path) {
-      color[u] = GRAY;
-      for (var vIdx = 0; vIdx < adj[u].length; vIdx++) {
-        var v = adj[u][vIdx];
-        if (color[v] === GRAY) {
-          // Found cycle — find where it starts in path
-          var cycleStart = path.indexOf(v);
-          if (cycleStart >= 0) {
-            var cycleNodes = path.slice(cycleStart).concat([v]);
-            errors.push(cycleNodes.join(' → '));
-          }
-        } else if (color[v] === WHITE) {
-          dfs(v, path.concat([v]));
-        }
-      }
-      color[u] = BLACK;
-    }
-
-    for (var nk = 0; nk < nodeIds.length; nk++) {
-      if (color[nodeIds[nk]] === WHITE) {
-        dfs(nodeIds[nk], [nodeIds[nk]]);
-      }
-    }
-
-    return errors;
-  }
-
-  function _findDuplicateWires(wires) {
-    var keys = {};
-    var duplicates = [];
-
-    for (var wid in wires) {
-      if (!wires.hasOwnProperty(wid)) continue;
-      var w = wires[wid];
-      var key = [w.type, w.fromNode, w.fromPort, w.toNode, w.toPort, w.boundParam || ''].join('|');
-      if (keys[key]) {
-        duplicates.push(key + ' (wires: ' + keys[key] + ', ' + wid + ')');
-      } else {
-        keys[key] = wid;
-      }
-    }
-
-    return duplicates;
   }
 
   return {

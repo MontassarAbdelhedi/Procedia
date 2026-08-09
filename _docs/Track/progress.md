@@ -1,5 +1,16 @@
 # Progress Log
 
+## Sun 2026-08-09
+
+[x] Version control system: introduce versioning/ module — repositoryStore.js (branches/revisions/artifacts/invariants), branchService.js, revisionService.js, capabilities.js; snapshot/ subdirectory (canonicalizer, checksum, migrations, schema, serializer — 5 files); diff/semanticDiff.js; merge/ subdirectory (conflictFactory, conflictResolver, mergeBase, mergeValidator, threeWayMerge — 5 files); activation/ subdirectory (activationCoordinator, graphSyncPlanner — 2 files); versionControlService.js public API aggregator
+[x] Version control UI: 6 modals/panels — branchSelector.js, compareModal.js, newBranchModal.js, restoreModal.js, saveVersionModal.js, versionHistoryPanel.js + versionControl.css
+[x] Version control AE persistence: vcsReadRepo.jsx + vcsWriteRepo.jsx handlers for reading/writing the repository to Reserved Comp text layers; evalBridge.js preamble updated
+[x] Version control integration: graphState/index.js repository hooks (onGraphSaved/onGraphLoaded/onBranchChanged), index.js init wiring, index.html CSS include
+[x] Version control tests: snapshot.test.js (199 lines), repository.test.js (554 lines), diff.test.js (301 lines), merge.test.js (423 lines)
+[x] Version control large-file refactoring: versionControlService.js → versionControl{Activation,DiffMerge,Helpers,Init,Mutations,Queries,Resolve,State}.js (8 files); repositoryStore.js → repository/{artifacts,branchCRUD,branchState,invariants,revisions,snapshots,storeCore}.js (7 files); activationCoordinator.js → activation/{actions,commands,state,verify}.js (4 files); semanticDiff.js → diff/{buildSummary,diffCollection,diffObjects,semanticDiffUtils}.js (4 files); conflictFactory.js → conflictFactory/{propertyConflicts,shared,structuralConflicts,topologyConflicts}.js (4 files); conflictResolver.js → conflictResolver/{bulkOps,singleConflict}.js (2 files); threeWayMerge.js → threeWayMerge/{collectionMerge,fieldMerge,helpers,nodeMerge,wireMerge}.js (5 files); new merge/{duplicateWireDetector,layerCycleDetector}.js (2 files) — total 36 new sub-files
+[x] data/scripts.json manifest updated: 202→238 entries (36 new versioning split files)
+[x] Tests updated: dispatcher parity count bumped, jsxSetup.js stubs added for new actions, diff/merge/repository test additions
+
 ## Sat 2026-08-08
 
 [x] Large-file refactoring (panel side): 9 files split into 34 sub-files — inspector/{viewModel,render,colorPicker,events,layerStack}.js → 23 sub-files (viewModel/{wiring,format,builder}.js, render/{param,group,actions,nodeContent}.js, colorPicker/{utils,drag,eyedropper}.js, events/{mathEval,utils,paramChange,keyframe,layerActions,colorPicker,footage,layerStack}.js, layerStack/{resolver,builder,order,render,index}.js); compList.js→compList/{dom,render,logic,index}.js; nodeList/dragdrop.js→nodeList/dragdrop/{dragdrop,mergeWarning,drop}.js; sidebarToggle.js→sidebarToggle/{handles,events,index}.js; topBar/init.js → dom.js+events.js extracted; reporter.js→reporter/{core,form,index}.js

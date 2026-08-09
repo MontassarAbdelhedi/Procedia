@@ -43,6 +43,10 @@ function makeSnapshot(id, nodes, wires) {
 }
 
 beforeEach(function() {
+  loadGlobalScript('versioning/diff/semanticDiffUtils.js');
+  loadGlobalScript('versioning/diff/diffObjects.js');
+  loadGlobalScript('versioning/diff/diffCollection.js');
+  loadGlobalScript('versioning/diff/buildSummary.js');
   loadGlobalScript('versioning/diff/semanticDiff.js');
 });
 

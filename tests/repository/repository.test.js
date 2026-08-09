@@ -67,9 +67,24 @@ function loadVersioning() {
   loadGlobalScript('versioning/snapshot/snapshotCanonicalizer.js');
   loadGlobalScript('versioning/snapshot/snapshotSerializer.js');
   loadGlobalScript('versioning/snapshot/snapshotMigrations.js');
+  loadGlobalScript('versioning/repository/storeCore.js');
+  loadGlobalScript('versioning/repository/snapshots.js');
+  loadGlobalScript('versioning/repository/revisions.js');
+  loadGlobalScript('versioning/repository/branchCRUD.js');
+  loadGlobalScript('versioning/repository/branchState.js');
+  loadGlobalScript('versioning/repository/artifacts.js');
+  loadGlobalScript('versioning/repository/invariants.js');
   loadGlobalScript('versioning/repositoryStore.js');
   loadGlobalScript('versioning/branchService.js');
   loadGlobalScript('versioning/revisionService.js');
+  loadGlobalScript('versioning/versionControlState.js');
+  loadGlobalScript('versioning/versionControlInit.js');
+  loadGlobalScript('versioning/versionControlQueries.js');
+  loadGlobalScript('versioning/versionControlDiffMerge.js');
+  loadGlobalScript('versioning/versionControlResolve.js');
+  loadGlobalScript('versioning/versionControlMutations.js');
+  loadGlobalScript('versioning/versionControlActivation.js');
+  loadGlobalScript('versioning/versionControlHelpers.js');
   loadGlobalScript('versioning/versionControlService.js');
 }
 

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Instances" category (orange `#E67E22`) with Cloner node registered in `loadNodes.js`, `categoryColors.js`, `nodeList/categories.js`
 - Shared `blend_map.jsx` ExtendScript module — single BLEND_MAP source for blending handler and import scanner
 - `introspect/constants.jsx` — extracted `_INTROSPECT_SKIP_BROWSE` blacklist for reuse
+- Version control system (`versioning/`) — repository, branches, snapshots, semantic diff/merge/conflict resolution, graph activation; UI modals (save/restore/compare/new-branch); AE persistence handlers (`vcsReadRepo.jsx`/`vcsWriteRepo.jsx`); CSS stylesheet (`versionControl.css`); unit tests for snapshot, repository, diff, and merge
 
 ### Changed
 - Large-file refactoring: 12 panel-side files split into subdirectory modules — `builder.js` → `builder/{params,ports}.js`, `helpers.js` → `helpers/{wireState,display,portUtils}.js`, `nodeToolbar.js` → `nodeToolbar/{colorPicker,switchMode}.js`, `viewport.js` → `viewport/grid.js`, `cascade/utils.js` → `cascade/utils/{graph,pathLayer}.js`, `commentDOM.js` → `commentElement.js`, `deleteNode.js` → `deleteNode/wireUtils.js`, `switchNodes.js` → `switchNodes/{chain,reorder}.js`
@@ -31,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `evalBridge.js` JSX preamble updated with new persistence/ and cloner/ sub-files
 - `index.html` reporter.js split into 3 sub-files (core/form/index)
 - Cloner JSX files reorganized under `actionInstances/cloner/` subdirectory (6 files)
+- Version control large-file refactoring: `versionControlService.js` → `versionControl{Activation,DiffMerge,Helpers,Init,Mutations,Queries,Resolve,State}.js`; `repositoryStore.js` → `repository/{artifacts,branchCRUD,branchState,invariants,revisions,snapshots,storeCore}.js`; `activationCoordinator.js` → `activation/{actions,commands,state,verify}.js`; `semanticDiff.js` → `diff/{buildSummary,diffCollection,diffObjects,semanticDiffUtils}.js`; `conflictFactory.js` → `conflictFactory/{propertyConflicts,shared,structuralConflicts,topologyConflicts}.js`; `conflictResolver.js` → `conflictResolver/{bulkOps,singleConflict}.js`; `threeWayMerge.js` → `threeWayMerge/{collectionMerge,fieldMerge,helpers,nodeMerge,wireMerge}.js`; + `merge/{duplicateWireDetector,layerCycleDetector}.js`
+- `data/scripts.json`: 202 → 238 entries (36 new versioning split entries)
+- Test dispatcher parity count + jsxSetup stubs updated for new versioning entries
 
 ### Fixed
 - Race condition: effector/blending `onAlive` racing with upstream layer creation during propagation — deferred via `setTimeout(fn, 0)` in `propagate.js` and `wires.js`

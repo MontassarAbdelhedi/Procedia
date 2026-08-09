@@ -6,7 +6,8 @@
  */
 // versioning/activation/graphSyncPlanner.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: versioning/activation/activationCoordinator.js
+// MUST LOAD BEFORE: versioning/activation/activationVerify.js,
+//                  versioning/activation/activationCoordinator.js
 
 var vcGraphSyncPlanner = (function() {
 
