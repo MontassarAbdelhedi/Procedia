@@ -1,7 +1,7 @@
 /**
  * @fileoverview Inspector panel UI module. Shows node properties and actions
  * for the currently selected node in the right sidebar.
- * Depends on: graphState, nodeRegistry (globals), __ins_vm, __ins_render, __ins_events.
+ * Depends on: graphState, nodeRegistry (globals), __ins_vm_builder, __ins_render, __ins_events.
  * Exports: inspector.init, inspector.refresh, inspector.showEmpty, inspector.showNode
  */
 // ui/inspector/index.js
@@ -82,7 +82,7 @@ var inspector = (function() {
 
   /**
    * Renders the inspector content for a single node view model.
-   * @param {Object} view The view model from __ins_vm.buildViewModel().
+   * @param {Object} view The view model from __ins_vm_builder.buildViewModel().
    */
   function showNode(view) {
     var emptyEl = document.getElementById('inspector-empty');
@@ -145,7 +145,7 @@ var inspector = (function() {
       showEmpty();
       return;
     }
-    showNode(__ins_vm.buildViewModel(nodeData, def));
+    showNode(__ins_vm_builder.buildViewModel(nodeData, def));
   }
 
   return {

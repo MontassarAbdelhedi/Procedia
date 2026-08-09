@@ -1,13 +1,15 @@
- /**
-  * Polls the host application for node aliveness and marks missing nodes as errored.
-  * Switches between active and idle polling intervals based on recent activity.
-  * Depends on: bridge/evalBridge.js, graph/graphState.js,
-  *             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js
-  * Exports: poller object with start, stop, markActivity, withWriteLock
-  */
+/**
+ * Polls the host application for node aliveness and marks missing nodes as errored.
+ * Switches between active and idle polling intervals based on recent activity.
+ * Depends on: bridge/evalBridge.js, graph/graphState.js,
+ *             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js,
+ *             polling/missingNodeHandler.js
+ * Exports: poller object with start, stop, markActivity, withWriteLock
+ */
 // polling/poller.js
 // DEPENDS ON: bridge/evalBridge.js, graph/graphState.js,
-//             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js
+//             polling/missingNodes.js, polling/notifications.js, polling/externalDeletions.js,
+//             polling/missingNodeHandler.js
 // MUST LOAD BEFORE: index.js
 
 var poller = (function() {
@@ -19,35 +21,12 @@ var poller = (function() {
   var _writeLockCount = 0;
   var _lastActivity = 0;
 
-  function _handleMissingNode(uuid) {
-    var nd = graphState.getNode(uuid);
-    if (!nd || nd.state !== 'alive') return false;
-    // Skip effectors whose main_input was cascaded away — the effect was
-    // intentionally removed as part of a ghost operation, not by the user.
-    if (nd.nodeKind === 'effector') {
-      var allWires = graphState.getAllWires();
-      var hasMainInput = false;
-      for (var wireId in allWires) {
-        if (!allWires.hasOwnProperty(wireId)) continue;
-        var wire = allWires[wireId];
-        if (wire.toNode === uuid && wire.toPort === 'main_input') {
-          hasMainInput = true;
-          break;
-        }
-      }
-      if (!hasMainInput) return false;
-    }
-    graphState.updateNode(uuid, { state: 'error' });
-    pollerNotifier.pushMissingNotification(uuid);
-    return true;
-  }
-
   function _onNodesMissing(uuids) {
     _lastActivity = Date.now();
     if (typeof undoManager !== 'undefined' && undoManager.capture) undoManager.capture();
     var hasMissing = false;
     for (var i = 0; i < uuids.length; i++) {
-      if (_handleMissingNode(uuids[i])) hasMissing = true;
+      if (pollerMissingHandler.handleMissingNode(uuids[i])) hasMissing = true;
     }
     if (typeof undoManager !== 'undefined' && undoManager.commit) undoManager.commit('Sync from AE');
     if (hasMissing) {

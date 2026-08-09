@@ -100,5 +100,7 @@ var _handlers = {
   'saveAsDialog':          _handleSaveAsDialog,
   'getProjectIdentifier':  _handleGetProjectIdentifier,
   'beginUndoGroup':        _handleBeginUndoGroup,
-  'endUndoGroup':          _handleEndUndoGroup
+  'endUndoGroup':          _handleEndUndoGroup,
+  'writeRepo':             _handleWriteRepo,
+  'readRepo':              _handleReadRepo
 };

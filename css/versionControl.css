@@ -1,0 +1,291 @@
+/* Version Control UI styling */
+/* css/versionControl.css */
+
+/* --- Floating branch dropdown (above comp list) --- */
+
+#vc-branch-dropdown {
+  position: absolute;
+  bottom: 48px;
+  left: 12px;
+  z-index: 50;
+  font-size: 11px;
+  user-select: none;
+}
+
+.vc-branch-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(30,30,28,0.92);
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+  color: #B4B2A9;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.vc-branch-trigger:hover {
+  background: rgba(40,40,38,0.95);
+  border-color: #3a3a38;
+}
+
+.vc-branch-trigger-label {
+  font-size: 11px;
+}
+
+.vc-branch-dirty {
+  color: #f0ad4e;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.vc-branch-arrow {
+  font-size: 10px;
+  color: #6A6965;
+  transition: transform 0.15s ease;
+}
+
+.vc-branch-trigger.vc-branch-open .vc-branch-arrow {
+  transform: rotate(180deg);
+}
+
+.vc-branch-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: rgba(30,30,28,0.97);
+  border: 1px solid #2a2a28;
+  border-radius: 4px;
+  padding: 4px 0;
+  display: none;
+}
+
+.vc-branch-menu.vc-branch-open {
+  display: block;
+}
+
+.vc-branch-item {
+  padding: 5px 12px;
+  color: #B4B2A9;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s ease;
+}
+
+.vc-branch-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: #E0DFD5;
+}
+
+.vc-branch-item--active {
+  color: #E0DFD5;
+  font-weight: 600;
+}
+
+/* --- Save Version button in modal --- */
+
+.vc-btn-save {
+  background: #534AB7;
+  color: #fff;
+  border-color: #534AB7;
+}
+
+.vc-btn-save:hover {
+  background: #655CD0;
+  border-color: #655CD0;
+  color: #fff;
+}
+
+/* --- History panel modal --- */
+
+.vc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vc-modal {
+  background: #1a1a18;
+  border: 1px solid #2a2a28;
+  border-radius: 8px;
+  width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  color: #B4B2A9;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.vc-modal-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2a28;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vc-modal-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.vc-modal-close {
+  background: none;
+  border: none;
+  color: #B4B2A9;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.vc-modal-close:hover {
+  color: #E0DFD5;
+}
+
+.vc-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.vc-modal-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #2a2a28;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.vc-history-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vc-branch-filter,
+.vc-history-search {
+  background: rgba(30,30,28,0.97);
+  border: 1px solid #2a2a28;
+  color: #B4B2A9;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.vc-history-search {
+  flex: 1;
+}
+
+.vc-history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.vc-history-item {
+  padding: 10px;
+  border: 1px solid #2a2a28;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: rgba(30,30,28,0.97);
+}
+
+.vc-history-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.vc-history-message {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.vc-history-item-meta {
+  font-size: 11px;
+  color: #6A6965;
+  margin-bottom: 8px;
+}
+
+.vc-history-changes {
+  margin-left: 8px;
+  color: #4EB36A;
+}
+
+.vc-history-item-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.vc-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.vc-badge-root { background: #2e7d32; color: #fff; }
+.vc-badge-checkpoint { background: #1565c0; color: #fff; }
+.vc-badge-merge { background: #6a1b9a; color: #fff; }
+
+.vc-btn,
+.vc-btn-primary {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  border: 1px solid #2a2a28;
+  background: rgba(30,30,28,0.97);
+  color: #B4B2A9;
+  cursor: pointer;
+}
+
+.vc-btn:hover {
+  border-color: #3a3a38;
+  color: #E0DFD5;
+}
+
+.vc-btn-primary {
+  background: #534AB7;
+  color: #fff;
+  border-color: #534AB7;
+}
+
+.vc-btn-primary:hover {
+  background: #655CD0;
+  border-color: #655CD0;
+}
+
+.vc-btn-sm {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid #2a2a28;
+  background: rgba(30,30,28,0.97);
+  color: #B4B2A9;
+  cursor: pointer;
+}
+
+.vc-btn-sm:hover {
+  border-color: #3a3a38;
+  color: #E0DFD5;
+}
+
+.vc-empty {
+  text-align: center;
+  color: #5F5E5A;
+  padding: 40px;
+  font-size: 13px;
+}

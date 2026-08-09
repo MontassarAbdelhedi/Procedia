@@ -6,7 +6,7 @@
  */
 // ui/graphSearch.js
 // DEPENDS ON: graph/graphState.js, graph/canvas/renderer/index.js, graph/canvas/viewport.js
-// MUST LOAD AFTER: ui/compList.js
+// MUST LOAD AFTER: ui/compList/index.js
 
 var graphSearch = (function() {
 

@@ -5,7 +5,7 @@
  * Exports: topBar.init, topBar.refreshSelection, topBar.showSelection, topBar.clearSelection
  */
 // ui/topBar/index.js
-// DEPENDS ON: ui/topBar/collapse.js, ui/topBar/selection.js, ui/topBar/io.js, ui/topBar/init.js
+// DEPENDS ON: ui/topBar/collapse.js, ui/topBar/selection.js, ui/topBar/io.js, ui/topBar/dom.js, ui/topBar/events.js, ui/topBar/init.js
 // MUST LOAD BEFORE: index.js
 
 var topBar = (function() {

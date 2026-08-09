@@ -4,7 +4,7 @@
  * Depends on: lib/CSInterface.js, data/uuidGenerator.js, bridge/evalBridge.js,
  *             graph/graphState.js, graph/nodeRegistry.js, graph/engine/index.js,
  *             graph/canvas/viewport.js, ui/inspector/*, ui/nodeList/*, ui/statusBar.js,
- *             ui/topBar/index.js, ui/sidebarToggle.js,
+ *             ui/topBar/index.js, ui/sidebarToggle/index.js,
  *             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
  *             graph/schemaCache/diff.js, graph/schemaCache/index.js,
  *             flush/dirtyFlusher.js
@@ -17,7 +17,7 @@
 //             ui/inspector/viewModel.js, ui/inspector/render.js, ui/inspector/events.js, ui/inspector/index.js,
 //             ui/nodeList/categories.js, ui/nodeList/render.js, ui/nodeList/search.js,
 //             ui/nodeList/dragdrop.js, ui/nodeList/index.js, ui/statusBar.js,
-//             ui/topBar/index.js, ui/sidebarToggle.js,
+//             ui/topBar/index.js, ui/sidebarToggle/index.js,
 //             graph/schemaCache/state.js, graph/schemaCache/persistence.js,
 //             graph/schemaCache/diff.js, graph/schemaCache/index.js,
 //             flush/dirtyFlusher.js
@@ -211,8 +211,20 @@ function init() {
           if (typeof wireRenderer !== 'undefined' && wireRenderer.render) wireRenderer.render(null);
 
           // Sync keyframe state from AE for all animatable params
-          _syncKeyframeState(allNodes);
+          _syncKeyframeState(loadedNodes);
         }
+      }
+    }).then(function() {
+      // Initialize version control system after graph is loaded
+      if (typeof versionControl !== 'undefined') {
+        return versionControl.initialize().then(function(vcResult) {
+          if (!vcResult.ok) {
+            console.warn('[Procedia] Version control init failed:', vcResult.error);
+          } else {
+            console.log('[Procedia] Version control initialized:', vcResult.data.source);
+            if (typeof branchSelector !== 'undefined') branchSelector.init();
+          }
+        });
       }
     }).then(function() {
       if (typeof graphExporter !== 'undefined' && graphExporter.init) graphExporter.init();
@@ -252,8 +264,9 @@ function init() {
       }
       if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
         evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });
+        // Also persist version control repository
+        if (typeof versionControl !== 'undefined') versionControl.saveRepository();
       }
-      _scheduleAutoSave();
     }, 5000);
   }
   _scheduleAutoSave();
@@ -282,6 +295,7 @@ function init() {
     }
     if (typeof evalBridge !== 'undefined' && evalBridge.fireAndForget) {
       evalBridge.fireAndForget({ action: 'writeGraph', params: graphData });
+      if (typeof versionControl !== 'undefined') versionControl.saveRepository();
     }
     if (typeof poller !== 'undefined' && poller.stop) poller.stop();
   });

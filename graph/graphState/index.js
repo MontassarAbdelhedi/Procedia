@@ -105,6 +105,60 @@
       gs._viewFilter = null;
       if (typeof keyframeState !== 'undefined' && keyframeState.reset) keyframeState.reset();
       gs.rebuildTempGraph();
+    },
+
+    /**
+     * Atomically replaces the entire graph from a candidate snapshot.
+     * Used by the activation coordinator during branch switches, restores,
+     * and merge applications. Avoids per-node side effects since the
+     * activation executor already handled AE materialization.
+     * @param {Object} candidateSnapshot — validated snapshot with graph.nodes and graph.wires
+     * @param {Object} metadata — { reason, transactionId }
+     */
+    replaceGraph: function(candidateSnapshot, metadata) {
+      if (!candidateSnapshot || !candidateSnapshot.graph) {
+        throw new Error('replaceGraph: invalid candidate snapshot');
+      }
+
+      // Reset all state
+      gs.nodeMap = {};
+      gs.wireMap = {};
+      gs.selection = [];
+      gs._viewFilter = null;
+
+      // Load nodes from candidate
+      for (var nodeId in candidateSnapshot.graph.nodes) {
+        if (candidateSnapshot.graph.nodes.hasOwnProperty(nodeId)) {
+          gs.nodeMap[nodeId] = candidateSnapshot.graph.nodes[nodeId];
+          // Reset runtime fields
+          gs.nodeMap[nodeId].dirty = false;
+          gs.nodeMap[nodeId].hostingComps = [];
+        }
+      }
+
+      // Load wires from candidate
+      for (var wireId in candidateSnapshot.graph.wires) {
+        if (candidateSnapshot.graph.wires.hasOwnProperty(wireId)) {
+          gs.wireMap[wireId] = candidateSnapshot.graph.wires[wireId];
+        }
+      }
+
+      if (typeof keyframeState !== 'undefined' && keyframeState.reset) keyframeState.reset();
+
+      // Rebuild tempGraph once
+      gs.rebuildTempGraph();
+
+      // Emit graph-replaced event for listeners
+      if (metadata) {
+        var event = {
+          reason: metadata.reason || 'replace',
+          transactionId: metadata.transactionId || null,
+          timestamp: Date.now()
+        };
+        for (var li = 0; li < gs._graphChangeListeners.length; li++) {
+          try { gs._graphChangeListeners[li](event); } catch (e) {}
+        }
+      }
     }
   };
 

@@ -1,5 +1,16 @@
 # Progress Log
 
+## Sat 2026-08-08
+
+[x] Large-file refactoring (panel side): 9 files split into 34 sub-files — inspector/{viewModel,render,colorPicker,events,layerStack}.js → 23 sub-files (viewModel/{wiring,format,builder}.js, render/{param,group,actions,nodeContent}.js, colorPicker/{utils,drag,eyedropper}.js, events/{mathEval,utils,paramChange,keyframe,layerActions,colorPicker,footage,layerStack}.js, layerStack/{resolver,builder,order,render,index}.js); compList.js→compList/{dom,render,logic,index}.js; nodeList/dragdrop.js→nodeList/dragdrop/{dragdrop,mergeWarning,drop}.js; sidebarToggle.js→sidebarToggle/{handles,events,index}.js; topBar/init.js → dom.js+events.js extracted; reporter.js→reporter/{core,form,index}.js
+[x] Large-file refactoring (ExtendScript): persistence.jsx→persistence/{chunkUtils,readGraph,writeGraph,afterSave}.jsx (barrel kept as public API assembly); clonerUpdate.jsx extracted into cloner/{findDataLayer,rebuildClones,applyDelta}.jsx
+[x] Polling refactoring: _handleMissingNode extracted from poller.js→missingNodeHandler.js; propertyPoller.js split into pollHelpers.js+pollAffected.js+pollEffectors.js
+[x] NodeList refactoring: effectsSubcategories.js+categoryBuilder.js extracted from categories.js
+[x] Cloner JSX files reorganized under actionInstances/cloner/ subdirectory (6 files: applyDelta, finalizeCloner, findDataLayer, populateClones, rebuildClones, setupSource)
+[x] evalBridge.js JSX preamble updated with new persistence/ and cloner/ sub-files
+[x] data/scripts.json manifest updated: 175→202 entries (27 new entries for split files: inspector/18, inspector/layerStack/4, compList/3, nodeList/dragdrop/2, sidebarToggle/2, topBar/2, reporter/2, polling/3, nodeList/2, persistence/-3 + net)
+[x] index.html reporter.js split into 3 sub-files (core/form/index)
+
 ## Thu 2026-08-06
 
 [x] Add Cloner node (instances/cloner) — Linear/Radial/Grid modes; new "Instances" category (orange); createCloner/removeCloner/updateCloner AE action handlers in actionInstances/ subdirectory

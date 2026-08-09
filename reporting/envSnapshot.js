@@ -1,6 +1,6 @@
 // reporting/envSnapshot.js
 // DEPENDS ON: graph/graphState/index.js, ui/settings.js
-// MUST LOAD BEFORE: reporting/reporter.js, index.js
+// MUST LOAD BEFORE: reporting/reporter/index.js, index.js
 //
 // Captures environment snapshot for bug reports: plugin version, AE version,
 // OS, graph stats, and a ring buffer of recent user actions.

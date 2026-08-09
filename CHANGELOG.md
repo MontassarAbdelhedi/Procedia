@@ -23,7 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Undo group handlers relocated from inline `dispatcher.jsx` to dedicated `actions_undo.jsx`
 - `_docs/CLAUDE.md` action table + `_docs/forMont.md` updated
 - Test dispatcher parity count: 89 → 92 (3 new Cloner actions added to whitelist + test stubs)
-- `data/scripts.json`: 161 → 175 entries
+- `data/scripts.json`: 161 → 175 → 202 entries
+- Large-file refactoring (panel side): 9 additional files split — inspector/{viewModel,render,colorPicker,events,layerStack}.js → 23 sub-files (viewModel/3, render/4, colorPicker/3, events/8, layerStack/5); compList.js→compList/{dom,render,logic,index}.js; nodeList/dragdrop.js→nodeList/dragdrop/{dragdrop,mergeWarning,drop}.js; sidebarToggle.js→sidebarToggle/{handles,events,index}.js; topBar/init.js split into dom.js+events.js; reporter.js→reporter/{core,form,index}.js
+- Large-file refactoring (ExtendScript): persistence.jsx→persistence/{chunkUtils,readGraph,writeGraph,afterSave}.jsx; clonerUpdate.jsx extracted into cloner/{findDataLayer,rebuildClones,applyDelta}.jsx
+- Polling refactoring: _handleMissingNode extracted from poller.js→missingNodeHandler.js; propertyPoller.js split into pollHelpers.js+pollAffected.js+pollEffectors.js
+- NodeList refactoring: effectsSubcategories.js+categoryBuilder.js extracted from categories.js
+- `evalBridge.js` JSX preamble updated with new persistence/ and cloner/ sub-files
+- `index.html` reporter.js split into 3 sub-files (core/form/index)
+- Cloner JSX files reorganized under `actionInstances/cloner/` subdirectory (6 files)
 
 ### Fixed
 - Race condition: effector/blending `onAlive` racing with upstream layer creation during propagation — deferred via `setTimeout(fn, 0)` in `propagate.js` and `wires.js`

@@ -1,41 +1,27 @@
 /**
- * @fileoverview Node list drag-and-drop. Enables dragging node items from the
- * sidebar onto the canvas to create new nodes.
- * Depends on: __nl_cat, engine, viewport, canvasDrag, graphState, renderer,
- *             wireRenderer, inspector, statusBar (globals).
+ * @fileoverview Node list drag-and-drop — main entry. Declares the __nl_dragdrop
+ * namespace, holds shared drag state, and wires mousedown/mousemove/mouseup for
+ * dragging node items from the sidebar onto the canvas.
+ * Depends on: __nl_cat, engine, viewport, canvasDrag, wireRenderer, graphState (globals)
+ *             and __nl_dragdrop sub-modules (mergeWarning, drop).
  * Exports: __nl_dragdrop.wireCanvasDrop
  */
-// ui/nodeList/dragdrop.js
-// DEPENDS ON: ui/nodeList/categories.js, graph/engine/index.js, graph/canvas/viewport.js
+// ui/nodeList/dragdrop/dragdrop.js
+// DEPENDS ON: ui/nodeList/dragdrop/mergeWarning.js, ui/nodeList/dragdrop/drop.js,
+//             ui/nodeList/categories.js, graph/engine/index.js, graph/canvas/viewport.js,
+//             canvasDrag, wireRenderer, graphState
 // MUST LOAD BEFORE: ui/nodeList/index.js
+// FIRST IN LOAD ORDER among dragdrop/ sub-files
 
-var __nl_dragdrop = (function() {
+var __nl_dragdrop = {};
+
+(function() {
 
   var _dragLabel = null;
   var _ghostEl = null;
   var _previewWireId = null;
-  var _mergeProjectId = null;
   var _onDocMouseMove = null;
   var _onDocMouseUp = null;
-
-  function _maybeWarnMerge() {
-    if (typeof notificationBar === 'undefined') return;
-    if (_mergeProjectId === null) {
-      _mergeProjectId = evalBridge.dispatch({ action: 'getProjectIdentifier' })
-        .then(function(res) { return res.ok ? res.data.projectId : 'unknown'; })
-        .catch(function() { return 'unknown'; });
-    }
-    Promise.resolve(_mergeProjectId).then(function(projectId) {
-      var key = 'procedia_merge_warned_' + projectId;
-      if (localStorage.getItem(key)) return;
-      localStorage.setItem(key, '1');
-      notificationBar.push({
-        severity: 'warning',
-        message: 'Using the Merge node will make this project always require Procedia to run.',
-        duration: 8000
-      });
-    });
-  }
 
   /**
    * Wires mousedown/mousemove/mouseup for drag-from-list onto the canvas.
@@ -141,54 +127,11 @@ var __nl_dragdrop = (function() {
         return;
       }
 
-      var def = __nl_cat.resolveDefByLabel(label);
-      if (!def) return;
-
-      // Preset nodes: drop via presetManager instead of engine.dropNode
-      if (def._isPreset && typeof presetManager !== 'undefined') {
-        var pos = viewport.screenToCanvas(e.clientX, e.clientY);
-        if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
-          pos.x = viewport.snapToGrid(pos.x);
-          pos.y = viewport.snapToGrid(pos.y);
-        }
-        var result = presetManager.dropPreset(def._presetName, pos.x, pos.y);
-        if (result && result.nodeIds && result.nodeIds.length > 0) {
-          window.__procedia_internal.refreshUI({ minimap: false });
-        }
-        return;
-      }
-
-      var pos = viewport.screenToCanvas(e.clientX, e.clientY);
-      if (typeof settings !== 'undefined' && settings.get('snapToGrid')) {
-        pos.x = viewport.snapToGrid(pos.x);
-        pos.y = viewport.snapToGrid(pos.y);
-      }
-
-      if (typeof canvasDrag !== 'undefined' && canvasDrag.findWireAt && canvasDrag.canInsertOnWire) {
-        var hitWire = canvasDrag.findWireAt(e.clientX, e.clientY);
-        if (hitWire && canvasDrag.canInsertOnWire(hitWire.id, def)) {
-          var insertNode = canvasDrag.insertNodeOnWire(hitWire.id, def, pos.x, pos.y);
-          if (insertNode) {
-            if (def.type === 'utility/merge' || def.type === 'utility/multimerge') _maybeWarnMerge();
-            graphState.setSelection(insertNode.id);
-            window.__procedia_internal.refreshUI({ minimap: false });
-          }
-          return;
-        }
-      }
-
-      var node = engine.dropNode(def, pos.x, pos.y);
-      if (node) {
-        if (def.type === 'utility/merge' || def.type === 'utility/multimerge') _maybeWarnMerge();
-        graphState.setSelection(node.id);
-        window.__procedia_internal.refreshUI({ minimap: false });
-      }
+      __nl_dragdrop._performDrop(label, e.clientX, e.clientY);
     };
     document.addEventListener('mouseup', _onDocMouseUp);
   }
 
-  return {
-    wireCanvasDrop: wireCanvasDrop
-  };
+  __nl_dragdrop.wireCanvasDrop = wireCanvasDrop;
 
 })();

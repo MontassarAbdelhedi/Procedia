@@ -56,7 +56,9 @@ var evalBridge = (function() {
     'importScanFootage': true,
     'importScanCompLayers': true,
     'stampImportUUIDs': true,
-    'saveAsDialog': true
+    'saveAsDialog': true,
+    'writeRepo': true,
+    'readRepo': true
   };
   var _MAX_PARAMS_DEPTH = 6;
 
@@ -247,6 +249,12 @@ var evalBridge = (function() {
     var files = [
       '/jsx/json.jsx',
       '/jsx/utils.jsx',
+      '/jsx/persistence/chunkUtils.jsx',
+      '/jsx/persistence/readGraph.jsx',
+      '/jsx/persistence/writeGraph.jsx',
+      '/jsx/persistence/afterSave.jsx',
+      '/jsx/persistence/vcsWriteRepo.jsx',
+      '/jsx/persistence/vcsReadRepo.jsx',
       '/jsx/persistence.jsx',
       '/jsx/dispatcher/actions_schema.jsx',
       '/jsx/dispatcher/actions_comp.jsx',
@@ -281,6 +289,9 @@ var evalBridge = (function() {
       '/jsx/dispatcher/actionInstances/cloner/finalizeCloner.jsx',
       '/jsx/dispatcher/actionInstances/cloner.jsx',
       '/jsx/dispatcher/actionInstances/clonerRemove.jsx',
+      '/jsx/dispatcher/actionInstances/cloner/findDataLayer.jsx',
+      '/jsx/dispatcher/actionInstances/cloner/rebuildClones.jsx',
+      '/jsx/dispatcher/actionInstances/cloner/applyDelta.jsx',
       '/jsx/dispatcher/actionInstances/clonerUpdate.jsx',
       '/jsx/dispatcher/actions_undo.jsx',
       '/jsx/dispatcher/_handlers.jsx',

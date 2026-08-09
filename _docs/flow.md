@@ -141,7 +141,7 @@
 
 ## Property System & Dirty Flush
 
-26. **Inspector property change** — `ui/inspector/events.js:31/41` `onInspectorChange/Input` reads `data-node-id`, `data-param-key`, `data-param-type`, parses value via `__ins_vm.parseInputValue()` (`ui/inspector/viewModel.js:parseInputValue`), calls `engine.setNodeProperty(nodeId, key, parsedValue)` (`graph/engine/state.js:57`) which calls `graphState.updateProp(nodeId, key, value)` (`graph/graphState/props.js:updateProp`) marking it dirty, and if the node is a data node with non-label key calls `hlp.propagateDataValue(nodeId, key, value)` (`graph/engine/helpers.js:propagateDataValue`) to push the value downstream, then calls `dirtyFlusher.schedule()` (`flush/dirtyFlusher.js:147`).
+26. **Inspector property change** — `ui/inspector/events/paramChange.js` `onInspectorChange/Input` reads `data-node-id`, `data-param-key`, `data-param-type`, parses value via `__ins_vm_fmt.parseInputValue()` (`ui/inspector/viewModel/format.js:parseInputValue`), calls `engine.setNodeProperty(nodeId, key, parsedValue)` (`graph/engine/state.js:57`) which calls `graphState.updateProp(nodeId, key, value)` (`graph/graphState/props.js:updateProp`) marking it dirty, and if the node is a data node with non-label key calls `hlp.propagateDataValue(nodeId, key, value)` (`graph/engine/helpers.js:propagateDataValue`) to push the value downstream, then calls `dirtyFlusher.schedule()` (`flush/dirtyFlusher.js:147`).
 
 27. **Dirty flush to AE (debounced)** — `dirtyFlusher.schedule()` (`flush/dirtyFlusher.js:147`) cancels any pending timer and sets `setTimeout(flush, 300)` → `flush()` (`dirtyFlusher.js:130`) iterates `graphState.getAllNodes()`, for each dirty alive node with hostingComps resolves `pathLayerUUID` via `_findPathLayerUUID()` (upstream walk) or `_resolveUpstreamNodeUUID()` for effectors, calls `def.onPropertyChange(key, value, nodeData, hostingCompUUID, upstreamNodeUUID)` to build commands, then chains `evalBridge.dispatch(command)` for each, and on success calls `graphState.clearDirty(nodeId)`.
 
@@ -149,13 +149,13 @@
 
 ## Error Recovery
 
-29. **Recreate errored node** — `ui/inspector/events.js:64` `onRecoverClick` with `data-action="recreate"` → `engine.recreateNode(nodeId)` (`graph/engine/nodes/recreateNode.js:27`) checks `state === 'error'`, then for comp nodes calls `def.onAlive(nodeData, null)` → `evalBridge.dispatch()` and sets `state:'alive'` on success; for affected nodes calls `def.onAlive(nodeData, hostUUID)` with `pathLayerUUID` from `hlp.findPathLayerUUID()` → `evalBridge.dispatch()`; for effectors calls `def.onAlive(nodeData, hostUUID, upstreamUUID)` resolved from main_input wire → `evalBridge.dispatch()`; for blending calls `def.onAlive(nodeData, hostUUID, blendUpstreamUUID)` resolved from main_input → `evalBridge.dispatch()`; for matte calls `def.onAlive(nodeData, hostUUID, matteTopUUID, matteLayerUUID)` resolved from top_layer/matte_layer wires → `evalBridge.dispatch()`.
+29. **Recreate errored node** — `ui/inspector/events/paramChange.js` `onRecoverClick` with `data-action="recreate"` → `engine.recreateNode(nodeId)` (`graph/engine/nodes/recreateNode.js:27`) checks `state === 'error'`, then for comp nodes calls `def.onAlive(nodeData, null)` → `evalBridge.dispatch()` and sets `state:'alive'` on success; for affected nodes calls `def.onAlive(nodeData, hostUUID)` with `pathLayerUUID` from `hlp.findPathLayerUUID()` → `evalBridge.dispatch()`; for effectors calls `def.onAlive(nodeData, hostUUID, upstreamUUID)` resolved from main_input wire → `evalBridge.dispatch()`; for blending calls `def.onAlive(nodeData, hostUUID, blendUpstreamUUID)` resolved from main_input → `evalBridge.dispatch()`; for matte calls `def.onAlive(nodeData, hostUUID, matteTopUUID, matteLayerUUID)` resolved from top_layer/matte_layer wires → `evalBridge.dispatch()`.
 
-30. **Remove errored node** — `ui/inspector/events.js:71` `onRecoverClick` with `data-action="remove"` → `evalBridge.dispatch({action:'writeGraph'})` then `engine.deleteNode(nodeId)`.
+30. **Remove errored node** — `ui/inspector/events/paramChange.js` `onRecoverClick` with `data-action="remove"` → `evalBridge.dispatch({action:'writeGraph'})` then `engine.deleteNode(nodeId)`.
 
 ## Layer Management
 
-31. **Layer order buttons** — `ui/inspector/events.js:82` `onLayerActionClick` with `.inspector-layer-btn` → `evalBridge.dispatch({action:'setLayerOrder', params:{layerUUID, hostingCompUUID, direction}})` (`jsx/dispatcher/actions_property.jsx:setLayerOrder`).
+31. **Layer order buttons** — `ui/inspector/events/layerActions.js` `onLayerActionClick` with `.inspector-layer-btn` → `evalBridge.dispatch({action:'setLayerOrder', params:{layerUUID, hostingCompUUID, direction}})` (`jsx/dispatcher/actions_property.jsx:setLayerOrder`).
 
 32. **Lock/unlock selected nodes** — `graph/engine/nodes/lockNode.js:22` `toggleLockSelectedNodes()` checks if all selected nodes are already locked → toggles `locked` property on each via `graphState.updateNode()` → `hlp.refreshNodeUI()`.
 
@@ -177,7 +177,7 @@
 
 ## Inspector & Status Bar
 
-39. **Inspector refresh** — `ui/inspector/index.js:69` `refresh()` reads `graphState.getSelection()` → if empty: `showEmpty()`; if multi-select: shows count; if single: calls `__ins_vm.buildViewModel(nodeData, def)` (`ui/inspector/viewModel.js:buildViewModel`) which extracts params from nodeData.props and definition (handling static vs dynamic schemas), then calls `showNode(view)` which renders via `__ins_render.renderNodeContent(view)` (`ui/inspector/render.js:renderNodeContent`) into `#inspector-content`.
+39. **Inspector refresh** — `ui/inspector/index.js:69` `refresh()` reads `graphState.getSelection()` → if empty: `showEmpty()`; if multi-select: shows count; if single: calls `__ins_vm_builder.buildViewModel(nodeData, def)` (`ui/inspector/viewModel/builder.js:buildViewModel`) which extracts params from nodeData.props and definition (handling static vs dynamic schemas), then calls `showNode(view)` which renders via `__ins_render.renderNodeContent(view)` (`ui/inspector/render.js:renderNodeContent`) into `#inspector-content`.
 
 40. **Status bar refresh** — `statusBar.refresh()` reads `graphState.getSelection()`, `graphState.getAllNodes()`, `graphState.getAllWires()` and counts alive/ghost/total nodes + wires + zoom level, updates DOM elements in the bottom bar.
 

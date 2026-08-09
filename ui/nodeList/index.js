@@ -1,13 +1,15 @@
 /**
  * @fileoverview Node list sidebar UI module. Renders the left sidebar with
  * categorized node types, search filtering, and drag-to-canvas support.
- * Depends on: nodeRegistry, engine, viewport, __nl_cat, __nl_render, __nl_search, __nl_dragdrop.
+ * Depends on: nodeRegistry, engine, viewport, __nl_cat, __nl_render, __nl_search,
+ *             __nl_dragdrop.
  * Exports: nodeList.init
  */
 // ui/nodeList/index.js
 // DEPENDS ON: graph/nodeRegistry.js, graph/engine/index.js, graph/canvas/viewport.js,
 //             ui/nodeList/categories.js, ui/nodeList/render.js,
-//             ui/nodeList/search.js, ui/nodeList/dragdrop.js
+//             ui/nodeList/search.js, ui/nodeList/dragdrop/dragdrop.js,
+//             ui/nodeList/dragdrop/mergeWarning.js, ui/nodeList/dragdrop/drop.js
 // MUST LOAD BEFORE: index.js
 
 var nodeList = (function() {
