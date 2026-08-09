@@ -15,7 +15,7 @@ var propertyPollEffectors = (function() {
   /**
    * Resolves the upstream layer UUID for an effector node by inspecting
    * its main_input wire's _pathLayerUUID. Falls back to walking downstream
-   * from the source node (mirrors dirtyFlusher._resolveUpstreamNodeUUID).
+   * from the source node (mirrors flushPathLayerUtil.resolveUpstreamNodeUUID).
    * @param {string} nodeId
    * @returns {string|null}
    */

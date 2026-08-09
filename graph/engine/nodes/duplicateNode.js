@@ -3,14 +3,14 @@
  *
  * Duplicates all selected nodes with a 30px offset on each axis.
  *
- * Dependencies: graphState, uuidGenerator, engine/helpers.js
+ * Dependencies: graphState, uuidGenerator, engine/helpers/index.js
  * Load before: nodes/index.js
  *
  * Exports: duplicateSelectedNodes
  */
 // graph/engine/nodes/duplicateNode.js
 // DEPENDS ON: graph/graphState.js, data/uuidGenerator.js,
-//             graph/engine/helpers.js
+//             graph/engine/helpers/index.js
 // MUST LOAD BEFORE: nodes/index.js
 
 window.__procedia_internal.ndup = (function() {

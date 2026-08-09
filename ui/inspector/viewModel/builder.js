@@ -70,10 +70,11 @@ var __ins_vm_builder = (function() {
         keyframed:  typeof keyframeState !== 'undefined' && keyframeState.isParamKeyframed(nodeData.id, key)
       };
       if (param.options) row.options = param.options;
+      row.disabled = param.disabled === true;
       if (param.enableWhen) {
         var ew = param.enableWhen;
         var ctrlVal = nodeData.props[ew.key];
-        row.disabled = (ctrlVal === undefined || ctrlVal === null || ctrlVal != ew.value);
+        row.disabled = row.disabled || (ctrlVal === undefined || ctrlVal === null || ctrlVal != ew.value);
       }
       rows.push(row);
     }

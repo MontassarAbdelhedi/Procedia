@@ -9,7 +9,7 @@
  *               schemaCache/state.js, schemaCache/persistence.js,
  *               schemaCache/diff.js, cascade/index.js,
  *               wireValidator, evalBridge, uuidGenerator, dirtyFlusher,
- *               engine/helpers.js, engine/propagate.js, engine/wires.js,
+ *               engine/helpers/index.js, engine/propagate.js, engine/wires.js,
  *               engine/nodes/index.js, engine/state.js
  * Load before: index.js
  *
@@ -25,7 +25,7 @@
 //             graph/schemaCache/diff.js, graph/schemaCache/index.js,
 //             graph/cascade/index.js, graph/wireValidator/index.js,
 //             bridge/evalBridge.js, data/uuidGenerator.js, flush/dirtyFlusher.js,
-//             graph/engine/helpers.js, graph/engine/propagate.js,
+//             graph/engine/helpers/index.js, graph/engine/propagate.js,
 //             graph/engine/wires.js, graph/engine/nodes/index.js, graph/engine/state.js
 // MUST LOAD BEFORE: index.js
 // REPLACES: graph/engine.js

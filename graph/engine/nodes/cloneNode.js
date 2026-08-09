@@ -5,14 +5,14 @@
  * so the clone always mirrors the master. A gray wire is drawn from the
  * center of the master to the center of the clone in the wire renderer.
  *
- * Dependencies: graphState, uuidGenerator, engine/helpers.js
+ * Dependencies: graphState, uuidGenerator, engine/helpers/index.js
  * Load before: nodes/index.js
  *
  * Exports: cloneNode
  */
 // graph/engine/nodes/cloneNode.js
 // DEPENDS ON: graph/graphState.js, data/uuidGenerator.js,
-//             graph/engine/helpers.js
+//             graph/engine/helpers/index.js
 // MUST LOAD BEFORE: nodes/index.js
 
 window.__procedia_internal.nclone = (function() {

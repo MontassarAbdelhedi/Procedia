@@ -6,7 +6,7 @@
  * Delegates chain traversal to switchNodes/chain.js and AE reordering to
  * switchNodes/reorder.js.
  *
- * Dependencies: graphState, nodeRegistry, engine/helpers.js, evalBridge,
+ * Dependencies: graphState, nodeRegistry, engine/helpers/index.js, evalBridge,
  *               switchNodes/chain.js, switchNodes/reorder.js
  * Load before: engine/nodes/index.js, engine/index.js
  *

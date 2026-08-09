@@ -6,7 +6,7 @@
  * All effect nodes share the same lifecycle methods — the only variable is matchName.
  *
  * Dependencies: (none)
- * Load before: graph/engine/nodes/dropNode.js, graph/engine/helpers.js
+ * Load before: graph/engine/nodes/dropNode.js, graph/engine/helpers/index.js
  */
 
 var effectNodeFactory = (function() {
@@ -32,9 +32,14 @@ var effectNodeFactory = (function() {
       ports: STD_PORTS,
 
       getParams: function(nodeData) {
-        if (!nodeData.dynamicSchema || !nodeData.dynamicSchema.properties) return null;
+        if (!nodeData.dynamicSchema) return null;
+        var schema = nodeData.dynamicSchema;
+        if (schema._error) {
+          return [{ key: '_schemaError', label: 'Schema Failed', type: 'string', disabled: true }];
+        }
+        var props = schema.properties;
+        if (!props || props.length === 0) return null;
         var dyn = [];
-        var props = nodeData.dynamicSchema.properties;
         for (var i = 0; i < props.length; i++) {
           var p = props[i];
           var param = {

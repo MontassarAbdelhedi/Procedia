@@ -12,7 +12,7 @@
 // DEPENDS ON: graph/graphState, graph/canvas/renderer/index.js,
 //             graph/wire/wireRenderer/render.js, ui/minimap/index.js,
 //             ui/inspector/viewModel.js, ui/statusBar.js
-// MUST LOAD BEFORE: graph/engine/helpers.js, graph/engine/state.js,
+// MUST LOAD BEFORE: graph/engine/helpers/index.js, graph/engine/state.js,
 //                   graph/undoManager/restore.js, the rest of the UI
 
 (function() {

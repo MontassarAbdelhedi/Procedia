@@ -5,7 +5,7 @@
  * and effector node creation, dynamic schema resolution, and onDrop dispatch.
  *
  * Dependencies: graphState, nodeRegistry, evalBridge, uuidGenerator,
- *               engine/helpers.js
+ *               engine/helpers/index.js
  * Load before: nodes/deleteNode.js, nodes/index.js
  *
  * Exports: dropNode
@@ -13,7 +13,7 @@
 // graph/engine/nodes/dropNode.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
 //             bridge/evalBridge.js, data/uuidGenerator.js,
-//             graph/engine/helpers.js
+//             graph/engine/helpers/index.js
 // MUST LOAD BEFORE: nodes/deleteNode.js, nodes/index.js
 
 window.__procedia_internal.ndrop = (function() {

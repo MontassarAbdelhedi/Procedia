@@ -3,13 +3,13 @@
  *
  * Toggles the locked state of all selected nodes.
  *
- * Dependencies: graphState, engine/helpers.js
+ * Dependencies: graphState, engine/helpers/index.js
  * Load before: nodes/index.js
  *
  * Exports: toggleLockSelectedNodes
  */
 // graph/engine/nodes/lockNode.js
-// DEPENDS ON: graph/graphState.js, graph/engine/helpers.js
+// DEPENDS ON: graph/graphState.js, graph/engine/helpers/index.js
 // MUST LOAD BEFORE: nodes/index.js
 
 window.__procedia_internal.nlock = (function() {

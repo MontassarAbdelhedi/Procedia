@@ -6,7 +6,7 @@
  * automatic propagation for data nodes.
  *
  * Dependencies: graphState, nodeRegistry, evalBridge, dirtyFlusher,
- *               engine/helpers.js
+ *               engine/helpers/index.js
  * Load before: engine/index.js
  *
  * Exports: resetAll, setNodeProperty
@@ -14,7 +14,7 @@
 // graph/engine/state.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
 //             bridge/evalBridge.js, flush/dirtyFlusher.js,
-//             graph/engine/helpers.js
+//             graph/engine/helpers/index.js
 // MUST LOAD BEFORE: engine/index.js
 
 window.__procedia_internal.eState = (function() {

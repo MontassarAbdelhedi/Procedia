@@ -2,7 +2,7 @@
  * AE reconciliation engine for undoManager. Diffs snapshots and dispatches
  * lifecycle commands to bring AE in sync with the restored graph state.
  * @module undoManager/aeReconcile
- * @dependencies undoManager/state, nodeRegistry, evalBridge, engine/helpers
+ * @dependencies undoManager/state, nodeRegistry, evalBridge, engine/helpers/index
  * @internal
  */
 // graph/undoManager/aeReconcile.js

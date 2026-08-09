@@ -6,14 +6,14 @@
  * terminal wire is connected to a composition node.
  *
  * Dependencies: graphState, nodeRegistry, cascade/index.js, evalBridge,
- *               dirtyFlusher, engine/helpers.js
+ *               dirtyFlusher, engine/helpers/index.js
  * Load before: engine/wires.js, engine/nodes/index.js, engine/index.js
  *
  * Exports: propagateAlive, checkMatteActivation, firePathCreation
  */
 // graph/engine/propagate.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/cascade/index.js,
-//             bridge/evalBridge.js, flush/dirtyFlusher.js, graph/engine/helpers.js
+//             bridge/evalBridge.js, flush/dirtyFlusher.js, graph/engine/helpers/index.js
 // MUST LOAD BEFORE: engine/wires.js, engine/nodes/index.js, engine/index.js
 
 window.__procedia_internal.prop = (function() {

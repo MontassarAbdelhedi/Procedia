@@ -33,8 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `index.html` reporter.js split into 3 sub-files (core/form/index)
 - Cloner JSX files reorganized under `actionInstances/cloner/` subdirectory (6 files)
 - Version control large-file refactoring: `versionControlService.js` → `versionControl{Activation,DiffMerge,Helpers,Init,Mutations,Queries,Resolve,State}.js`; `repositoryStore.js` → `repository/{artifacts,branchCRUD,branchState,invariants,revisions,snapshots,storeCore}.js`; `activationCoordinator.js` → `activation/{actions,commands,state,verify}.js`; `semanticDiff.js` → `diff/{buildSummary,diffCollection,diffObjects,semanticDiffUtils}.js`; `conflictFactory.js` → `conflictFactory/{propertyConflicts,shared,structuralConflicts,topologyConflicts}.js`; `conflictResolver.js` → `conflictResolver/{bulkOps,singleConflict}.js`; `threeWayMerge.js` → `threeWayMerge/{collectionMerge,fieldMerge,helpers,nodeMerge,wireMerge}.js`; + `merge/{duplicateWireDetector,layerCycleDetector}.js`
-- `data/scripts.json`: 202 → 238 entries (36 new versioning split entries)
+- `data/scripts.json`: 202 → 238 → 249 entries
 - Test dispatcher parity count + jsxSetup stubs updated for new versioning entries
+- Large-file refactoring (panel side): `bridge/evalBridge.js` → extracted `allowedActions.js` + `jsxFiles.js` (2 new files); `graph/engine/helpers.js` → `helpers/{buildInitialProps,refreshUI,pathLayer,dynamicSchema,expressionDispatch,dataPropagation,deepCopyNode,index}.js` (8 new files); `flush/dirtyFlusher.js` → `flush/{flushNode,pathLayerUtil}.js` + barrel kept (2 new files)
 
 ### Fixed
 - Race condition: effector/blending `onAlive` racing with upstream layer creation during propagation — deferred via `setTimeout(fn, 0)` in `propagate.js` and `wires.js`

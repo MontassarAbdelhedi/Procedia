@@ -26,12 +26,14 @@ function _handleIntrospectEffect(cmd) {
       return result;
     }
 
-    savedDialogs = app.displayDialogs;
-    app.displayDialogs = DialogModes.NO;
+    if (typeof DialogModes !== 'undefined') {
+      savedDialogs = app.displayDialogs;
+      app.displayDialogs = DialogModes.NO;
+    }
 
     var reservedComp = findReservedComp();
     if (!reservedComp) {
-      app.displayDialogs = savedDialogs;
+      if (savedDialogs !== null) app.displayDialogs = savedDialogs;
       result.error = 'Reserved Comp not found — cannot introspect';
       return result;
     }
@@ -44,7 +46,7 @@ function _handleIntrospectEffect(cmd) {
       effect = tempLayer.Effects.addProperty(params.matchName);
     } catch (addErr) {
       tempLayer.remove();
-      app.displayDialogs = savedDialogs;
+      if (savedDialogs !== null) app.displayDialogs = savedDialogs;
       result.error = 'Effect not found in AE: ' + params.matchName;
       return result;
     }

@@ -5,6 +5,8 @@ import { loadJSXScript, resetHandlers } from './jsxSetup.js';
 beforeEach(function() {
   resetHandlers();
   loadJSXScript('jsx/dispatcher/dispatcher.jsx');
+  loadGlobalScript('bridge/allowedActions.js');
+  loadGlobalScript('bridge/jsxFiles.js');
   loadGlobalScript('bridge/evalBridge.js');
 });
 

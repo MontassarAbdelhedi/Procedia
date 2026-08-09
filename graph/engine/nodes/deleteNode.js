@@ -6,7 +6,7 @@
  * Delegates terminal-wire resolution to deleteNode/wireUtils.js.
  *
  * Dependencies: graphState, nodeRegistry, evalBridge, cascade/index.js,
- *               engine/helpers.js, deleteNode/wireUtils.js
+ *               engine/helpers/index.js, deleteNode/wireUtils.js
  * Load before: nodes/index.js
  *
  * Exports: deleteNode, deleteSelectedNodes
@@ -14,7 +14,7 @@
 // graph/engine/nodes/deleteNode.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
 //             bridge/evalBridge.js, graph/cascade/index.js,
-//             graph/engine/helpers.js, deleteNode/wireUtils.js
+//             graph/engine/helpers/index.js, deleteNode/wireUtils.js
 // MUST LOAD BEFORE: nodes/index.js
 
 window.__procedia_internal.ndel = (function() {

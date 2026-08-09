@@ -4,11 +4,11 @@
  * so aeReconcile.js and propagate.js don't duplicate the branching logic.
  *
  * @module engine/lifecycle
- * @dependencies engine/helpers, graphState
+ * @dependencies engine/helpers/index, graphState
  * @exports resolveNodeConnections, forEachHostingComp, injectLayerUUID
  */
 // graph/engine/lifecycle.js
-// DEPENDS ON: graph/engine/helpers.js, graph/graphState
+// DEPENDS ON: graph/engine/helpers/index.js, graph/graphState
 // MUST LOAD BEFORE: graph/engine/propagate.js, graph/undoManager/aeReconcile.js
 
 window.__procedia_internal.lifecycle = (function() {

@@ -1,147 +1,17 @@
 /**
  * Flushes dirty node property changes to the host application.
- * Debounces flushes and walks upstream wire chains to resolve path-layer UUIDs.
- * Depends on: graph/graphState.js, graph/nodeRegistry.js, bridge/evalBridge.js
+ * Debounces flushes and delegates single-node flushing to flushNodeImpl.
+ * Dependencies: graph/graphState.js, graph/nodeRegistry.js, flush/flushNode.js
  * Exports: dirtyFlusher object with schedule, flush, cancel
  */
 // flush/dirtyFlusher.js
-// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, graph/engine/helpers.js, bridge/evalBridge.js
+// DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js, flush/flushNode.js
 // MUST LOAD BEFORE: index.js
 
 var dirtyFlusher = (function() {
 
   var _timer = null;
   var DEBOUNCE_MS = 300;
-
-   /**
-    * Finds the _pathLayerUUID by walking downstream wires from the given node.
-    * @param {string} nodeId - The starting node UUID
-    * @returns {string|null}
-    */
-   function _findPathLayerUUID(nodeId) {
-     return _findPathLayerUUIDWithVisited(nodeId, {});
-   }
-
-   /**
-    * Recursively walks downstream wires to find a _pathLayerUUID, tracking visited nodes.
-   * @param {string} nodeId - Current node UUID
-   * @param {Object} visited - Set of visited node IDs (used to prevent cycles)
-   * @returns {string|null}
-   */
-  function _findPathLayerUUIDWithVisited(nodeId, visited) {
-    if (visited[nodeId]) return null;
-    visited[nodeId] = true;
-    var wireMap = graphState.getAllWires();
-    for (var wireId in wireMap) {
-      if (!wireMap.hasOwnProperty(wireId)) continue;
-      var wire = wireMap[wireId];
-      if (wire.fromNode === nodeId && wire.type === 'layer') {
-        if (wire._pathLayerUUID != null) {
-          return wire._pathLayerUUID;
-        }
-        var found = _findPathLayerUUIDWithVisited(wire.toNode, visited);
-        if (found != null) return found;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Resolves the upstream path-layer UUID for an effector node by inspecting its input wires.
-   * @param {string} nodeId - The effector node UUID
-   * @returns {string|null}
-   */
-  function _resolveUpstreamNodeUUID(nodeId) {
-    var wireMap = graphState.getAllWires();
-    for (var wireId in wireMap) {
-      if (!wireMap.hasOwnProperty(wireId)) continue;
-      var wire = wireMap[wireId];
-      if (wire.toNode === nodeId && wire.toPort === 'main_input') {
-        if (wire._pathLayerUUID != null) {
-          return wire._pathLayerUUID;
-        }
-        return _findPathLayerUUID(wire.fromNode);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Flushes all dirty properties of a single node by dispatching commands from its definition's onPropertyChange.
-   * @param {string} nodeId - The node UUID
-   * @param {Object} nodeData - The node's data object
-   * @param {Object} def - The node type definition from nodeRegistry
-   */
-  function _flushNode(nodeId, nodeData, def) {
-    // Track concurrent flushes so the propertyPoller can skip this node
-    // until all in-flight dispatches complete (avoids stale-read race condition).
-    nodeData._flushCount = (nodeData._flushCount || 0) + 1;
-
-    if (!def || typeof def.onPropertyChange !== 'function') {
-      graphState.clearDirty(nodeId);
-      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
-      return Promise.resolve();
-    }
-
-    // Clear dirty synchronously before dispatch so a concurrent edit that
-    // sets a new dirty flag won't be erased by a stale .then() callback.
-    graphState.clearDirty(nodeId);
-
-    var hostingCompUUID = nodeData.hostingComps && nodeData.hostingComps.length > 0
-      ? nodeData.hostingComps[0] : null;
-    var upstreamNodeUUID = null;
-    var pathLayerUUID = null;
-    if (nodeData.nodeKind === 'effector') {
-      upstreamNodeUUID = _resolveUpstreamNodeUUID(nodeId);
-      if (!upstreamNodeUUID) {
-        upstreamNodeUUID = _findPathLayerUUID(nodeId);
-      }
-    } else if (nodeData.nodeKind === 'affected') {
-      pathLayerUUID = _findPathLayerUUID(nodeId);
-    }
-
-    var commands = [];
-    for (var key in nodeData.props) {
-      if (!nodeData.props.hasOwnProperty(key)) continue;
-      var cmd;
-      if (nodeData.nodeKind === 'effector') {
-        cmd = def.onPropertyChange(key, nodeData.props[key], nodeData, hostingCompUUID, upstreamNodeUUID);
-      } else {
-        cmd = def.onPropertyChange(key, nodeData.props[key], nodeData, hostingCompUUID);
-      }
-      if (cmd !== null && cmd !== undefined) {
-        if (pathLayerUUID && cmd.params && !cmd.params.layerUUID) {
-          cmd.params.layerUUID = pathLayerUUID;
-        }
-        commands.push(cmd);
-      }
-    }
-
-    if (commands.length === 0) {
-      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
-      return Promise.resolve();
-    }
-
-    var chain = Promise.resolve();
-    for (var i = 0; i < commands.length; i++) {
-      (function(command) {
-        chain = chain.then(function() {
-          return evalBridge.dispatch(command);
-        }).then(function(res) {
-          if (!res || !res.ok) {
-            throw new Error((res && res.error) ? res.error : 'dispatch failed');
-          }
-        });
-      })(commands[i]);
-    }
-
-    return chain.then(function() {
-      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
-    }).catch(function(err) {
-      nodeData._flushCount = Math.max(0, nodeData._flushCount - 1);
-      console.warn('[dirtyFlusher] flush failed for ' + nodeId + ': ' + err);
-    });
-  }
 
   /**
    * Immediately flushes all dirty nodes in the graph.
@@ -162,7 +32,7 @@ var dirtyFlusher = (function() {
       var def = nodeRegistry.getDefinition(nodeData.type);
       (function(id, data, definition) {
         chain = chain.then(function() {
-          return _flushNode(id, data, definition);
+          return flushNodeImpl.flushNode(id, data, definition);
         });
       })(nodeId, nodeData, def);
     }

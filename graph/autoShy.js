@@ -7,7 +7,7 @@
  */
 // graph/autoShy.js
 // DEPENDS ON: ui/settings.js, graph/graphState/index.js, bridge/evalBridge.js,
-//             graph/engine/helpers.js
+//             graph/engine/helpers/index.js
 // MUST LOAD BEFORE: index.js
 
 var autoShy = (function() {

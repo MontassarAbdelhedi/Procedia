@@ -5,14 +5,14 @@
  * of its hosting compositions. Handles affected, effector, blending, and matte
  * node kind-specific logic.
  *
- * Dependencies: graphState, nodeRegistry, evalBridge, engine/helpers.js
+ * Dependencies: graphState, nodeRegistry, evalBridge, engine/helpers/index.js
  * Load before: nodes/index.js
  *
  * Exports: recreateNode
  */
 // graph/engine/nodes/recreateNode.js
 // DEPENDS ON: graph/graphState.js, graph/nodeRegistry.js,
-//             bridge/evalBridge.js, graph/engine/helpers.js
+//             bridge/evalBridge.js, graph/engine/helpers/index.js
 // MUST LOAD BEFORE: nodes/index.js
 
 window.__procedia_internal.nrec = (function() {

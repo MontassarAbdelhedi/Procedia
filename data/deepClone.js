@@ -8,7 +8,7 @@
  */
 // data/deepClone.js
 // DEPENDS ON: (none)
-// MUST LOAD BEFORE: graph/undoManager/state.js, graph/engine/helpers.js, graph/engine/propagate.js
+// MUST LOAD BEFORE: graph/undoManager/state.js, graph/engine/helpers/index.js, graph/engine/propagate.js
 
 window.__procedia_internal.deepClone = function deepClone(val) {
   if (val === null || typeof val !== 'object') {
