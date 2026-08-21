@@ -196,14 +196,14 @@ window.__procedia_internal.prop = (function() {
     }
 
     if (nodeData._transplantLayerUUID) {
-      evalBridge.dispatch({
+      var restampCommand = {
         action: 'restampLayer',
         params: {
           hostingCompUUID: hostingCompUUID,
           oldUUID:         nodeData._transplantLayerUUID,
           newUUID:         pathLayerUUID
         }
-      });
+      };
       graphState.updateNode(nodeId, {
         state:                'alive',
         hostingComps:         _mergeHostingComps(nodeData.hostingComps, hostingCompUUID),
@@ -211,8 +211,22 @@ window.__procedia_internal.prop = (function() {
       });
       _propagateUpstream(nodeId, hostingCompUUID, pathLayerUUID, visited);
       var transplantCmd = _buildOnAliveCommand(nodeData, def, hostingCompUUID, pathLayerUUID);
+      if (transplantCmd && (nodeData.nodeKind === 'effector' || nodeData.nodeKind === 'blending')) {
+        transplantCmd.params.layerNodeUUID = pathLayerUUID;
+      }
       if (transplantCmd) transplantCmd.params._moveToBottom = true;
-      _dispatchCommand(nodeId, transplantCmd);
+      // The effect must use the new path UUID only after AE has restamped the layer.
+      evalBridge.dispatch(restampCommand).then(function(restampResult) {
+        if (!restampResult || !restampResult.ok) {
+          console.error('[engine] restamp failed for ' + nodeId + ': ' + ((restampResult && restampResult.error) || 'unknown error'));
+          graphState.updateNode(nodeId, { state: 'error' });
+          return;
+        }
+        _dispatchCommand(nodeId, transplantCmd);
+      }).catch(function(restampError) {
+        console.error('[engine] restamp failed for ' + nodeId + ': ' + (restampError || 'unknown error'));
+        graphState.updateNode(nodeId, { state: 'error' });
+      });
       if (typeof dirtyFlusher !== 'undefined' && dirtyFlusher.flush) dirtyFlusher.flush();
       if (sentryTransaction) { sentryTransaction.finish(); }
       return;

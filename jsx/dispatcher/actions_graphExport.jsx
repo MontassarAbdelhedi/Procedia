@@ -10,7 +10,7 @@ function _handleWriteGraphExport(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
     var params = _cmdParams(cmd);
-    var exportFile = new File(_pluginRootFolder().fsName + '/data/graphExport.json');
+    var exportFile = new File(_procediaDataSubfolder('diagnostics').fsName + '/graphExport.json');
     exportFile.open('w');
     exportFile.write(JSON.stringify(params.graph));
     exportFile.close();

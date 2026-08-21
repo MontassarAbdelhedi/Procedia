@@ -2,11 +2,11 @@
 
 Visual node-based compositing panel for Adobe After Effects. Build procedural motion design workflows as a node graph — each node represents an AE layer, effect, or data input, and wires define how data flows between them.
 
-**Status:** Early development (`v0.0.4`). AE 2025+, Windows, CEP panel.
+**Status:** Early development (`v0.0.4`). AE 2020+, Windows, CEP panel.
 
 ## Requirements
 
-- **After Effects 2025+** (manifest range: `[24.0, 99.9]`)
+- **After Effects 2020+** (manifest range: `[17.0, 99.9]`)
 - **Windows**
 - **Node.js 18+** (dev only — for running tests)
 
@@ -55,7 +55,10 @@ Copy it to `%APPDATA%\Adobe\CEP\extensions\com.uppercut.procedia\` to install.
 | `SENTRY_DSN` | `__SENTRY_DSN__` |
 | `REPORTING_API_URL` | `__REPORTING_API_URL__` |
 
-Set either via environment variables or a `.debug/build.config.json` file at the repo root.
+Set either via environment variables or a `.secrets/build.config.json` file at the repo root.
+
+> Note: the `.debug` **file** at the repo root is the CEP remote-debugging manifest
+> (port 8088) — do not use that name for anything else.
 
 ## Project Structure
 

@@ -2,7 +2,7 @@
  * @fileoverview Shared utility functions for ExtendScript (ES3-safe).
  * REQUIRES: json.jsx (must be loaded before this file in the preamble)
  * Exports: findCompByUUID, findLayerByUUID, findReservedComp,
- *          findOrCreateProcediaFolder, _validatePluginPath
+ *          findOrCreateProcediaFolder, _validatePluginPath, _procediaDataFolder
  */
 // utils.jsx — Shared utility functions for ExtendScript (ES3-safe)
 // REQUIRES: json.jsx (must be loaded before this file in the preamble)
@@ -76,4 +76,20 @@ function _validatePluginPath(pluginRoot, relativePath) {
   if (relativePath.indexOf(':') !== -1) return '';
   if (relativePath.indexOf('..') !== -1) return '';
   return pluginRoot + '/' + relativePath;
+}
+
+/**
+ * Returns a writable per-user data folder outside the replaceable extension.
+ * @return {Folder} Procedia's application-data folder.
+ */
+function _procediaDataFolder() {
+  var root = new Folder(Folder.userData.fsName + '/Uppercut Studio/Procedia');
+  if (!root.exists) root.create();
+  return root;
+}
+
+function _procediaDataSubfolder(name) {
+  var folder = new Folder(_procediaDataFolder().fsName + '/' + name);
+  if (!folder.exists) folder.create();
+  return folder;
 }

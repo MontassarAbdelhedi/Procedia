@@ -17,11 +17,25 @@ var settingsModal = (function() {
   /**
    * Opens the settings modal.
    */
-  function open() {
-    if (_open) return;
+  function open(tabName) {
+    if (_open && !tabName) return;
     _open = true;
     _overlay.style.display = 'flex';
     __sm_sync.sync(_refs);
+    if (tabName) activateTab(tabName);
+  }
+
+  function activateTab(tabName) {
+    if (!_overlay) return;
+    var tab = _overlay.querySelector('.settings-tab[data-tab="' + tabName + '"]');
+    var panel = document.getElementById('settings-panel-' + tabName);
+    if (!tab || !panel) return;
+    var tabs = _overlay.querySelectorAll('.settings-tab');
+    var panels = _overlay.querySelectorAll('.settings-tab-panel');
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+    for (var j = 0; j < panels.length; j++) panels[j].classList.remove('active');
+    tab.classList.add('active');
+    panel.classList.add('active');
   }
 
   /**
@@ -41,6 +55,7 @@ var settingsModal = (function() {
     if (!_overlay) {
       _overlay = __sm_dom.build();
       _refs = __sm_events.bind(_overlay, close, __sm_apply.apply);
+      if (typeof __sm_updates !== 'undefined') __sm_updates.bind();
     }
     __sm_sync.sync(_refs);
     __sm_apply.apply();
@@ -49,7 +64,8 @@ var settingsModal = (function() {
   return {
     init:  init,
     open:  open,
-    close: close
+    close: close,
+    openUpdates: function() { open('updates'); }
   };
 
 })();

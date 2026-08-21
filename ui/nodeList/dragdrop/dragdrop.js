@@ -55,9 +55,14 @@ var __nl_dragdrop = {};
 
           var ghost = document.createElement('div');
           ghost.className = 'node-drag-ghost';
-          ghost.innerHTML =
-            '<span class="node-drag-ghost-dot" style="background:' + __nl_cat.getCategoryColor(label) + '"></span>' +
-            '<span class="node-drag-ghost-label">' + label + '</span>';
+          var ghostDot = document.createElement('span');
+          ghostDot.className = 'node-drag-ghost-dot';
+          ghostDot.style.background = __nl_cat.getCategoryColor(label);
+          var ghostLabel = document.createElement('span');
+          ghostLabel.className = 'node-drag-ghost-label';
+          ghostLabel.textContent = label;
+          ghost.appendChild(ghostDot);
+          ghost.appendChild(ghostLabel);
           ghost.style.left = (e.clientX + 12) + 'px';
           ghost.style.top = (e.clientY - 8) + 'px';
           document.body.appendChild(ghost);

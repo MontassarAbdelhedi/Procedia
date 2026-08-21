@@ -29,16 +29,13 @@ var envSnapshot = (function() {
    */
   function _readPluginVersion() {
     try {
-      if (typeof csInterface !== 'undefined' && csInterface.getSystemPath) {
-        var extPath = csInterface.getSystemPath(SystemPath.EXTENSION);
-        var req = new XMLHttpRequest();
-        req.open('GET', extPath + '/CSXS/manifest.xml', false);
-        req.overrideMimeType('text/xml');
-        req.send();
-        if (req.status === 200 || req.status === 0) {
-          var match = req.responseText.match(/<ExtensionBundleVersion>([^<]+)<\/ExtensionBundleVersion>/);
-          if (match) _pluginVersion = match[1];
-        }
+      var req = new XMLHttpRequest();
+      req.open('GET', 'CSXS/manifest.xml', false);
+      req.overrideMimeType('text/xml');
+      req.send();
+      if (req.status === 200 || req.status === 0) {
+        var match = req.responseText.match(/ExtensionBundleVersion\s*=\s*["']([^"']+)["']/);
+        if (match) _pluginVersion = match[1];
       }
     } catch (e) {
       console.warn('[envSnapshot] manifest version read failed:', e);

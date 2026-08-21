@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared `blend_map.jsx` ExtendScript module — single BLEND_MAP source for blending handler and import scanner
 - `introspect/constants.jsx` — extracted `_INTROSPECT_SKIP_BROWSE` blacklist for reuse
 - Version control system (`versioning/`) — repository, branches, snapshots, semantic diff/merge/conflict resolution, graph activation; UI modals (save/restore/compare/new-branch); AE persistence handlers (`vcsReadRepo.jsx`/`vcsWriteRepo.jsx`); CSS stylesheet (`versionControl.css`); unit tests for snapshot, repository, diff, and merge
+- In-app update system (`updater/` — `core.js`, `nodeAdapter.js`, `updateService.js`, `helper.ps1`): stable `latest.json` GitHub feed, semver + compatibility gates, 24h auto-check throttle, trusted-host HTTPS download with streamed SHA-256 verification, external PowerShell helper for ZIP inspection (traversal/symlink rejection), staging extraction, package validation, AE-exit-wait install swap with backup/rollback; restart-required flow; persistent state in `%APPDATA%\Uppercut Studio\Procedia\`
+- Settings modal **Updates** tab (`ui/settingsModal/updates.js`) — installed/latest version, status line, determinate/indeterminate progress, Check/Install/Retry/release-notes buttons; `settingsModal.open(tabName)` / `openUpdates()` API
+- Top-bar update badge — glowing dot when update available/ready/restart-required; click opens Settings → Updates
+- Release tooling: `scripts/package-release.js` (dist ZIP + SHA-256 checksum + `latest.json`), `scripts/sync-version.js` (`npm run version:sync` — package.json as single version authority syncing manifest/installer/reporting fallbacks), `npm run release` pipeline, Inno Setup installer (`scripts/installer.iss`), `_docs/update-system.md`, RELEASING.md rewritten
+- Updater tests: `tests/updater/{core,service,ui}.test.js` + `tests/integration/updater-packaging.test.js`; deleteNode bypass tests (`tests/deleteNode.test.js`, `tests/unit/deleteNode.test.js`) and wire-insertion restamp tests (`tests/unit/propagate.test.js`)
 
 ### Changed
 - Large-file refactoring: 12 panel-side files split into subdirectory modules — `builder.js` → `builder/{params,ports}.js`, `helpers.js` → `helpers/{wireState,display,portUtils}.js`, `nodeToolbar.js` → `nodeToolbar/{colorPicker,switchMode}.js`, `viewport.js` → `viewport/grid.js`, `cascade/utils.js` → `cascade/utils/{graph,pathLayer}.js`, `commentDOM.js` → `commentElement.js`, `deleteNode.js` → `deleteNode/wireUtils.js`, `switchNodes.js` → `switchNodes/{chain,reorder}.js`
@@ -36,8 +41,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `data/scripts.json`: 202 → 238 → 249 entries
 - Test dispatcher parity count + jsxSetup stubs updated for new versioning entries
 - Large-file refactoring (panel side): `bridge/evalBridge.js` → extracted `allowedActions.js` + `jsxFiles.js` (2 new files); `graph/engine/helpers.js` → `helpers/{buildInitialProps,refreshUI,pathLayer,dynamicSchema,expressionDispatch,dataPropagation,deepCopyNode,index}.js` (8 new files); `flush/dirtyFlusher.js` → `flush/{flushNode,pathLayerUtil}.js` + barrel kept (2 new files)
+- Manifest compatibility widened to AE 2020+: CSXS manifest Version 11.0 → 7.0, HostList `[24.0,99.9]` → `[17.0,99.9]`; `--enable-nodejs` CEF parameter added (updater requirement)
+- Per-user writable data migration off the replaceable extension folder: schema cache → `%APPDATA%/Uppercut Studio/Procedia/cache/` (legacy copy-on-read, atomic tmp+rename write), graph export diagnostics → `diagnostics/` subfolder, cmd-chunk temp files → OS temp `/Procedia`, `writeTextFile` under per-user data root (`_procediaDataFolder` in `jsx/utils.jsx`)
+- Startup log relocated to `%APPDATA%\Uppercut Studio\Procedia\logs\startup.log`
+- Build secrets config moved `.debug/build.config.json` → `.secrets/build.config.json` (`.debug` reserved for CEP remote debugging manifest); build excludes more root entries from bundle
+- `envSnapshot` version read via relative manifest URL (survives updater swap) + attribute-form regex; version fallback literals injected by `version:sync`
+- README updated (AE 2020+, `.secrets` note)
 
 ### Fixed
+- Deleting an alive effector hosted in the active comp no longer cascade-ghosts the whole path — input wire is re-routed directly to the downstream target (`_bypassActiveCompEffector` in `graph/engine/nodes/deleteNode.js`)
+- Wire-insertion restamp race in `propagate.js`: `restampLayer` now awaited before firing the transplant `onAlive` command; effector/blending transplant commands receive `layerNodeUUID = pathLayerUUID`; failure marks node state `error`
+- Stale memoized `findPathLayerUUID` cache: invalidated on all `graphState` mutation methods, not just `rebuildTempGraph` (CRUD modules call internal rebuilds directly)
+- Startup chain errors (Reserved Comp / graph restore / version control init) now surface instead of silently continuing
+- XSS hardening: node labels/types/category names escaped in `nodeList/render.js` + `nodePicker/render.js`; drag ghost built via DOM APIs instead of `innerHTML`
+- Preset names >80 chars or containing `<>"'`` rejected on save and skipped on load
 - Race condition: effector/blending `onAlive` racing with upstream layer creation during propagation — deferred via `setTimeout(fn, 0)` in `propagate.js` and `wires.js`
 - Variable naming inconsistencies: private-underscore misuse in `index.js`, `poller.js`, `propagate.js`, `wires.js`, `deleteNode.js`, `switchNodes.js`, `cascadeGhost/*.js`, `aeReconcile.js`, `graphOps.js`, `helpers.js`
 - `offGraphChange` callback parameter renamed from `cb` to `callback` in `graphState/index.js`

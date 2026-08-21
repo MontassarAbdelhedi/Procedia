@@ -26,7 +26,11 @@ function _pluginRootFolder() {
 function _handleReadSchemaCache(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
-    var cacheFile = new File(_pluginRootFolder().fsName + '/data/effectSchemaCache.json');
+    var cacheFile = new File(_procediaDataSubfolder('cache').fsName + '/effectSchemaCache.json');
+    var legacyFile = new File(_pluginRootFolder().fsName + '/data/effectSchemaCache.json');
+    if (!cacheFile.exists && legacyFile.exists) {
+      legacyFile.copy(cacheFile.fsName);
+    }
     if (!cacheFile.exists) {
       result.ok = true;
       result.data = { aeVersion: '', schemas: {} };
@@ -52,10 +56,13 @@ function _handleWriteSchemaCache(cmd) {
   var result = { ok: false, data: null, error: null };
   try {
     var params = _cmdParams(cmd);
-    var cacheFile = new File(_pluginRootFolder().fsName + '/data/effectSchemaCache.json');
-    cacheFile.open('w');
-    cacheFile.write(JSON.stringify(params.cache));
-    cacheFile.close();
+    var cacheFile = new File(_procediaDataSubfolder('cache').fsName + '/effectSchemaCache.json');
+    var tempFile = new File(cacheFile.fsName + '.tmp');
+    tempFile.open('w');
+    tempFile.write(JSON.stringify(params.cache));
+    tempFile.close();
+    if (cacheFile.exists) cacheFile.remove();
+    tempFile.rename(cacheFile.name);
     result.ok = true;
     result.data = { written: true };
   } catch (e) {
@@ -107,8 +114,8 @@ function _handleWriteGraph(cmd) {
 }
 
 /**
- * Writes a text file to the plugin directory.
- * @param {Object} cmd Command with params: path (relative from plugin root), content.
+ * Writes a text file to Procedia's per-user data directory.
+ * @param {Object} cmd Command with params: path (relative from data root), content.
  * @return {Object} Result with .ok, .error.
  */
 function _handleWriteTextFile(cmd) {
@@ -123,12 +130,13 @@ function _handleWriteTextFile(cmd) {
       result.error = 'writeTextFile: content required';
       return result;
     }
-    var filePath = _validatePluginPath(_pluginRootFolder().fsName, params.path);
+    var filePath = _validatePluginPath(_procediaDataFolder().fsName, params.path);
     if (!filePath) {
       result.error = 'writeTextFile: invalid path';
       return result;
     }
     var f = new File(filePath);
+    if (!f.parent.exists) f.parent.create();
     f.open('w');
     f.write(params.content);
     f.close();

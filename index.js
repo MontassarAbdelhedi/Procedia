@@ -132,13 +132,18 @@ function init() {
     errorDivElement.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999999;background:#c62828;color:#fff;padding:20px 28px;border-radius:8px;font-family:sans-serif;font-size:14px;max-width:500px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
     errorDivElement.innerHTML = '<b>Procedia failed to start</b><br><br>' +
       'Missing modules: ' + missingModuleNames.join(', ') + '<br><br>' +
-      'Check startup.log in the extension folder' +
+       'Check startup.log in the Procedia application-data folder' +
       '<br><br><small>Extension ID: com.uppercut.procedia</small>';
     document.body.appendChild(errorDivElement);
 
     try {
       if (typeof csInterface !== 'undefined' && typeof window.cep !== 'undefined' && window.cep.fs) {
-        var logFilePath = extensionPath.replace(/\\/g, '/') + '/startup.log';
+        var userDataPath = csInterface.getSystemPath(SystemPath.USER_DATA).replace(/\\/g, '/');
+        var logDirectory = userDataPath + '/Uppercut Studio/Procedia/logs';
+        window.cep.fs.makedir(userDataPath + '/Uppercut Studio');
+        window.cep.fs.makedir(userDataPath + '/Uppercut Studio/Procedia');
+        window.cep.fs.makedir(logDirectory);
+        var logFilePath = logDirectory + '/startup.log';
         window.cep.fs.writeFile(logFilePath, logMessageLines.join('\n'));
       }
     } catch (cepError) {
@@ -173,6 +178,7 @@ function init() {
   if (typeof statusBar !== 'undefined' && statusBar.init) statusBar.init();
   if (typeof sidebarToggle !== 'undefined' && sidebarToggle.init) sidebarToggle.init();
   if (typeof settingsModal !== 'undefined' && settingsModal.init) settingsModal.init();
+  if (typeof updateService !== 'undefined' && updateService.init) updateService.init(csInterface);
   if (typeof presetModal !== 'undefined' && presetModal.init) presetModal.init();
   if (typeof compList !== 'undefined' && compList.init) compList.init();
   if (typeof graphSearch !== 'undefined' && graphSearch.init) graphSearch.init();
@@ -188,9 +194,11 @@ function init() {
     }
     chain.then(function() {
       return evalBridge.dispatch({ action: 'ensureReservedComp' });
-    }).then(function() {
+    }).then(function(reservedResult) {
+      if (!reservedResult || !reservedResult.ok) throw new Error(reservedResult && reservedResult.error ? reservedResult.error : 'Reserved Comp initialization failed.');
       return evalBridge.dispatch({ action: 'readGraph' });
     }).then(function(res) {
+      if (!res || !res.ok) throw new Error(res && res.error ? res.error : 'Graph restoration failed.');
       if (res && res.ok && res.data && res.data.nodes) {
         var hasNodes = false;
         for (var k in res.data.nodes) { hasNodes = true; break; }
@@ -220,6 +228,7 @@ function init() {
         return versionControl.initialize().then(function(vcResult) {
           if (!vcResult.ok) {
             console.warn('[Procedia] Version control init failed:', vcResult.error);
+            throw new Error(vcResult.error || 'Version control initialization failed.');
           } else {
             console.log('[Procedia] Version control initialized:', vcResult.data.source);
             if (typeof branchSelector !== 'undefined') branchSelector.init();
@@ -232,6 +241,14 @@ function init() {
       if (typeof statusBar !== 'undefined' && statusBar.refresh) statusBar.refresh();
     }).then(function() {
       if (typeof walkthrough !== 'undefined' && walkthrough.init) walkthrough.init();
+      if (typeof updateService !== 'undefined' && updateService.confirmHealthyStart) updateService.confirmHealthyStart();
+      if (typeof updateService !== 'undefined' && updateService.shouldRunDailyCheck() && typeof __sm_updates !== 'undefined') {
+        setTimeout(function() {
+          __sm_updates.getAEVersion().then(function(version) {
+            return updateService.checkForUpdates({ manual: false, aeVersion: version });
+          }).catch(function() {});
+        }, 1000);
+      }
     }).catch(function(err) {
       console.warn('[Procedia] startup chain error:', err);
     });

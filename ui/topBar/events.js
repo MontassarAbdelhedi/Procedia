@@ -108,6 +108,11 @@ var __topBar_events = (function() {
       settingsBtn.addEventListener('click', function() { settingsModal.open(); });
     }
 
+    var updateBadge = document.getElementById('topbar-update-badge');
+    if (updateBadge && typeof settingsModal !== 'undefined') {
+      updateBadge.addEventListener('click', function() { settingsModal.openUpdates(); });
+    }
+
     var reportBtn = document.getElementById('topbar-report');
     if (reportBtn && typeof reporter !== 'undefined' && reporter.openBugReportForm) {
       reportBtn.addEventListener('click', function() { reporter.openBugReportForm(); });

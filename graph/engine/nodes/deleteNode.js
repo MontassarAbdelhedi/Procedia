@@ -2,7 +2,7 @@
  * graph/engine/nodes/deleteNode.js
  *
  * Deletes nodes from the graph with kind-specific cleanup: onGhost/onDelete
- * dispatch, cascade ghosting for comp nodes, and wire removal.
+ * dispatch, active-comp effector bypass, cascade ghosting, and wire removal.
  * Delegates terminal-wire resolution to deleteNode/wireUtils.js.
  *
  * Dependencies: graphState, nodeRegistry, evalBridge, cascade/index.js,
@@ -22,6 +22,62 @@ window.__procedia_internal.ndel = (function() {
   var hlp = registry.get('hlp');
   var lifecycle = window.__procedia_internal.lifecycle;
   var wireUtils = registry.get('ndel_wireUtils');
+
+  function _bypassActiveCompEffector(nodeData, wireMap) {
+    if (nodeData.nodeKind !== 'effector' || nodeData.state !== 'alive') return false;
+    if (!graphState.getActiveComp) return false;
+
+    var activeComp = graphState.getActiveComp();
+    if (!activeComp) return false;
+
+    var isHostedInActiveComp = false;
+    for (var hostIndex = 0; hostIndex < nodeData.hostingComps.length; hostIndex++) {
+      if (nodeData.hostingComps[hostIndex] === activeComp) {
+        isHostedInActiveComp = true;
+        break;
+      }
+    }
+    if (!isHostedInActiveComp) return false;
+
+    var inputWire = null;
+    var outputWire = null;
+    for (var wireId in wireMap) {
+      if (!wireMap.hasOwnProperty(wireId)) continue;
+      var wire = wireMap[wireId];
+      if (wire.type !== 'layer') continue;
+      if (wire.toNode === nodeData.id && wire.toPort === 'main_input') {
+        if (inputWire) return false;
+        inputWire = wire;
+      }
+      if (wire.fromNode === nodeData.id && wire.fromPort === 'output') {
+        if (outputWire) return false;
+        outputWire = wire;
+      }
+    }
+    if (!inputWire || !outputWire) return false;
+
+    // Keep an existing direct path instead of creating a duplicate edge.
+    for (var directWireId in wireMap) {
+      if (!wireMap.hasOwnProperty(directWireId)) continue;
+      var directWire = wireMap[directWireId];
+      if (directWire.type !== 'layer') continue;
+      if (directWire.id === inputWire.id || directWire.id === outputWire.id) continue;
+      if (directWire.fromNode === inputWire.fromNode &&
+          directWire.fromPort === inputWire.fromPort &&
+          directWire.toNode === outputWire.toNode &&
+          directWire.toPort === outputWire.toPort) {
+        graphState.removeWire(outputWire.id);
+        return true;
+      }
+    }
+
+    graphState.updateWire(outputWire.id, {
+      fromNode: inputWire.fromNode,
+      fromPort: inputWire.fromPort
+    });
+    graphState.removeWire(inputWire.id);
+    return true;
+  }
 
   function deleteNode(nodeId) {
     var nodeData = graphState.getNode(nodeId);
@@ -93,11 +149,14 @@ window.__procedia_internal.ndel = (function() {
           if (compDeleteCmd) evalBridge.dispatch(compDeleteCmd);
         }
       } else if (cascadeAlgorithm && cascadeAlgorithm.cascadeGhost) {
-        for (var cascadeWireId in snapshotWireMap) {
-          if (!snapshotWireMap.hasOwnProperty(cascadeWireId)) continue;
-          var cascadeWire = snapshotWireMap[cascadeWireId];
-          if (cascadeWire.toNode === nodeId && cascadeWire.type === 'layer') {
-            cascadeAlgorithm.cascadeGhost(cascadeWireId);
+        var bypassedEffector = _bypassActiveCompEffector(nodeData, snapshotWireMap);
+        if (!bypassedEffector) {
+          for (var cascadeWireId in snapshotWireMap) {
+            if (!snapshotWireMap.hasOwnProperty(cascadeWireId)) continue;
+            var cascadeWire = snapshotWireMap[cascadeWireId];
+            if (cascadeWire.toNode === nodeId && cascadeWire.type === 'layer') {
+              cascadeAlgorithm.cascadeGhost(cascadeWireId);
+            }
           }
         }
         var affectedDeleteCmd = lifecycle.buildLifecycleCommand(nodeData, def, 'onDelete');

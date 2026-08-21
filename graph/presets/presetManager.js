@@ -91,7 +91,7 @@ var presetManager = (function() {
     _load();
     for (var name in _presets) {
       if (_presets.hasOwnProperty(name)) {
-        _registerPresetNode(name);
+        if (name.length <= 80 && !/[<>"'`]/.test(name)) _registerPresetNode(name);
       }
     }
   }
@@ -107,6 +107,7 @@ var presetManager = (function() {
   function savePreset(name, nodeIds) {
     if (!name || name.trim() === '') return false;
     name = name.trim();
+    if (name.length > 80 || /[<>"'`]/.test(name)) return false;
 
     var presetNodes = [];
     var includedIds = {};

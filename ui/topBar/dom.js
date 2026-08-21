@@ -14,6 +14,7 @@ var __topBar_dom = (function() {
         '<div class="topbar-logo">' +
           '<div class="topbar-logo-mark"><i class="ti ti-topology-star-3"></i></div>' +
           '<span class="topbar-wordmark">Procedia</span>' +
+          '<button id="topbar-update-badge" class="topbar-update-badge" style="display:none" aria-label="Update available" title="Update available"><span aria-hidden="true"></span></button>' +
         '</div>' +
       '</div>' +
       '<div class="topbar-center">' +

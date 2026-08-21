@@ -9,6 +9,11 @@
 
 var __nl_render = (function() {
 
+  function _escape(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function _isPresetLabel(label) {
     var def = __nl_cat.resolveDefByLabel(label);
     return def && def._isPreset;
@@ -51,10 +56,10 @@ var __nl_render = (function() {
       var isMerge = cat.nodes[i] === 'Merge' || cat.nodes[i] === 'Multimerge';
       var isPreset = _isPresetLabel(cat.nodes[i]);
       itemsHtml +=
-        '<div class="leftbar-node-item' + (isPreset ? ' leftbar-node-item--preset' : '') + '" data-node="' + cat.nodes[i] + '"' +
+        '<div class="leftbar-node-item' + (isPreset ? ' leftbar-node-item--preset' : '') + '" data-node="' + _escape(cat.nodes[i]) + '"' +
           (isPreset ? ' data-preset="true"' : '') + '>' +
           '<div class="leftbar-node-dot" style="background:' + nodeColor + '"></div>' +
-          '<span class="leftbar-node-name">' + cat.nodes[i] + '</span>' +
+          '<span class="leftbar-node-name">' + _escape(cat.nodes[i]) + '</span>' +
           (isMerge ? '<span class="leftbar-node-alert ti ti-alert-circle" title="Requires Procedia to run"></span>' : '') +
           (isPreset ? '<span class="leftbar-node-delete ti ti-trash" title="Delete preset"></span>' : '') +
         '</div>';
@@ -93,9 +98,9 @@ var __nl_render = (function() {
         var nodeColor = __nl_cat.getCategoryColor(sc.nodes[i]);
         var isMerge = sc.nodes[i] === 'Merge' || sc.nodes[i] === 'Multimerge';
         itemsHtml +=
-          '<div class="leftbar-node-item" data-node="' + sc.nodes[i] + '">' +
+          '<div class="leftbar-node-item" data-node="' + _escape(sc.nodes[i]) + '">' +
             '<div class="leftbar-node-dot" style="background:' + nodeColor + '"></div>' +
-            '<span class="leftbar-node-name">' + sc.nodes[i] + '</span>' +
+            '<span class="leftbar-node-name">' + _escape(sc.nodes[i]) + '</span>' +
             (isMerge ? '<span class="leftbar-node-alert ti ti-alert-circle" title="Requires Procedia to run"></span>' : '') +
           '</div>';
       }

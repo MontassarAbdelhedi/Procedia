@@ -23,6 +23,14 @@ yarn.lock
 .debug
 settings.local.json
 .claude/
+.opencode/
+
+# Secrets (Sentry DSN / reporting API — never commit)
+.secrets/
+
+# Release artifacts
+dist/
+latest.json
 
 # Build output (secrets injected at build time — never commit)
 build/

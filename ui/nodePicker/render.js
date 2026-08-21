@@ -8,6 +8,11 @@
 
 var __np_render = (function() {
 
+  function _escape(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   /**
    * Renders the list of node items with selection highlighting.
    * @param {Array} nodes Array of node definitions.
@@ -33,11 +38,11 @@ var __np_render = (function() {
     for (var g = 0; g < order.length; g++) {
       var catName = order[g];
       var items = groups[catName];
-      html += '<div class="nodepicker-category">' + catName + '</div>';
+      html += '<div class="nodepicker-category">' + _escape(catName) + '</div>';
       for (var j = 0; j < items.length; j++) {
         html +=
-          '<div class="nodepicker-item' + (items[j]._flatIndex === selIndex ? ' selected' : '') + '" data-type="' + items[j].type + '">' +
-            '<span class="nodepicker-item-label">' + (items[j].label || items[j].type) + '</span>' +
+          '<div class="nodepicker-item' + (items[j]._flatIndex === selIndex ? ' selected' : '') + '" data-type="' + _escape(items[j].type) + '">' +
+            '<span class="nodepicker-item-label">' + _escape(items[j].label || items[j].type) + '</span>' +
           '</div>';
       }
     }

@@ -16,7 +16,9 @@ function _cmdChunkFilePath(id) {
       return '';
     }
   }
-  return _validatePluginPath(_pluginRootFolder().fsName, 'data/cmd_' + id + '.tmp');
+  var tempFolder = new Folder(Folder.temp.fsName + '/Procedia');
+  if (!tempFolder.exists) tempFolder.create();
+  return _validatePluginPath(tempFolder.fsName, 'cmd_' + id + '.tmp');
 }
 
 function _handleWriteCmdChunk(cmd) {

@@ -33,3 +33,23 @@ graphState.rebuildTempGraph = function() {
   window.__procedia_internal.hlp.invalidatePathLayerCache();
   _origRebuild();
 };
+
+// CRUD modules call their internal rebuild function directly, so wrapping only
+// rebuildTempGraph does not invalidate this cache after topology mutations.
+(function() {
+  var mutationMethods = [
+    'addNode', 'removeNode', 'updateNode', 'batchUpdateNodes',
+    'addWire', 'removeWire', 'updateWire', 'loadGraph', 'clearGraph',
+    '_replaceState', 'replaceGraph'
+  ];
+  for (var i = 0; i < mutationMethods.length; i++) {
+    var methodName = mutationMethods[i];
+    if (typeof graphState[methodName] !== 'function') continue;
+    (function(name, original) {
+      graphState[name] = function() {
+        window.__procedia_internal.hlp.invalidatePathLayerCache();
+        return original.apply(graphState, arguments);
+      };
+    })(methodName, graphState[methodName]);
+  }
+})();

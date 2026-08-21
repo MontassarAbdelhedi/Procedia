@@ -1,7 +1,7 @@
 // scripts/build.js — creates build/ with secrets injected at build time.
 // Source never contains real credentials; the __SENTRY_DSN__ and
 // __REPORTING_API_URL__ placeholders in reporting/reporter.js are replaced
-// from env vars (SENTRY_DSN / REPORTING_API_URL) or .debug/build.config.json.
+// from env vars (SENTRY_DSN / REPORTING_API_URL) or .secrets/build.config.json.
 // Unresolved placeholders are left in place — the panel degrades to no-Sentry
 // and console-only reporting for those.
 'use strict';
@@ -18,8 +18,10 @@ const PLACEHOLDERS = [
 
 // Entries at the repo root that never ship in the extension bundle.
 const EXCLUDE = new Set([
-  '.git', '.gitignore', '.debug', '.opencode', '.cursor',
-  'node_modules', 'tests', '_docs', 'build'
+  '.git', '.gitignore', '.debug', '.secrets', '.opencode', '.cursor',
+  'node_modules', 'tests', '_docs', 'build', 'dist', 'scripts',
+  'package.json', 'package-lock.json', 'vitest.config.js', 'latest.json',
+  'AGENTS.md', 'CHANGELOG.md', 'README.md', 'RELEASING.md'
 ]);
 
 const TEXT_EXTENSIONS = new Set([
@@ -27,7 +29,7 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 
 function loadConfig() {
-  const cfgPath = path.join(ROOT, '.debug', 'build.config.json');
+  const cfgPath = path.join(ROOT, '.secrets', 'build.config.json');
   try {
     return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
   } catch (e) {
@@ -85,7 +87,7 @@ function main() {
   copyDir(ROOT, OUT, values);
 
   for (const token of missing) {
-    console.warn('[build] warning: ' + token + ' left as placeholder (set the env var or .debug/build.config.json)');
+    console.warn('[build] warning: ' + token + ' left as placeholder (set the env var or .secrets/build.config.json)');
   }
   console.log('[build] wrote build/ (' + Object.keys(values).length + ' of ' + PLACEHOLDERS.length + ' secrets injected)');
 }

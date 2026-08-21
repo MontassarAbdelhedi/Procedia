@@ -24,6 +24,7 @@ var __sm_dom = (function() {
           '<button class="settings-tab active" data-tab="general">General</button>' +
           '<button class="settings-tab" data-tab="wires">Wires</button>' +
           '<button class="settings-tab" data-tab="layout">Auto Layout</button>' +
+          '<button class="settings-tab" data-tab="updates">Updates</button>' +
         '</div>' +
         '<div class="settings-modal-body">' +
 
@@ -147,6 +148,29 @@ var __sm_dom = (function() {
               '<div class="settings-hint">Spacing between layers and nodes in auto layout</div>' +
             '</div>' +
 
+          '</div>' +
+
+          '<div class="settings-tab-panel" id="settings-panel-updates">' +
+            '<div class="settings-update-hero">' +
+              '<div class="settings-update-icon"><i class="ti ti-download"></i></div>' +
+              '<div>' +
+                '<div class="settings-update-name">Procedia <span id="settings-update-current">0.0.0</span></div>' +
+                '<div class="settings-hint">Installed version</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="settings-update-details">' +
+              '<div class="settings-row"><span class="settings-label-sub">Latest</span><span id="settings-update-latest">Not checked</span></div>' +
+              '<div id="settings-update-status" class="settings-update-status" role="status" aria-live="polite">Check for updates to see whether a new release is available.</div>' +
+            '</div>' +
+            '<div id="settings-update-progress-wrap" class="settings-update-progress-wrap" style="display:none">' +
+              '<progress id="settings-update-progress" max="100" value="0" aria-label="Update progress"></progress>' +
+            '</div>' +
+            '<div class="settings-update-actions">' +
+              '<button id="settings-update-notes" class="settings-action-btn settings-action-btn--quiet" style="display:none">View release notes</button>' +
+              '<button id="settings-retry-update" class="settings-action-btn settings-action-btn--quiet" style="display:none">Retry</button>' +
+              '<button id="settings-check-updates" class="settings-action-btn settings-action-btn--quiet">Check for updates</button>' +
+              '<button id="settings-install-update" class="settings-action-btn" style="display:none">Update Procedia</button>' +
+            '</div>' +
           '</div>' +
 
         '</div>' +
